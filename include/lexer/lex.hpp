@@ -84,29 +84,39 @@ private:
 	Token string_literal()
 	{
 		// First token is the opening quote
-		const char* prev = nullptr;
 		current++;
 		std::string value;
 		while(!is_eof(current)) {
 			if(*current == '\\') {
-				char ch = escape_sequence(&current);
-				if(ch == '\0') {
-					std::cerr << "Invalid escape sequence" << std::endl;
-					exit(1);
+				// multiline string
+				if(std::isspace(peek(1))) {
+					current++;
+					skip_spaces();
+					if(*current == '\\') {
+						current++;
+						continue;
+					}
+					else {
+						std::cerr << "Unterminated string literal" << std::endl;
+						exit(1);
+					}
 				}
+
+				char ch = escape_sequence(&current);
 				value += ch;
-				prev = current - 1;
 			}
 			else if(*current != '"') {
 				value += *current;
-				prev = current;
 				current++;
 			}
 			else {
+				current++; // closing quote
 				return Token{TokenType::string_literal, value};
 			}
 		}
-		return eof_token();
+
+		std::cerr << "Unterminated string literal" << std::endl;
+		exit(1);
 	}
 
 	Token integer_literal()
@@ -135,16 +145,38 @@ private:
 	char escape_sequence(const char** current)
 	{
 		// current points to the backslash
-		char ch = peek(1);
-		switch(ch) {
+		char ch1 = peek(1);
+		char ch2 = peek(2);
+		char ch3 = peek(3);
+
+		// 3-digit octal
+		if(std::isdigit(ch1) && std::isdigit(ch2) && std::isdigit(ch3)) {
+			int v = 0;
+			v = (ch1 - '0') * 64 + (ch2 - '0') * 8 + (ch3 - '0');
+			if(v > 255) {
+				std::cerr << "Invalid escape sequence" << std::endl;
+				exit(1);
+			}
+			*current += 4;
+			return (char)v;
+		}
+
+		switch(ch1) {
 		case '"':
 			*current += 2;
 			return '"';
 		case '\\':
 			*current += 2;
 			return '\\';
+		case 'n':
+			*current += 2;
+			return '\n';
+		case 't':
+			*current += 2;
+			return '\t';
 		default:
-			return '\0';
+			std::cerr << "Invalid escape sequence" << std::endl;
+			exit(1);
 		}
 	}
 
