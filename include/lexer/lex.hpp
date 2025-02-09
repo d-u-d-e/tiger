@@ -12,100 +12,100 @@ namespace lexer
 {
 
 class Scanner {
-	public:
-	Scanner(const std::filesystem::path& filename)
-	{
-		auto f = std::ifstream(filename);
+  public:
+  Scanner(const std::filesystem::path& filename)
+  {
+    auto f = std::ifstream(filename);
 
-		if(!f.is_open()) {
-			std::cerr << "Could not open file: " << filename << std::endl;
-			exit(1);
-		}
+    if(!f.is_open()) {
+      std::cerr << "Could not open file: " << filename << std::endl;
+      exit(1);
+    }
 
-		std::stringstream buffer;
-		buffer << f.rdbuf();
-		contents = std::move(buffer.str());
-		current = contents.c_str();
-		line = 1;
-	}
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    contents = std::move(buffer.str());
+    current = contents.c_str();
+    line = 1;
+  }
 
-	Scanner(const std::string& src)
-	{
-		contents = src;
-		current = contents.c_str();
-		line = 1;
-	}
+  Scanner(const std::string& src)
+  {
+    contents = src;
+    current = contents.c_str();
+    line = 1;
+  }
 
-	Token next()
-	{
-		skip_whitespaces();
-		return read_token();
-	}
+  Token next()
+  {
+    skip_whitespaces();
+    return read_token();
+  }
 
-	private:
-	Token read_token();
-	Token identifier();
-	Token string_literal();
-	Token integer_literal();
-	Token punctuation();
-	void skip_multiline_comment();
-	char escape_sequence(const char** current);
+  private:
+  Token read_token();
+  Token identifier();
+  Token string_literal();
+  Token integer_literal();
+  Token punctuation();
+  void skip_multiline_comment();
+  char escape_sequence(const char** current);
 
-	char peek(int offset = 0)
-	{
-		if(current + offset >= contents.c_str() + contents.size()) {
-			return '\0';
-		}
-		return *(current + offset);
-	}
+  char peek(int offset = 0)
+  {
+    if(current + offset >= contents.c_str() + contents.size()) {
+      return '\0';
+    }
+    return *(current + offset);
+  }
 
-	void expect(char ch, const std::string& err_msg)
-	{
-		if(*current != ch) {
-			error(err_msg);
-		}
-		current++;
-	}
+  void expect(char ch, const std::string& err_msg)
+  {
+    if(*current != ch) {
+      error(err_msg);
+    }
+    current++;
+  }
 
-	bool match(char ch)
-	{
-		if(*current == ch) {
-			current++;
-			return true;
-		}
-		return false;
-	}
+  bool match(char ch)
+  {
+    if(*current == ch) {
+      current++;
+      return true;
+    }
+    return false;
+  }
 
-	void error(const std::string& err_msg)
-	{
-		std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
-		exit(1);
-	}
+  void error(const std::string& err_msg)
+  {
+    std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
+    exit(1);
+  }
 
-	Token eof_token()
-	{
-		return {TokenType::eof, "$", line};
-	}
+  Token eof_token()
+  {
+    return {TokenType::eof, "$", line};
+  }
 
-	bool is_eof(const char* current)
-	{
-		return current >= (contents.c_str() + contents.size());
-	}
+  bool is_eof(const char* current)
+  {
+    return current >= (contents.c_str() + contents.size());
+  }
 
-	void skip_whitespaces()
-	{
-		while(!is_eof(current) && std::isspace(*current)) {
-			if(*current == '\n') {
-				line++;
-			}
-			current++;
-		}
-	}
+  void skip_whitespaces()
+  {
+    while(!is_eof(current) && std::isspace(*current)) {
+      if(*current == '\n') {
+        line++;
+      }
+      current++;
+    }
+  }
 
-	private:
-	std::string contents;
-	int line;
-	const char* current;
+  private:
+  std::string contents;
+  int line;
+  const char* current;
 };
 
 } // namespace lexer
