@@ -2,10 +2,11 @@
 #include "token.hpp"
 #include <assert.h>
 #include <cctype>
+#include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <filesystem>
 
 namespace lexer
 {
@@ -17,7 +18,8 @@ class Scanner {
 		auto f = std::ifstream(filename);
 
 		if(!f.is_open()) {
-			error("Could not open file");
+			std::cerr << "Could not open file: " << filename << std::endl;
+			exit(1);
 		}
 
 		std::stringstream buffer;
@@ -36,7 +38,7 @@ class Scanner {
 
 	Token next()
 	{
-		skip_spaces();
+		skip_whitespaces();
 		return read_token();
 	}
 
@@ -76,8 +78,7 @@ class Scanner {
 
 	void error(const std::string& err_msg)
 	{
-		std::cerr << "[line " + std::to_string(line) + "] Err: " + err_msg
-							<< std::endl;
+		std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
 		exit(1);
 	}
 
@@ -91,7 +92,7 @@ class Scanner {
 		return current >= (contents.c_str() + contents.size());
 	}
 
-	void skip_spaces()
+	void skip_whitespaces()
 	{
 		while(!is_eof(current) && std::isspace(*current)) {
 			if(*current == '\n') {

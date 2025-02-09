@@ -48,6 +48,9 @@ Token Scanner::punctuation()
 		return Token{TokenType::comma, ",", line};
 	case ':':
 		current++;
+		if(match('=')) {
+			return Token{TokenType::assign_op, ":=", line};
+		}
 		return Token{TokenType::colon, ":", line};
 	case ';':
 		current++;
@@ -105,10 +108,17 @@ Token Scanner::punctuation()
 	case '|':
 		current++;
 		return Token{TokenType::or_op, "|", line};
+	case '[':
+		current++;
+		return Token{TokenType::lbracket, "[", line};
+	case ']':
+		current++;
+		return Token{TokenType::rbracket, "]", line};
 	default:
 		break;
 	}
-	error("Invalid character");
+
+	error(std::format("Invalid character {}!\n", *current));
 	__builtin_unreachable();
 }
 
@@ -152,8 +162,7 @@ Token Scanner::string_literal()
 		}
 		else {
 			current++; // Closing quote
-			return Token{
-				.type = TokenType::string_literal, .value = value, .line = sline};
+			return Token{TokenType::string_literal, value, sline};
 		}
 	}
 
@@ -171,13 +180,17 @@ Token Scanner::identifier()
 
 	std::string value(start, current);
 	if(keywords.find(value) != keywords.end()) {
-		return {keywords.at(value), value};
+		return {keywords.at(value), value, line};
 	}
 	return {TokenType::identifier, value, line};
 }
 
 Token Scanner::read_token()
 {
+	if(!is_eof(current) && *current == '/' && peek(1) == '*') {
+		skip_multiline_comment();
+	}
+
 	if(is_eof(current)) {
 		return eof_token();
 	}
@@ -190,17 +203,16 @@ Token Scanner::read_token()
 	else if(*current == '"') {
 		return string_literal();
 	}
-	else if(*current == '/' && peek(1) == '*') {
-		skip_multiline_comment();
-	}
 	return punctuation();
 }
 
 void Scanner::skip_multiline_comment()
 {
+	current += 2;
 	while(!is_eof(current)) {
 		if(*current == '*' && peek(1) == '/') {
 			current += 2;
+			skip_whitespaces();
 			return;
 		}
 		if(*current == '\n') {

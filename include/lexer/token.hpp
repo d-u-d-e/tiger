@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include <format>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -39,8 +40,8 @@ enum class TokenType
 	semicolon,
 	lparen,
 	rparen,
-	open_bracket,
-	close_bracket,
+	lbracket,
+	rbracket,
 	lbrace,
 	rbrace,
 	dot_op,
@@ -66,7 +67,7 @@ struct Token {
 
 	bool operator==(const Token& other) const
 	{
-		return type == other.type && value == other.value;
+		return type == other.type && value == other.value && line == other.line;
 	}
 };
 
@@ -125,10 +126,10 @@ inline std::string to_string(TokenType type)
 		return "lparen";
 	case TokenType::rparen:
 		return "rparen";
-	case TokenType::open_bracket:
-		return "open_bracket";
-	case TokenType::close_bracket:
-		return "close_bracket";
+	case TokenType::lbracket:
+		return "lbracket";
+	case TokenType::rbracket:
+		return "rbracket";
 	case TokenType::lbrace:
 		return "lbrace";
 	case TokenType::rbrace:
@@ -167,7 +168,8 @@ inline std::string to_string(TokenType type)
 
 inline std::string to_string(const Token& token)
 {
-	return "{" + token.value + ", " + to_string(token.type) + "}";
+	return std::format(
+		"[{}: '{}' ({})]", to_string(token.type), token.value, token.line);
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Token& value)
