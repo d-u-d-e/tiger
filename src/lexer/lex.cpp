@@ -134,10 +134,11 @@ Token Scanner::integer_literal()
 Token Scanner::string_literal()
 {
   /* This is a bit different from the book. 
-		Multiline strings are like this:
+	Multiline strings are like this:
 		"hello\
 		world"
-		We don't support escaping control characters like ^c. */
+		We don't support escaping control characters like ^c. 
+	*/
 
   current++; // First token is the opening quote
   std::string value;
