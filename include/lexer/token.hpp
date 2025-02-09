@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 
@@ -62,6 +63,11 @@ struct Token {
 	TokenType type;
 	std::string value;
 	int line;
+
+	bool operator==(const Token& other) const
+	{
+		return type == other.type && value == other.value;
+	}
 };
 
 inline std::string to_string(TokenType type)
@@ -157,6 +163,17 @@ inline std::string to_string(TokenType type)
 		return "assign_op";
 	}
 	assert(false);
+}
+
+inline std::string to_string(const Token& token)
+{
+	return "{" + token.value + ", " + to_string(token.type) + "}";
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Token& value)
+{
+	os << to_string(value);
+	return os;
 }
 
 extern const std::unordered_map<std::string, TokenType> keywords;

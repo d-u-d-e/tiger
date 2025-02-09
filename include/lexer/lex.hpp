@@ -5,13 +5,14 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <filesystem>
 
 namespace lexer
 {
 
 class Scanner {
 	public:
-	Scanner(const std::string& filename)
+	Scanner(const std::filesystem::path& filename)
 	{
 		auto f = std::ifstream(filename);
 
@@ -22,6 +23,13 @@ class Scanner {
 		std::stringstream buffer;
 		buffer << f.rdbuf();
 		contents = std::move(buffer.str());
+		current = contents.c_str();
+		line = 1;
+	}
+
+	Scanner(const std::string& src)
+	{
+		contents = src;
 		current = contents.c_str();
 		line = 1;
 	}
