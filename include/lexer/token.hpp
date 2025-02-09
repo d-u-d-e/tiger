@@ -1,7 +1,7 @@
 #pragma once
+#include <assert.h>
 #include <string>
 #include <unordered_map>
-#include <assert.h>
 
 namespace lexer
 {
@@ -36,12 +36,12 @@ enum class TokenType
 	comma,
 	colon,
 	semicolon,
-	open_paren,
-	close_paren,
+	lparen,
+	rparen,
 	open_bracket,
 	close_bracket,
-	open_curly,
-	close_curly,
+	lbrace,
+	rbrace,
 	dot_op,
 	plus_op,
 	minus_op,
@@ -61,6 +61,7 @@ enum class TokenType
 struct Token {
 	TokenType type;
 	std::string value;
+	int line;
 };
 
 inline std::string to_string(TokenType type)
@@ -114,18 +115,18 @@ inline std::string to_string(TokenType type)
 		return "colon";
 	case TokenType::semicolon:
 		return "semicolon";
-	case TokenType::open_paren:
-		return "open_paren";
-	case TokenType::close_paren:
-		return "close_paren";
+	case TokenType::lparen:
+		return "lparen";
+	case TokenType::rparen:
+		return "rparen";
 	case TokenType::open_bracket:
 		return "open_bracket";
 	case TokenType::close_bracket:
 		return "close_bracket";
-	case TokenType::open_curly:
-		return "open_curly";
-	case TokenType::close_curly:
-		return "close_curly";
+	case TokenType::lbrace:
+		return "lbrace";
+	case TokenType::rbrace:
+		return "rbrace";
 	case TokenType::dot_op:
 		return "dot_op";
 	case TokenType::plus_op:
