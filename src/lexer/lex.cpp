@@ -1,4 +1,5 @@
 #include <lexer/lex.hpp>
+#include <utility>
 
 namespace lexer
 {
@@ -37,7 +38,7 @@ char Scanner::escape_sequence(const char** current)
     break;
   }
   error("Invalid escape sequence");
-  __builtin_unreachable();
+  std::unreachable();
 }
 
 Token Scanner::punctuation()
@@ -119,7 +120,7 @@ Token Scanner::punctuation()
   }
 
   error(std::format("Invalid character {}!\n", *current));
-  __builtin_unreachable();
+  std::unreachable();
 }
 
 Token Scanner::integer_literal()
@@ -133,7 +134,7 @@ Token Scanner::integer_literal()
 
 Token Scanner::string_literal()
 {
-  /* This is a bit different from the book.Multiline strings are like this:
+  /* This is a bit different from the book. Multiline strings are like this:
   "hello\
   world" 
   We don't support escaping control characters like ^c. 
@@ -167,7 +168,7 @@ Token Scanner::string_literal()
   }
 
   error("Unterminated string literal");
-  __builtin_unreachable();
+  std::unreachable();
 }
 
 Token Scanner::identifier()
