@@ -37,7 +37,7 @@ char Scanner::escape_sequence(const char** current)
   default:
     break;
   }
-  error("Invalid escape sequence");
+  error(std::format("Invalid escape sequence '\\{}'", ch1));
   std::unreachable();
 }
 

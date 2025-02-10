@@ -267,11 +267,8 @@ TEST_CASE("queens.tig")
 
     {lexer::TokenType::end_keyword, "end", 28}};
 
-  for(auto t : tokens) {
-    CHECK(scanner.next() == t);
-  }
-
-  CHECK(scanner.next().type == lexer::TokenType::eof);
+  CHECK_NOTHROW(for(auto t : tokens) { CHECK(scanner.next() == t); };);
+  CHECK_NOTHROW(CHECK(scanner.next().type == lexer::TokenType::eof));
 }
 
 TEST_CASE("merge.tig")
@@ -711,11 +708,28 @@ TEST_CASE("merge.tig")
 
   };
 
-  for(auto t : tokens) {
-    CHECK(scanner.next() == t);
-  }
+  CHECK_NOTHROW(for(auto t : tokens) { CHECK(scanner.next() == t); };);
+  CHECK_NOTHROW(CHECK(scanner.next().type == lexer::TokenType::eof));
+}
 
-  CHECK(scanner.next().type == lexer::TokenType::eof);
+TEST_CASE("multiline-string")
+{
+  // clang-format off
+  std::string s = std::string("var s : string = \"hello \\n\\\n") + 
+  "world\\\n" + 
+  "!!!\"";
+  // clang-format ons
+  lexer::Scanner scanner(s);
+  
+  CHECK_NOTHROW(
+  CHECK(
+    (scanner.next() == lexer::Token(lexer::TokenType::var_keyword, "var", 1) &&
+    scanner.next() == lexer::Token(lexer::TokenType::identifier, "s", 1) &&
+    scanner.next() == lexer::Token(lexer::TokenType::colon, ":", 1) &&
+    scanner.next() == lexer::Token(lexer::TokenType::identifier, "string", 1) &&
+    scanner.next() == lexer::Token(lexer::TokenType::equal_op, "=", 1) &&
+    scanner.next() == lexer::Token(lexer::TokenType::string_literal, "hello \nworld!!!", 1))
+  ););
 }
 
 TEST_SUITE_END();

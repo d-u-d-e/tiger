@@ -78,8 +78,7 @@ class Scanner {
 
   void error(const std::string& err_msg)
   {
-    std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
-    exit(1);
+    throw std::runtime_error(std::format("[line {}] Err: {}\n", line, err_msg));
   }
 
   Token eof_token()
