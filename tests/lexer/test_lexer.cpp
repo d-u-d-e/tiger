@@ -718,18 +718,17 @@ TEST_CASE("multiline-string")
   std::string s = std::string("var s : string = \"hello \\n\\\n") + 
   "world\\\n" + 
   "!!!\"";
-  // clang-format ons
+  // clang-format on
   lexer::Scanner scanner(s);
-  
-  CHECK_NOTHROW(
-  CHECK(
-    (scanner.next() == lexer::Token(lexer::TokenType::var_keyword, "var", 1) &&
+
+  CHECK_NOTHROW(CHECK((
+    scanner.next() == lexer::Token(lexer::TokenType::var_keyword, "var", 1) &&
     scanner.next() == lexer::Token(lexer::TokenType::identifier, "s", 1) &&
     scanner.next() == lexer::Token(lexer::TokenType::colon, ":", 1) &&
     scanner.next() == lexer::Token(lexer::TokenType::identifier, "string", 1) &&
     scanner.next() == lexer::Token(lexer::TokenType::equal_op, "=", 1) &&
-    scanner.next() == lexer::Token(lexer::TokenType::string_literal, "hello \nworld!!!", 1))
-  ););
+    scanner.next() ==
+      lexer::Token(lexer::TokenType::string_literal, "hello \nworld!!!", 1))););
 }
 
 TEST_SUITE_END();
