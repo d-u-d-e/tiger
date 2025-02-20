@@ -237,6 +237,83 @@ class VarDecl : public Declaration {
   int position;
 };
 
+class _TypeDecl {
+  public:
+  _TypeDecl(const Symbol& name, std::shared_ptr<Type> type, int position)
+    : name(name)
+    , type(std::move(type))
+    , position(position)
+  { }
+  Symbol name;
+  std::shared_ptr<Type> type;
+  int position;
+};
+
+class TypeDecl : public Declaration {
+  public:
+  TypeDecl(std::vector<std::shared_ptr<_TypeDecl>> decls)
+    : decls(std::move(decls))
+  { }
+  std::vector<std::shared_ptr<_TypeDecl>> decls;
+};
+
+class Field {
+  public:
+  Field(const Symbol& name, std::shared_ptr<Type> type, int position)
+    : name(name)
+    , type(std::move(type))
+    , position(position)
+  { }
+  Symbol name;
+  std::shared_ptr<Type> type;
+  int position;
+};
+
+class _FuncDecl {
+  public:
+  _FuncDecl(const Symbol& name,
+            std::vector<std::shared_ptr<Field>> params,
+            const Symbol& result,
+            std::shared_ptr<Expression> body,
+            int position)
+    : name(name)
+    , params(std::move(params))
+    , result(result)
+    , body(std::move(body))
+    , position(position)
+  { }
+  Symbol name;
+  std::vector<std::shared_ptr<Field>> params;
+  Symbol result;
+  std::shared_ptr<Expression> body;
+  int position;
+};
+
+class FuncDecl : public Declaration {
+  public:
+  FuncDecl(std::vector<std::shared_ptr<_FuncDecl>> decls)
+    : decls(std::move(decls))
+  { }
+  std::vector<std::shared_ptr<_FuncDecl>> decls;
+};
+
+class RecordType : public Type {
+  public:
+  RecordType(std::vector<std::shared_ptr<Field>> fields)
+    : fields(std::move(fields))
+  { }
+  std::vector<std::shared_ptr<Field>> fields;
+};
+
+class ArrayType : public Type {
+  public:
+  ArrayType(const Symbol& name)
+    : name(name)
+  { }
+  Symbol name;
+};
+
+
 } // namespace ast
 
 } // namespace parser
