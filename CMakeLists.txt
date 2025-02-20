@@ -13,6 +13,7 @@ add_executable(
     src/main.cpp
     src/lexer/lex.cpp
     src/lexer/token.cpp
+    src/parser/parser.cpp
 )
 target_include_directories(tiger PRIVATE include)
 
