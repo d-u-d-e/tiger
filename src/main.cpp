@@ -1,5 +1,6 @@
 #include <iostream>
 #include <lexer/lex.hpp>
+#include <parser/ast.hpp>
 
 int main(int argc, char** argv)
 {
