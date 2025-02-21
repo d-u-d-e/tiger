@@ -50,6 +50,7 @@ class SimpleVar : public Variable {
   Symbol name;
 };
 
+
 class VarExp : public Expression {
   public:
   VarExp(std::shared_ptr<Variable> var)
@@ -312,7 +313,6 @@ class ArrayType : public Type {
   { }
   Symbol name;
 };
-
 
 } // namespace ast
 
