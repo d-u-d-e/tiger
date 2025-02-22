@@ -1,6 +1,6 @@
 
-#include <parser/pretty_printer.hpp>
 #include <parser/parser.hpp>
+#include <parser/pretty_printer.hpp>
 #include <utility>
 
 namespace parser
@@ -95,7 +95,7 @@ std::shared_ptr<ast::SeqExp> Parser::sequencing()
 {
   //std::cout << "sequencing" << std::endl;
 
-  std::vector<std::shared_ptr<ast::Expression>> exps;
+  std::vector<std::pair<std::shared_ptr<ast::Expression>, int>> exps;
   // rule: '(' ')'
   if(match(lexer::TokenType::rparen)) {
     return std::make_shared<ast::SeqExp>(exps);
@@ -103,7 +103,8 @@ std::shared_ptr<ast::SeqExp> Parser::sequencing()
 
   // rule: <exp> (';' <exp>)* ')'
   do {
-    exps.push_back(expression(Precedence::None));
+    auto pos = current.pos;
+    exps.push_back({expression(Precedence::None), pos});
   } while(match(lexer::TokenType::semicolon));
 
   expect(lexer::TokenType::rparen, "Expected ')'");
@@ -139,7 +140,7 @@ std::shared_ptr<ast::IntExp> Parser::integer_literal()
 
 std::shared_ptr<ast::StringExp> Parser::string_literal()
 {
-  return std::make_shared<ast::StringExp>(previous.value);
+  return std::make_shared<ast::StringExp>(previous.value, previous.pos);
 }
 
 std::shared_ptr<ast::WhileExp> Parser::while_expr()

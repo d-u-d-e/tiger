@@ -7,18 +7,13 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_simple_var(
     const std::shared_ptr<const parser::ast::SimpleVar>& var) override
   {
-    return indent() + var->field + "SimpleVar()";
-  }
-  std::string visit_field_var(
-    const std::shared_ptr<const parser::ast::FieldVar>& var) override
-  {
-    return indent() + var->field + "FieldVar()";
+    return indent() + var->field + "SimpleVar(symbol\"" + var->name.name + "\", " + std::to_string(var->position) + ")";
   }
 
   std::string visit_string_exp(
     const std::shared_ptr<const parser::ast::StringExp>& exp) override
   {
-    return indent() + exp->field + "StringExp()";
+    return indent() + exp->field + "StringExp(\"" + exp->value + "\", " + std::to_string(exp->position) + ")";
   }
 
   std::string visit_assign_exp(
@@ -40,7 +35,7 @@ class ASTVisitor : public Visitor<std::string> {
     std::string result = indent() + exp->field + "OpExp(\n";
     depth++;
     result += exp->left->accept(*this) + ",\n";
-    result += indent() + "oper=" +parser::ast::to_string(exp->op) + ",\n";
+    result += indent() + "oper=" + parser::ast::to_string(exp->op) + ",\n";
     result += exp->right->accept(*this) + ",\n";
     result += (indent() + "pos=") + std::to_string(exp->position) + "\n";
     depth--;
@@ -51,7 +46,7 @@ class ASTVisitor : public Visitor<std::string> {
   std::string
   visit_int_exp(const std::shared_ptr<const parser::ast::IntExp>& exp) override
   {
-    return indent() + exp->field + "IntExp()";
+    return indent() + exp->field + "IntExp(" + std::to_string(exp->value) + ")";
   }
 
   std::string
@@ -74,10 +69,13 @@ class ASTVisitor : public Visitor<std::string> {
 
     if(size != 0) {
       depth++;
-      for(int i = 0; i < exp->exps.size() - 1; i++) {
-        result += exp->exps[i]->accept(*this) + ",\n";
+      for(int i = 0; i < size; i++) {
+        auto& v = exp->exps[i];
+        auto& ve = std::get<0>(v);
+        ve->field = "[";
+        result += ve->accept(*this) + ", " + std::to_string(std::get<1>(v)) +
+                  "]" + ((i == size - 1) ? "\n" : ",\n");
       }
-      result += exp->exps[size - 1]->accept(*this) + "\n";
       depth--;
     }
 

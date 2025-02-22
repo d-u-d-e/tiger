@@ -17,8 +17,6 @@ class Visitor {
   public:
   T virtual visit_simple_var(
     const std::shared_ptr<const parser::ast::SimpleVar>& var) = 0;
-  T virtual visit_field_var(
-    const std::shared_ptr<const parser::ast::FieldVar>& var) = 0;
   T virtual visit_string_exp(
     const std::shared_ptr<const parser::ast::StringExp>& exp) = 0;
   T virtual visit_assign_exp(

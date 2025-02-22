@@ -3,8 +3,8 @@
 #include <memory>
 #include <parser/symbol.hpp>
 #include <parser/visitor.hpp>
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace parser
 {
@@ -97,18 +97,13 @@ class SimpleVar : public Variable,
   int position;
 };
 
-class FieldVar : public Variable,
-                 public std::enable_shared_from_this<const FieldVar> {
+class FieldVar : public Variable {
   public:
   FieldVar(std::shared_ptr<Variable> var, const Symbol& name, int position)
     : var(var)
     , name(name)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
-  {
-    return visitor.visit_field_var(shared_from_this());
-  }
   std::shared_ptr<Variable> var;
   Symbol name;
   int position;
@@ -159,14 +154,15 @@ class IntExp : public Expression,
 class StringExp : public Expression,
                   public std::enable_shared_from_this<const StringExp> {
   public:
-  StringExp(const std::string& value)
-    : value(value)
+  StringExp(const std::string& value, int position)
+    : value(value), position(position)
   { }
   std::string accept(Visitor<std::string>& visitor) const override
   {
     return visitor.visit_string_exp(shared_from_this());
   }
   std::string value;
+  int position;
 };
 
 class CallExp : public Expression {
@@ -232,10 +228,10 @@ class RecordExp {
 class SeqExp : public Expression,
                public std::enable_shared_from_this<const SeqExp> {
   public:
-  SeqExp(std::vector<std::shared_ptr<Expression>> exps)
+  SeqExp(std::vector<std::pair<std::shared_ptr<Expression>, int>> exps)
     : exps(std::move(exps))
   { }
-  std::vector<std::shared_ptr<Expression>> exps;
+  std::vector<std::pair<std::shared_ptr<Expression>, int>> exps;
   std::string accept(Visitor<std::string>& visitor) const override
   {
     return visitor.visit_seq_exp(shared_from_this());
