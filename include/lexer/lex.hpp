@@ -25,14 +25,14 @@ class Scanner {
     std::stringstream buffer;
     buffer << f.rdbuf();
     contents = std::move(buffer.str());
-    current = contents.c_str();
+    current = row = contents.c_str();
     line = 1;
   }
 
   Scanner(const std::string& src)
   {
     contents = src;
-    current = contents.c_str();
+    current = row = contents.c_str();
     line = 1;
   }
 
@@ -83,7 +83,7 @@ class Scanner {
 
   Token eof_token()
   {
-    return {TokenType::eof, "$", line};
+    return Token(TokenType::eof, "$", line, int(current - row));
   }
 
   bool is_eof(const char* current)
@@ -96,6 +96,7 @@ class Scanner {
     while(!is_eof(current) && std::isspace(*current)) {
       if(*current == '\n') {
         line++;
+        row = current + 1;
       }
       current++;
     }
@@ -104,6 +105,7 @@ class Scanner {
   private:
   std::string contents;
   int line;
+  const char* row;
   const char* current;
 };
 

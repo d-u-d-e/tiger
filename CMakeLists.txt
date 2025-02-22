@@ -8,6 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # add dependencies
 include(cmake/CPM.cmake)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 add_executable(
     tiger
     src/main.cpp

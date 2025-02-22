@@ -46,75 +46,77 @@ Token Scanner::punctuation()
   switch(*current) {
   case ',':
     current++;
-    return Token{TokenType::comma, ",", line};
+    return Token{TokenType::comma, ",", line, int(current - row)};
   case ':':
     current++;
     if(match('=')) {
-      return Token{TokenType::assign_op, ":=", line};
+      return Token{TokenType::assign_op, ":=", line, int(current - row) - 1};
     }
-    return Token{TokenType::colon, ":", line};
+    return Token{TokenType::colon, ":", line, int(current - row)};
   case ';':
     current++;
-    return Token{TokenType::semicolon, ";", line};
+    return Token{TokenType::semicolon, ";", line, int(current - row)};
   case '(':
     current++;
-    return Token{TokenType::lparen, "(", line};
+    return Token{TokenType::lparen, "(", line, int(current - row)};
   case ')':
     current++;
-    return Token{TokenType::rparen, ")", line};
+    return Token{TokenType::rparen, ")", line, int(current - row)};
   case '{':
     current++;
-    return Token{TokenType::lbrace, "{", line};
+    return Token{TokenType::lbrace, "{", line, int(current - row)};
   case '}':
     current++;
-    return Token{TokenType::rbrace, "}", line};
+    return Token{TokenType::rbrace, "}", line, int(current - row)};
   case '.':
     current++;
-    return Token{TokenType::dot_op, ".", line};
+    return Token{TokenType::dot_op, ".", line, int(current - row)};
   case '+':
     current++;
-    return Token{TokenType::plus_op, "+", line};
+    return Token{TokenType::plus_op, "+", line, int(current - row)};
   case '-':
     current++;
-    return Token{TokenType::minus_op, "-", line};
+    return Token{TokenType::minus_op, "-", line, int(current - row)};
   case '*':
     current++;
-    return Token{TokenType::times_op, "*", line};
+    return Token{TokenType::times_op, "*", line, int(current - row)};
   case '/':
     current++;
-    return Token{TokenType::divide_op, "/", line};
+    return Token{TokenType::divide_op, "/", line, int(current - row)};
   case '=':
     current++;
-    return Token{TokenType::equal_op, "=", line};
+    return Token{TokenType::equal_op, "=", line, int(current - row)};
   case '<':
     current++;
     if(match('=')) {
-      return Token{TokenType::less_equal_op, "<=", line};
+      return Token{
+        TokenType::less_equal_op, "<=", line, int(current - row) - 1};
     }
     else if(match('>')) {
-      return Token{TokenType::not_equal_op, "<>", line};
+      return Token{TokenType::not_equal_op, "<>", line, int(current - row) - 1};
     }
     else {
-      return Token{TokenType::less_op, "<", line};
+      return Token{TokenType::less_op, "<", line, int(current - row)};
     }
   case '>':
     current++;
     if(match('=')) {
-      return Token{TokenType::greater_equal_op, ">=", line};
+      return Token{
+        TokenType::greater_equal_op, ">=", line, int(current - row) - 1};
     }
-    return Token{TokenType::greater_op, ">", line};
+    return Token{TokenType::greater_op, ">", line, int(current - row)};
   case '&':
     current++;
-    return Token{TokenType::and_op, "&", line};
+    return Token{TokenType::and_op, "&", line, int(current - row)};
   case '|':
     current++;
-    return Token{TokenType::or_op, "|", line};
+    return Token{TokenType::or_op, "|", line, int(current - row)};
   case '[':
     current++;
-    return Token{TokenType::lbracket, "[", line};
+    return Token{TokenType::lbracket, "[", line, int(current - row)};
   case ']':
     current++;
-    return Token{TokenType::rbracket, "]", line};
+    return Token{TokenType::rbracket, "]", line, int(current - row)};
   default:
     break;
   }
@@ -129,7 +131,10 @@ Token Scanner::integer_literal()
   while(!is_eof(current) && std::isdigit(*current)) {
     current++;
   }
-  return {TokenType::integer_literal, std::string(start, current), line};
+  return {TokenType::integer_literal,
+          std::string(start, current),
+          line,
+          int(current - row)};
 }
 
 Token Scanner::string_literal()
@@ -143,6 +148,7 @@ Token Scanner::string_literal()
   current++; // First token is the opening quote
   std::string value;
   int sline = line;
+  int spos = int(current - row);
   while(!is_eof(current)) {
     if(*current == '\\') {
       if(peek(1) == '\n') {
@@ -163,7 +169,8 @@ Token Scanner::string_literal()
     }
     else {
       current++; // Closing quote
-      return Token{TokenType::string_literal, value, sline};
+      return Token{
+        TokenType::string_literal, value, sline, spos};
     }
   }
 
@@ -181,9 +188,9 @@ Token Scanner::identifier()
 
   std::string value(start, current);
   if(keywords.find(value) != keywords.end()) {
-    return {keywords.at(value), value, line};
+    return {keywords.at(value), value, line, int(current - row)};
   }
-  return {TokenType::identifier, value, line};
+  return {TokenType::identifier, value, line, int(current - row)};
 }
 
 Token Scanner::read_token()

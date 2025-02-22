@@ -43,10 +43,16 @@ class Parser {
   void parse();
 
   private:
-  bool match(const lexer::Token& tok);
+
+  lexer::Token current;
+  lexer::Token previous;
+
+  ast::Operator map_operator(lexer::TokenType type);
+
+  bool match(lexer::TokenType type);
   void expect(lexer::TokenType type, const std::string& err_msg);
-  lexer::Token next();
-  lexer::Token peek(int distance = 0);
+  void advance();
+  bool check(lexer::TokenType type);
   void error_at(const lexer::Token& tok, const std::string& err_msg);
   std::deque<lexer::Token> tokens;
   lexer::Scanner& scanner;
@@ -54,8 +60,8 @@ class Parser {
 
   std::shared_ptr<ast::Expression> expression(int precedence);
   std::shared_ptr<ast::SeqExp> sequencing();
-  std::shared_ptr<ast::VarExp> simple_var();
-  std::shared_ptr<ast::VarExp> field_var(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::VarExp> variable();
+  std::shared_ptr<ast::VarExp> record_field(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::Expression> array_subscript(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::IntExp> integer_literal();
   std::shared_ptr<ast::StringExp> string_literal();

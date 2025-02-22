@@ -5,7 +5,9 @@
 
 int main(int argc, char** argv)
 {
-  std::string s = argv[1];
+  std::filesystem::path s = argv[1];
+
+
   lexer::Scanner scanner(s);
   lexer::TokenType type;
   /*do {

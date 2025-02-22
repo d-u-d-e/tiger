@@ -64,6 +64,15 @@ struct Token {
   TokenType type;
   std::string value;
   int line;
+  int pos;
+
+  Token() = default;
+  Token(TokenType type, std::string value, int line, int pos)
+    : type(type)
+    , value(value)
+    , line(line)
+    , pos(pos)
+  { }
 
   bool operator==(const Token& other) const
   {
@@ -75,5 +84,12 @@ std::string to_string(TokenType type);
 std::string to_string(const Token& token);
 std::ostream& operator<<(std::ostream& os, const Token& value);
 extern const std::unordered_map<std::string, TokenType> keywords;
-
 } // namespace lexer
+
+template <>
+struct std::formatter<lexer::Token> : std::formatter<std::string> {
+  auto format(lexer::Token p, format_context& ctx) const
+  {
+    return formatter<string>::format(std::format("'{}'", p.value), ctx);
+  }
+};
