@@ -193,8 +193,6 @@ Parser::binary_expr(std::shared_ptr<ast::Expression> lhs)
   auto op = previous;
   auto prec = pratt_table.at(op.type).precedence_value;
   auto rhs = expression(prec + 1);
-  lhs->field = "left=";
-  rhs->field = "right=";
   return std::make_shared<ast::OpExp>(lhs, map_operator(op.type), rhs, op.pos);
 }
 
@@ -227,10 +225,8 @@ Parser::assign_expr(std::shared_ptr<ast::Expression> lhs)
   //std::cout << "assign_expr" << std::endl;
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
-  rhs->field = "exp=";
 
   auto var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
-  var->var->field = "var=";
 
   if(var) {
     return std::make_shared<ast::AssignExp>(var->var, rhs, op.pos);

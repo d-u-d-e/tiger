@@ -21,6 +21,8 @@ class ASTVisitor : public Visitor<std::string> {
   {
     std::string result = indent() + exp->field + "AssignExp(\n";
     depth++;
+    exp->left->field = "var=";
+    exp->right->field = "exp=";
     result += exp->left->accept(*this) + ",\n";
     result += exp->right->accept(*this) + ",\n";
     result += (indent() + "pos=") + std::to_string(exp->position) + "\n";
@@ -34,6 +36,8 @@ class ASTVisitor : public Visitor<std::string> {
   {
     std::string result = indent() + exp->field + "OpExp(\n";
     depth++;
+    exp->left->field = "left=";
+    exp->right->field = "right=";
     result += exp->left->accept(*this) + ",\n";
     result += indent() + "oper=" + parser::ast::to_string(exp->op) + ",\n";
     result += exp->right->accept(*this) + ",\n";
