@@ -133,6 +133,12 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string
+  visit_nil_exp(const std::shared_ptr<const parser::ast::NilExp>& exp) override
+  {
+    return indent() + exp->field + "NilExp(nil)";
+  }
+
   private:
   std::string indent(int depth)
   {

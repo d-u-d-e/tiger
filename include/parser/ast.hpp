@@ -146,7 +146,13 @@ class VarExp : public Expression,
   std::shared_ptr<Variable> var;
 };
 
-class NilExp : public Expression { };
+class NilExp : public Expression,
+               public std::enable_shared_from_this<const NilExp> {
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_nil_exp(shared_from_this());
+  }
+};
 
 class IntExp : public Expression,
                public std::enable_shared_from_this<const IntExp> {

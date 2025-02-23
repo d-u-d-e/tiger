@@ -220,9 +220,7 @@ std::shared_ptr<ast::IfExp> Parser::if_expr()
 
 std::shared_ptr<ast::NilExp> Parser::nil_literal()
 {
-  // TODO
-  //std::cout << "nil_literal" << std::endl;
-  return nullptr;
+  return std::make_shared<ast::NilExp>();
 }
 
 std::shared_ptr<ast::OpExp>
