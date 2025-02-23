@@ -93,8 +93,6 @@ std::shared_ptr<ast::Expression> Parser::expression(int precedence)
 
 std::shared_ptr<ast::SeqExp> Parser::sequencing()
 {
-  //std::cout << "sequencing" << std::endl;
-
   std::vector<std::pair<std::shared_ptr<ast::Expression>, int>> exps;
   // rule: '(' ')'
   if(match(lexer::TokenType::rparen)) {
@@ -113,24 +111,66 @@ std::shared_ptr<ast::SeqExp> Parser::sequencing()
 
 std::shared_ptr<ast::VarExp> Parser::variable()
 {
-  //std::cout << "variable" << std::endl;
   auto var =
     std::make_shared<ast::SimpleVar>(Symbol{previous.value}, previous.pos);
   return std::make_shared<ast::VarExp>(var);
 }
+
 std::shared_ptr<ast::VarExp>
 Parser::record_field(std::shared_ptr<ast::Expression> lhs)
 {
-  // TODO
-  //std::cout << "record_field" << std::endl;
-  return nullptr;
+  auto lhs_var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+
+  if(!lhs_var) {
+    error_at(previous, "Expected variable");
+    return nullptr;
+  }
+
+  expect(lexer::TokenType::identifier, "Expected record field name");
+  auto field = previous;
+  auto var = std::make_shared<ast::FieldVar>(
+    lhs_var->var, Symbol(field.value), field.pos);
+
+  return std::make_shared<ast::VarExp>(var);
 }
+
 std::shared_ptr<ast::Expression>
 Parser::array_subscript(std::shared_ptr<ast::Expression> lhs)
 {
-  // TODO
-  //std::cout << "array_subscript" << std::endl;
-  return nullptr;
+  auto subscript_tok = previous;
+  // Parse the expression between brackets
+  auto between_exp = expression(Precedence::None);
+  expect(lexer::TokenType::rbracket, "Expected ']'");
+
+  // Next check whether we have an array exp or a subscript var
+  auto lhs_var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+
+  if(match(lexer::TokenType::of_keyword)) {
+    // The parser must have found a simple variable as lhs
+    if(!lhs_var || typeid(*lhs_var->var) != typeid(ast::SimpleVar)) {
+      error_at(previous, "Invalid array expression");
+      return nullptr;
+    }
+
+    auto simple_var = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_var->var);
+    auto ty_symbol = simple_var->name;
+
+    // Compute the init expression
+    std::shared_ptr<ast::Expression> init = expression(Precedence::None);
+
+    return std::make_shared<ast::ArrayExp>(
+      ty_symbol, between_exp, init, simple_var->position);
+  }
+
+  // Otherwise this must be a subscript var
+  if(!lhs_var) {
+    error_at(subscript_tok, "Only variables are subscriptable");
+    return nullptr;
+  }
+
+  auto var = std::make_shared<ast::SubscriptVar>(
+    lhs_var->var, between_exp, subscript_tok.pos);
+  return std::make_shared<ast::VarExp>(var);
 }
 
 std::shared_ptr<ast::IntExp> Parser::integer_literal()
@@ -284,8 +324,8 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
 
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
-  throw std::runtime_error(
-    std::format("[line {}] Err at {}: {}\n", tok.line, tok, err_msg));
+  throw std::runtime_error(std::format(
+    "[line {}:{}] Err at {}: {}\n", tok.line, tok.pos, tok, err_msg));
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)

@@ -97,19 +97,25 @@ class SimpleVar : public Variable,
   int position;
 };
 
-class FieldVar : public Variable {
+class FieldVar : public Variable,
+                 public std::enable_shared_from_this<const FieldVar> {
   public:
   FieldVar(std::shared_ptr<Variable> var, const Symbol& name, int position)
     : var(var)
     , name(name)
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_field_var(shared_from_this());
+  }
   std::shared_ptr<Variable> var;
   Symbol name;
   int position;
 };
 
-class SubscriptVar : public Variable {
+class SubscriptVar : public Variable,
+                     public std::enable_shared_from_this<const SubscriptVar> {
   public:
   SubscriptVar(std::shared_ptr<Variable> var,
                std::shared_ptr<Expression> exp,
@@ -118,6 +124,10 @@ class SubscriptVar : public Variable {
     , exp(exp)
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_subscript_var(shared_from_this());
+  }
   std::shared_ptr<Variable> var;
   std::shared_ptr<Expression> exp;
   int position;
@@ -155,7 +165,8 @@ class StringExp : public Expression,
                   public std::enable_shared_from_this<const StringExp> {
   public:
   StringExp(const std::string& value, int position)
-    : value(value), position(position)
+    : value(value)
+    , position(position)
   { }
   std::string accept(Visitor<std::string>& visitor) const override
   {
@@ -330,7 +341,8 @@ class LetExp : public Expression {
   int position;
 };
 
-class ArrayExp : public Expression {
+class ArrayExp : public Expression,
+                 public std::enable_shared_from_this<const ArrayExp> {
   public:
   ArrayExp(const Symbol& type,
            std::shared_ptr<Expression> size,
@@ -341,6 +353,10 @@ class ArrayExp : public Expression {
     , init(std::move(init))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_array_exp(shared_from_this());
+  }
   Symbol type;
   std::shared_ptr<Expression> size;
   std::shared_ptr<Expression> init;

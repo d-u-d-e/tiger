@@ -10,6 +10,8 @@ class OpExp;
 class IntExp;
 class VarExp;
 class SeqExp;
+class SubscriptVar;
+class ArrayExp;
 }; // namespace parser::ast
 
 template <typename T>
@@ -29,4 +31,10 @@ class Visitor {
     const std::shared_ptr<const parser::ast::VarExp>& exp) = 0;
   T virtual visit_seq_exp(
     const std::shared_ptr<const parser::ast::SeqExp>& exp) = 0;
+  T virtual visit_field_var(
+    const std::shared_ptr<const parser::ast::FieldVar>& var) = 0;
+  T virtual visit_subscript_var(
+    const std::shared_ptr<const parser::ast::SubscriptVar>& var) = 0;
+  T virtual visit_array_exp(
+    const std::shared_ptr<const parser::ast::ArrayExp>& exp) = 0;
 };

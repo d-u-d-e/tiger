@@ -7,13 +7,28 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_simple_var(
     const std::shared_ptr<const parser::ast::SimpleVar>& var) override
   {
-    return indent() + var->field + "SimpleVar(symbol\"" + var->name.name + "\", " + std::to_string(var->position) + ")";
+    return indent() + var->field + "SimpleVar(symbol\"" + var->name.name +
+           "\", " + std::to_string(var->position) + ")";
+  }
+
+  std::string visit_field_var(
+    const std::shared_ptr<const parser::ast::FieldVar>& var) override
+  {
+    std::string result = indent() + var->field + "FieldVar(\n";
+    depth++;
+    result += var->var->accept(*this) + ",\n";
+    result += indent() + "symbol\"" + var->name.name + "\", " +
+              std::to_string(var->position) + "\n";
+    depth--;
+    result += indent() + ")";
+    return result;
   }
 
   std::string visit_string_exp(
     const std::shared_ptr<const parser::ast::StringExp>& exp) override
   {
-    return indent() + exp->field + "StringExp(\"" + exp->value + "\", " + std::to_string(exp->position) + ")";
+    return indent() + exp->field + "StringExp(\"" + exp->value + "\", " +
+           std::to_string(exp->position) + ")";
   }
 
   std::string visit_assign_exp(
@@ -85,6 +100,29 @@ class ASTVisitor : public Visitor<std::string> {
 
     result += ind + "]";
     return result;
+  }
+
+  std::string visit_subscript_var(
+    const std::shared_ptr<const parser::ast::SubscriptVar>& var) override
+  {
+    // TODO
+    std::string result = indent() + var->field + "SubscriptVar(\n";
+    depth++;
+    var->var->field = "var=";
+    var->exp->field = "exp=";
+    result += var->var->accept(*this) + ",\n";
+    result += var->exp->accept(*this) + ",\n";
+    result += (indent() + "pos=") + std::to_string(var->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
+  std::string visit_array_exp(
+    const std::shared_ptr<const parser::ast::ArrayExp>& exp) override
+  {
+    // TODO
+    return indent() + exp->field + "ArrayExp()";
   }
 
   private:
