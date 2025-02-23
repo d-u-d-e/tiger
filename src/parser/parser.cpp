@@ -148,7 +148,7 @@ Parser::array_subscript(std::shared_ptr<ast::Expression> lhs)
   if(match(lexer::TokenType::of_keyword)) {
     // The parser must have found a simple variable as lhs
     if(!lhs_var || typeid(*lhs_var->var) != typeid(ast::SimpleVar)) {
-      error_at(previous, "Invalid array expression");
+      error_at(subscript_tok, "Invalid array expression");
       return nullptr;
     }
 

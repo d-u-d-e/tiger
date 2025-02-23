@@ -105,7 +105,6 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_subscript_var(
     const std::shared_ptr<const parser::ast::SubscriptVar>& var) override
   {
-    // TODO
     std::string result = indent() + var->field + "SubscriptVar(\n";
     depth++;
     var->var->field = "var=";
@@ -121,8 +120,17 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_array_exp(
     const std::shared_ptr<const parser::ast::ArrayExp>& exp) override
   {
-    // TODO
-    return indent() + exp->field + "ArrayExp()";
+    std::string result = indent() + exp->field + "ArrayExp(\n";
+    depth++;
+    result += (indent() + "type=") + exp->type.name + ",\n";
+    exp->size->field = "size=";
+    result += exp->size->accept(*this) + ",\n";
+    exp->init->field = "init=";
+    result += exp->init->accept(*this) + ",\n";
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
   }
 
   private:
