@@ -236,9 +236,12 @@ Parser::binary_expr(std::shared_ptr<ast::Expression> lhs)
 
 std::shared_ptr<ast::OpExp> Parser::unary_expr()
 {
-  // TODO
-  //std::cout << "unary_expr" << std::endl;
-  return nullptr;
+  // This is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
+  auto tok_pos = previous.pos;
+  auto rhs = expression(Precedence::None);
+  auto lhs = std::make_shared<ast::IntExp>(0);
+
+  return std::make_shared<ast::OpExp>(lhs, ast::Operator::Minus, rhs, tok_pos);
 }
 
 std::shared_ptr<ast::OpExp>
