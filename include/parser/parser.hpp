@@ -73,8 +73,8 @@ class Parser {
   std::shared_ptr<ast::NilExp> nil_literal();
   std::shared_ptr<ast::OpExp> binary_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::OpExp> unary_expr();
-  std::shared_ptr<ast::OpExp> and_expr(std::shared_ptr<ast::Expression> lhs);
-  std::shared_ptr<ast::OpExp> or_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression> and_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression> or_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::AssignExp> assign_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::CallExp> call_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::Expression> record_expr(std::shared_ptr<ast::Expression> lhs);

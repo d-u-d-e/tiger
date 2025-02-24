@@ -245,29 +245,35 @@ Parser::binary_expr(std::shared_ptr<ast::Expression> lhs)
 
 std::shared_ptr<ast::OpExp> Parser::unary_expr()
 {
+  // rule: '-' <exp>
   // This is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
   auto tok_pos = previous.pos;
-  auto rhs = expression(Precedence::None);
+  auto rhs = expression(Precedence::Unary);
   auto lhs = std::make_shared<ast::IntExp>(0);
   return std::make_shared<ast::OpExp>(lhs, ast::Operator::Minus, rhs, tok_pos);
 }
 
-std::shared_ptr<ast::OpExp>
+std::shared_ptr<ast::Expression>
 Parser::and_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  /* e1 & e2 is translated as `if e1 then e2 else 0` */
+  // rule: <exp> & <exp>
+  // e1 & e2 is translated as `if e1 then e2 else 0`
 
-  // TODO
-  return nullptr;
+  auto pos = previous.pos;
+  auto rhs = expression(Precedence::And);
+  return std::make_shared<ast::IfExp>(
+    lhs, rhs, std::make_shared<ast::IntExp>(0), pos);
 }
 
-std::shared_ptr<ast::OpExp>
+std::shared_ptr<ast::Expression>
 Parser::or_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  /* e1 | e2 is translated as `if e1 then e1 else e2` */
+  // rule: <exp> | <exp>
+  // e1 | e2 is translated as `if e1 then e1 else e2`
 
-  // TODO
-  return nullptr;
+  auto pos = previous.pos;
+  auto rhs = expression(Precedence::Or);
+  return std::make_shared<ast::IfExp>(lhs, lhs, rhs, pos);
 }
 
 std::shared_ptr<ast::AssignExp>
