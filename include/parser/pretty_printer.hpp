@@ -188,6 +188,21 @@ class ASTVisitor : public Visitor<std::string> {
            "BreakExp(pos=" + std::to_string(exp->position) + ")";
   }
 
+  std::string visit_while_exp(
+    const std::shared_ptr<const parser::ast::WhileExp>& exp) override
+  {
+    std::string result = indent() + exp->field + "WhileExp(\n";
+    depth++;
+    exp->cond->field = "cond=";
+    result += exp->cond->accept(*this) + ",\n";
+    exp->body->field = "body=";
+    result += exp->body->accept(*this) + ",\n";
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
   private:
   std::string indent(int depth)
   {

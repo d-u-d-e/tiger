@@ -301,7 +301,8 @@ class IfExp : public Expression,
   int position;
 };
 
-class WhileExp : public Expression {
+class WhileExp : public Expression,
+                 public std::enable_shared_from_this<const WhileExp> {
   public:
   WhileExp(std::shared_ptr<Expression> cond,
            std::shared_ptr<Expression> body,
@@ -310,6 +311,10 @@ class WhileExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_while_exp(shared_from_this());
+  }
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> body;
   int position;

@@ -187,9 +187,12 @@ std::shared_ptr<ast::StringExp> Parser::string_literal()
 
 std::shared_ptr<ast::WhileExp> Parser::while_expr()
 {
-  // TODO
-  //std::cout << "while_expr" << std::endl;
-  return nullptr;
+  // rule: 'while' <exp> 'do' <exp>
+  auto pos = previous.pos;
+  auto cond = expression(Precedence::None);
+  expect(lexer::TokenType::do_keyword, "Expected 'do'");
+  auto body = expression(Precedence::None);
+  return std::make_shared<ast::WhileExp>(cond, body, pos);
 }
 
 std::shared_ptr<ast::ForExp> Parser::for_expr()
