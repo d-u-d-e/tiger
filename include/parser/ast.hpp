@@ -279,7 +279,8 @@ class AssignExp : public Expression,
   int position;
 };
 
-class IfExp : public Expression {
+class IfExp : public Expression,
+              public std::enable_shared_from_this<const IfExp> {
   public:
   IfExp(std::shared_ptr<Expression> cond,
         std::shared_ptr<Expression> then,
@@ -290,6 +291,10 @@ class IfExp : public Expression {
     , else_(std::move(else_))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_if_exp(shared_from_this());
+  }
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> then;
   std::shared_ptr<Expression> else_;

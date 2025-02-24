@@ -161,6 +161,26 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string
+  visit_if_exp(const std::shared_ptr<const parser::ast::IfExp>& exp) override
+  {
+    std::string result = indent() + exp->field + "IfExp(\n";
+    depth++;
+    exp->cond->field = "cond=";
+    result += exp->cond->accept(*this) + ",\n";
+    exp->then->field = "then=";
+    result += exp->then->accept(*this) + ",\n";
+
+    if(exp->else_) {
+      exp->else_->field = "else=";
+      result += exp->else_->accept(*this) + ",\n";
+    }
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
   private:
   std::string indent(int depth)
   {

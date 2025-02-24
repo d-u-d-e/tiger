@@ -215,9 +215,18 @@ std::shared_ptr<ast::LetExp> Parser::let_expr()
 
 std::shared_ptr<ast::IfExp> Parser::if_expr()
 {
-  // TODO
-  //std::cout << "if_expr" << std::endl;
-  return nullptr;
+  // rule: 'if' <exp> 'then' <exp> ('else' <exp>)?
+  auto pos = previous.pos;
+  auto cond = expression(Precedence::None);
+  expect(lexer::TokenType::then_keyword, "Expected 'then'");
+  auto then = expression(Precedence::None);
+
+  std::shared_ptr<ast::Expression> else_ = nullptr;
+  if(match(lexer::TokenType::else_keyword)) {
+    // else belongs to closest if
+    else_ = expression(Precedence::None);
+  }
+  return std::make_shared<ast::IfExp>(cond, then, else_, pos);
 }
 
 std::shared_ptr<ast::NilExp> Parser::nil_literal()
@@ -246,16 +255,18 @@ std::shared_ptr<ast::OpExp> Parser::unary_expr()
 std::shared_ptr<ast::OpExp>
 Parser::and_expr(std::shared_ptr<ast::Expression> lhs)
 {
+  /* e1 & e2 is translated as `if e1 then e2 else 0` */
+
   // TODO
-  //std::cout << "and_expr" << std::endl;
   return nullptr;
 }
 
 std::shared_ptr<ast::OpExp>
 Parser::or_expr(std::shared_ptr<ast::Expression> lhs)
 {
+  /* e1 | e2 is translated as `if e1 then e1 else e2` */
+
   // TODO
-  //std::cout << "or_expr" << std::endl;
   return nullptr;
 }
 

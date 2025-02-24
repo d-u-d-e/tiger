@@ -188,9 +188,9 @@ Token Scanner::identifier()
 
   std::string value(start, current);
   if(keywords.find(value) != keywords.end()) {
-    return {keywords.at(value), value, line, int(current - row)};
+    return {keywords.at(value), value, line, int(start - row) + 1};
   }
-  return {TokenType::identifier, value, line, int(current - row)};
+  return {TokenType::identifier, value, line, int(start - row) + 1};
 }
 
 Token Scanner::read_token()
