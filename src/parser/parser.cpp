@@ -307,9 +307,26 @@ Parser::assign_expr(std::shared_ptr<ast::Expression> lhs)
 std::shared_ptr<ast::CallExp>
 Parser::call_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  // TODO
-  //std::cout << "call_expr" << std::endl;
-  return nullptr;
+  // rule: <id> '(' <exp> (',' <exp>)* ')'
+
+  auto pos = previous.pos;
+  auto lhs_fun = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+  if(!lhs_fun || typeid(*lhs_fun->var) != typeid(ast::SimpleVar)) {
+    error_at(previous, "Expected identifier as function name");
+    return nullptr;
+  }
+
+  // Get the func identifier
+  auto func_id = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_fun->var)->name;
+  std::vector<std::shared_ptr<ast::Expression>> args;
+
+  do {
+    args.push_back(expression(Precedence::None));
+  } while(match(lexer::TokenType::comma));
+
+  expect(lexer::TokenType::rparen, "Expected ')'");
+
+  return std::make_shared<ast::CallExp>(func_id, args, pos);
 }
 
 std::shared_ptr<ast::Expression>

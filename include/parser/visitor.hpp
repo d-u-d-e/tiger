@@ -18,6 +18,7 @@ class IfExp;
 class BreakExp;
 class WhileExp;
 class ForExp;
+class CallExp;
 }; // namespace parser::ast
 
 template <typename T>
@@ -55,4 +56,6 @@ class Visitor {
     const std::shared_ptr<const parser::ast::WhileExp>& exp) = 0;
   T virtual visit_for_exp(
     const std::shared_ptr<const parser::ast::ForExp>& exp) = 0;
+  T virtual visit_call_exp(
+    const std::shared_ptr<const parser::ast::CallExp>& exp) = 0;
 };

@@ -221,6 +221,26 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string visit_call_exp(
+    const std::shared_ptr<const parser::ast::CallExp>& exp) override
+  {
+    std::string result = indent() + exp->field + "CallExp(\n";
+    depth++;
+    result += indent() + "func=symbol\"" + exp->name.str + "\",\n";
+    result += indent() + "args=[,\n";
+    depth++;
+    for(int i = 0; i < exp->args.size(); i++) {
+      auto& arg = exp->args[i];
+      result += arg->accept(*this) + ",\n";
+    }
+    depth--;
+    result += indent() + "],\n";
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
   private:
   std::string indent(int depth)
   {

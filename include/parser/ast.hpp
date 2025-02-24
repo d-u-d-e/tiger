@@ -182,15 +182,20 @@ class StringExp : public Expression,
   int position;
 };
 
-class CallExp : public Expression {
+class CallExp : public Expression,
+                public std::enable_shared_from_this<const CallExp> {
   public:
   CallExp(const Symbol& func,
           std::vector<std::shared_ptr<Expression>> args,
           int position)
-    : name(name)
+    : name(func)
     , args(std::move(args))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_call_exp(shared_from_this());
+  }
   Symbol name;
   std::vector<std::shared_ptr<Expression>> args;
   int position;
