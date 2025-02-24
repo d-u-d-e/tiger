@@ -148,7 +148,8 @@ Parser::array_subscript(std::shared_ptr<ast::Expression> lhs)
   if(match(lexer::TokenType::of_keyword)) {
     // The parser must have found a simple variable as lhs
     if(!lhs_var || typeid(*lhs_var->var) != typeid(ast::SimpleVar)) {
-      error_at(subscript_tok, "Invalid array expression");
+      error_at(subscript_tok,
+               "The left hand side of an array exp must be an identifier");
       return nullptr;
     }
 
@@ -164,7 +165,8 @@ Parser::array_subscript(std::shared_ptr<ast::Expression> lhs)
 
   // Otherwise this must be a subscript var
   if(!lhs_var) {
-    error_at(subscript_tok, "Only variables are subscriptable");
+    error_at(subscript_tok,
+             "The left hand side of an array exp must be an identifier");
     return nullptr;
   }
 
@@ -226,8 +228,6 @@ std::shared_ptr<ast::NilExp> Parser::nil_literal()
 std::shared_ptr<ast::OpExp>
 Parser::binary_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  //std::cout << "binary_expr" << std::endl;
-
   auto op = previous;
   auto prec = pratt_table.at(op.type).precedence_value;
   auto rhs = expression(prec + 1);
@@ -240,7 +240,6 @@ std::shared_ptr<ast::OpExp> Parser::unary_expr()
   auto tok_pos = previous.pos;
   auto rhs = expression(Precedence::None);
   auto lhs = std::make_shared<ast::IntExp>(0);
-
   return std::make_shared<ast::OpExp>(lhs, ast::Operator::Minus, rhs, tok_pos);
 }
 
@@ -263,10 +262,8 @@ Parser::or_expr(std::shared_ptr<ast::Expression> lhs)
 std::shared_ptr<ast::AssignExp>
 Parser::assign_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  //std::cout << "assign_expr" << std::endl;
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
-
   auto var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
 
   if(var) {
@@ -288,9 +285,29 @@ Parser::call_expr(std::shared_ptr<ast::Expression> lhs)
 std::shared_ptr<ast::Expression>
 Parser::record_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  // TODO
-  //std::cout << "record_expr" << std::endl;
-  return nullptr;
+  // rule: type-id '{' id '=' <exp> (',' id '=' <exp>)*'}'
+
+  auto lhs_type = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+  if(!lhs_type || typeid(*lhs_type->var) != typeid(ast::SimpleVar)) {
+    error_at(previous, "Expected identifier as record type");
+    return nullptr;
+  }
+  // Get the type identifier
+  auto simple_var = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_type->var);
+  auto type_sym = simple_var->name;
+  auto type_pos = simple_var->position;
+
+  std::vector<ast::RecordField> fields;
+  do {
+    expect(lexer::TokenType::identifier, "Expected record field name");
+    auto field = previous;
+    expect(lexer::TokenType::equal_op, "Expected '='");
+    auto exp = expression(Precedence::None);
+    fields.push_back({Symbol(field.value), exp, field.pos});
+  } while(match(lexer::TokenType::comma));
+
+  expect(lexer::TokenType::rbrace, "Expected '}'");
+  return std::make_shared<ast::RecordExp>(type_sym, fields, type_pos);
 }
 
 void Parser::advance()

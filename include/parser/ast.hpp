@@ -230,13 +230,18 @@ class RecordField {
   int position;
 };
 
-class RecordExp {
+class RecordExp : public Expression,
+                  public std::enable_shared_from_this<const RecordExp> {
   public:
   RecordExp(const Symbol& type, std::vector<RecordField> fields, int position)
     : type(type)
     , fields(std::move(fields))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_record_exp(shared_from_this());
+  }
   Symbol type;
   std::vector<RecordField> fields;
   int position;

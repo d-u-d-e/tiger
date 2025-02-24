@@ -13,6 +13,7 @@ class SeqExp;
 class SubscriptVar;
 class ArrayExp;
 class NilExp;
+class RecordExp;
 }; // namespace parser::ast
 
 template <typename T>
@@ -40,4 +41,6 @@ class Visitor {
     const std::shared_ptr<const parser::ast::ArrayExp>& exp) = 0;
   T virtual visit_nil_exp(
     const std::shared_ptr<const parser::ast::NilExp>& exp) = 0;
+  T virtual visit_record_exp(
+    const std::shared_ptr<const parser::ast::RecordExp>& exp) = 0;
 };

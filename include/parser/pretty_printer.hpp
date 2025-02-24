@@ -7,7 +7,7 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_simple_var(
     const std::shared_ptr<const parser::ast::SimpleVar>& var) override
   {
-    return indent() + var->field + "SimpleVar(symbol\"" + var->name.name +
+    return indent() + var->field + "SimpleVar(symbol\"" + var->name.str +
            "\", " + std::to_string(var->position) + ")";
   }
 
@@ -17,7 +17,7 @@ class ASTVisitor : public Visitor<std::string> {
     std::string result = indent() + var->field + "FieldVar(\n";
     depth++;
     result += var->var->accept(*this) + ",\n";
-    result += indent() + "symbol\"" + var->name.name + "\", " +
+    result += indent() + "symbol\"" + var->name.str + "\", " +
               std::to_string(var->position) + "\n";
     depth--;
     result += indent() + ")";
@@ -122,7 +122,7 @@ class ASTVisitor : public Visitor<std::string> {
   {
     std::string result = indent() + exp->field + "ArrayExp(\n";
     depth++;
-    result += (indent() + "type=") + exp->type.name + ",\n";
+    result += (indent() + "type=") + exp->type.str + ",\n";
     exp->size->field = "size=";
     result += exp->size->accept(*this) + ",\n";
     exp->init->field = "init=";
@@ -137,6 +137,28 @@ class ASTVisitor : public Visitor<std::string> {
   visit_nil_exp(const std::shared_ptr<const parser::ast::NilExp>& exp) override
   {
     return indent() + exp->field + "NilExp(nil)";
+  }
+
+  std::string visit_record_exp(
+    const std::shared_ptr<const parser::ast::RecordExp>& exp) override
+  {
+    std::string result = indent() + exp->field + "RecordExp(\n";
+    depth++;
+    result += (indent() + "type=symbol\"") + exp->type.str + "\",\n";
+    result += indent() + "fields={\n";
+    depth++;
+    for(int i = 0; i < exp->fields.size(); i++) {
+      auto& field = exp->fields[i];
+      field.exp->field = "[symbol\"" + field.name.str +
+                         "\", pos=" + std::to_string(field.position) + ", exp=";
+      result += field.exp->accept(*this) + "],\n";
+    }
+    depth--;
+    result += indent() + "}\n";
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
   }
 
   private:

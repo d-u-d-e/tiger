@@ -5,7 +5,7 @@ namespace parser
 {
 
 struct Symbol {
-  std::string name;
+  std::string str;
 };
 
 } // namespace parser
