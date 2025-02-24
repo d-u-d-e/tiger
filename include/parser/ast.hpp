@@ -320,7 +320,8 @@ class WhileExp : public Expression,
   int position;
 };
 
-class ForExp : public Expression {
+class ForExp : public Expression,
+               public std::enable_shared_from_this<const ForExp> {
   public:
   ForExp(const Symbol& var,
          std::shared_ptr<Expression> low,
@@ -333,6 +334,10 @@ class ForExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_for_exp(shared_from_this());
+  }
   Symbol var;
   std::shared_ptr<Expression> low;
   std::shared_ptr<Expression> high;

@@ -197,9 +197,20 @@ std::shared_ptr<ast::WhileExp> Parser::while_expr()
 
 std::shared_ptr<ast::ForExp> Parser::for_expr()
 {
-  // TODO
-  //std::cout << "for_expr" << std::endl;
-  return nullptr;
+  // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
+  auto pos = previous.pos;
+  expect(lexer::TokenType::identifier, "Expected identifier");
+  auto var = Symbol{previous.value};
+  expect(lexer::TokenType::assign_op, "Expected ':='");
+  auto low = expression(Precedence::None);
+
+  expect(lexer::TokenType::to_keyword, "Expected 'to'");
+  auto high = expression(Precedence::None);
+
+  expect(lexer::TokenType::do_keyword, "Expected 'do'");
+  auto body = expression(Precedence::None);
+
+  return std::make_shared<ast::ForExp>(var, low, high, body, pos);
 }
 
 std::shared_ptr<ast::BreakExp> Parser::break_expr()
@@ -304,7 +315,7 @@ Parser::call_expr(std::shared_ptr<ast::Expression> lhs)
 std::shared_ptr<ast::Expression>
 Parser::record_expr(std::shared_ptr<ast::Expression> lhs)
 {
-  // rule: type-id '{' id '=' <exp> (',' id '=' <exp>)*'}'
+  // rule: <id> '{' <id> '=' <exp> (',' <id> '=' <exp>)*'}'
 
   auto lhs_type = std::dynamic_pointer_cast<ast::VarExp>(lhs);
   if(!lhs_type || typeid(*lhs_type->var) != typeid(ast::SimpleVar)) {

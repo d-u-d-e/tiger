@@ -203,6 +203,24 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string
+  visit_for_exp(const std::shared_ptr<const parser::ast::ForExp>& exp) override
+  {
+    std::string result = indent() + exp->field + "ForExp(\n";
+    depth++;
+    result += (indent() + "var=symbol\"") + exp->var.str + "\",\n";
+    exp->low->field = "low=";
+    result += exp->low->accept(*this) + ",\n";
+    exp->high->field = "high=";
+    result += exp->high->accept(*this) + ",\n";
+    exp->body->field = "body=";
+    result += exp->body->accept(*this) + ",\n";
+    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
   private:
   std::string indent(int depth)
   {
