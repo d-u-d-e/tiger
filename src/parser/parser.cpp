@@ -201,9 +201,8 @@ std::shared_ptr<ast::ForExp> Parser::for_expr()
 
 std::shared_ptr<ast::BreakExp> Parser::break_expr()
 {
-  // TODO
-  //std::cout << "break_expr" << std::endl;
-  return nullptr;
+  // rule: 'break'
+  return std::make_shared<ast::BreakExp>(previous.pos);
 }
 
 std::shared_ptr<ast::LetExp> Parser::let_expr()

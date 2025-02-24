@@ -335,11 +335,16 @@ class ForExp : public Expression {
   int position;
 };
 
-class BreakExp : public Expression {
+class BreakExp : public Expression,
+                 public std::enable_shared_from_this<const BreakExp> {
   public:
   BreakExp(int position)
     : position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_break_exp(shared_from_this());
+  }
   int position;
 };
 

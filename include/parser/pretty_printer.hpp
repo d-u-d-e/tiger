@@ -181,6 +181,13 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string visit_break_exp(
+    const std::shared_ptr<const parser::ast::BreakExp>& exp) override
+  {
+    return indent() + exp->field +
+           "BreakExp(pos=" + std::to_string(exp->position) + ")";
+  }
+
   private:
   std::string indent(int depth)
   {

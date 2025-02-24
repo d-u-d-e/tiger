@@ -15,6 +15,7 @@ class ArrayExp;
 class NilExp;
 class RecordExp;
 class IfExp;
+class BreakExp;
 }; // namespace parser::ast
 
 template <typename T>
@@ -46,4 +47,6 @@ class Visitor {
     const std::shared_ptr<const parser::ast::RecordExp>& exp) = 0;
   T virtual visit_if_exp(
     const std::shared_ptr<const parser::ast::IfExp>& exp) = 0;
+  T virtual visit_break_exp(
+    const std::shared_ptr<const parser::ast::BreakExp>& exp) = 0;
 };
