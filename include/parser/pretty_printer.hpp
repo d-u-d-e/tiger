@@ -244,16 +244,54 @@ class ASTVisitor : public Visitor<std::string> {
   std::string
   visit_let_exp(const std::shared_ptr<const parser::ast::LetExp>& exp) override
   {
-    // TODO
-    return indent() + exp->field +
-           "LetExp(pos=" + std::to_string(exp->position) + ")";
+    std::string result = indent() + exp->field + "LetExp(\n";
+    depth++;
+    result += indent() + "decls=[\n";
+    depth++;
+
+    for(auto& decl : exp->decls) {
+      result += decl->accept(*this) + ",\n";
+    }
+
+    depth--;
+    result += indent() + "],\n";
+    exp->body->field = "body=";
+    result += exp->body->accept(*this) + "\n";
+    depth--;
+    result += indent() + ")";
+    return result;
   }
 
   std::string visit_func_decl(
     const std::shared_ptr<const parser::ast::FuncDecl>& decl) override
   {
-    // TODO
-    return indent() + decl->field + "FuncDecl()";
+    std::string result = indent() + decl->field + "FuncDecl(\n";
+    for(auto& fdecl : decl->decls) {
+      result += indent() + "{\n";
+      depth++;
+      result += indent() + "name=symbol\"" + fdecl->name.str + "\",\n";
+      result += indent() + "params=[\n";
+      depth++;
+      for(auto& arg : fdecl->params) {
+        result += indent() + "(symbol\"" + arg.name.str +
+                  "\", pos=" + std::to_string(arg.position) +
+                  ", type=symbol\"" + arg.type.str + "\"),\n";
+      }
+      depth--;
+      result += indent() + "],\n";
+      if(fdecl->result) {
+        result +=
+          indent() + "result=symbol\"" + fdecl->result.value().str + "\",\n";
+      }
+      fdecl->body->field = "body=";
+      result += fdecl->body->accept(*this) + ",\n";
+      result += (indent() + "pos=") + std::to_string(fdecl->position) + "\n";
+      depth--;
+      result += indent() + "},\n";
+    }
+
+    result += indent() + ")";
+    return result;
   }
 
   private:

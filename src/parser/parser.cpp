@@ -278,11 +278,13 @@ std::shared_ptr<ast::FuncDecl> Parser::func_decl()
 
 std::shared_ptr<ast::TypeDecl> Parser::type_decl()
 {
+  // TODO
   return nullptr;
 }
 
 std::shared_ptr<ast::VarDecl> Parser::var_decl()
 {
+  // TODO
   return nullptr;
 }
 
