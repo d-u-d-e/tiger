@@ -33,7 +33,9 @@ class PrecedenceRule {
   { }
   int precedence_value;
   std::function<std::shared_ptr<ast::Expression>()> prefix_rule;
-  std::function<std::shared_ptr<ast::Expression>(std::shared_ptr<ast::Expression> lhs)> infix_rule;
+  std::function<std::shared_ptr<ast::Expression>(
+    std::shared_ptr<ast::Expression> lhs)>
+    infix_rule;
 };
 
 class Parser {
@@ -43,7 +45,6 @@ class Parser {
   void parse();
 
   private:
-
   lexer::Token current;
   lexer::Token previous;
 
@@ -61,8 +62,10 @@ class Parser {
   std::shared_ptr<ast::Expression> expression(int precedence);
   std::shared_ptr<ast::SeqExp> sequencing();
   std::shared_ptr<ast::VarExp> variable();
-  std::shared_ptr<ast::VarExp> record_field(std::shared_ptr<ast::Expression> lhs);
-  std::shared_ptr<ast::Expression> array_subscript(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::VarExp>
+  record_field(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression>
+  array_subscript(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::IntExp> integer_literal();
   std::shared_ptr<ast::StringExp> string_literal();
   std::shared_ptr<ast::WhileExp> while_expr();
@@ -73,11 +76,21 @@ class Parser {
   std::shared_ptr<ast::NilExp> nil_literal();
   std::shared_ptr<ast::OpExp> binary_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::OpExp> unary_expr();
-  std::shared_ptr<ast::Expression> and_expr(std::shared_ptr<ast::Expression> lhs);
-  std::shared_ptr<ast::Expression> or_expr(std::shared_ptr<ast::Expression> lhs);
-  std::shared_ptr<ast::AssignExp> assign_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression>
+  and_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression>
+  or_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::AssignExp>
+  assign_expr(std::shared_ptr<ast::Expression> lhs);
   std::shared_ptr<ast::CallExp> call_expr(std::shared_ptr<ast::Expression> lhs);
-  std::shared_ptr<ast::Expression> record_expr(std::shared_ptr<ast::Expression> lhs);
+  std::shared_ptr<ast::Expression>
+  record_expr(std::shared_ptr<ast::Expression> lhs);
+
+  std::shared_ptr<ast::Declaration> decl();
+  std::vector<std::shared_ptr<ast::Declaration>> decls();
+  std::shared_ptr<ast::FuncDecl> func_decl();
+  std::shared_ptr<ast::TypeDecl> type_decl();
+  std::shared_ptr<ast::VarDecl> var_decl();
 };
 
 } // namespace parser

@@ -221,9 +221,100 @@ std::shared_ptr<ast::BreakExp> Parser::break_expr()
 
 std::shared_ptr<ast::LetExp> Parser::let_expr()
 {
-  // TODO
-  //std::cout << "let_expr" << std::endl;
+  auto pos = previous.pos;
+  auto decs = decls();
+  expect(lexer::TokenType::in_keyword, "Expected 'in'");
+  auto body = expression(Precedence::None);
+  expect(lexer::TokenType::end_keyword, "Expected 'end'");
+  return std::make_shared<ast::LetExp>(decs, body, pos);
+}
+
+std::shared_ptr<ast::FuncDecl> Parser::func_decl()
+{
+  // rule: 'function' <id> '(' <tyfields> ')' '=' <exp>
+  // rule: 'function' <id> '(' <tyfields> ')' ':' <id> '=' <exp>
+
+  std::vector<std::shared_ptr<ast::_FuncDecl>> fdecls;
+  do {
+    auto func_tok_pos = previous.pos;
+    expect(lexer::TokenType::identifier, "Expected function name");
+    auto func_id = Symbol{previous.value};
+    expect(lexer::TokenType::lparen, "Expected '('");
+
+    std::vector<ast::Field> params;
+    // parse params
+    // rule: <tyfields> = epsilon
+    if(!match(lexer::TokenType::rparen)) {
+      // rule: <tyfields> = <id> ':' <id> (',' <id> ':' <id>)*
+      do {
+        expect(lexer::TokenType::identifier, "Expected param name");
+        auto param_name = Symbol{previous.value};
+        auto pos = previous.pos;
+        expect(lexer::TokenType::colon, "Expected ':' after param name");
+        expect(lexer::TokenType::identifier, "Expected param type");
+        auto param_type = Symbol{previous.value};
+        params.push_back({param_name, param_type, pos});
+      } while(match(lexer::TokenType::comma));
+      expect(lexer::TokenType::rparen, "Expected ')'");
+    }
+
+    std::optional<Symbol> result;
+    if(match(lexer::TokenType::colon)) {
+      // parse return type
+      expect(lexer::TokenType::identifier, "Expected return type");
+      result = Symbol{previous.value};
+    }
+
+    expect(lexer::TokenType::equal_op, "Expected '='");
+    auto body = expression(Precedence::None);
+    auto fun_decl = std::make_shared<ast::_FuncDecl>(
+      func_id, params, result, body, func_tok_pos);
+    fdecls.push_back(fun_decl);
+
+  } while(match(lexer::TokenType::function_keyword));
+
+  return std::make_shared<ast::FuncDecl>(fdecls);
+}
+
+std::shared_ptr<ast::TypeDecl> Parser::type_decl()
+{
   return nullptr;
+}
+
+std::shared_ptr<ast::VarDecl> Parser::var_decl()
+{
+  return nullptr;
+}
+
+std::shared_ptr<ast::Declaration> Parser::decl()
+{
+  if(match(lexer::TokenType::var_keyword)) {
+    return var_decl();
+  }
+  else if(match(lexer::TokenType::type_keyword)) {
+    return type_decl();
+  }
+  else if(match(lexer::TokenType::function_keyword)) {
+    return func_decl();
+  }
+  else {
+    error_at(current, "Expected declaration");
+    return nullptr;
+  }
+}
+
+std::vector<std::shared_ptr<ast::Declaration>> Parser::decls()
+{
+  // rule: <decl> (<decl>)*
+  auto vec = std::vector<std::shared_ptr<ast::Declaration>>{};
+
+  do {
+    vec.push_back(decl());
+  } while(check(lexer::TokenType::var_keyword) ||
+          check(lexer::TokenType::type_keyword) ||
+          check(lexer::TokenType::function_keyword));
+
+  return vec;
 }
 
 std::shared_ptr<ast::IfExp> Parser::if_expr()
@@ -320,12 +411,15 @@ Parser::call_expr(std::shared_ptr<ast::Expression> lhs)
   auto func_id = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_fun->var)->name;
   std::vector<std::shared_ptr<ast::Expression>> args;
 
+  if(match(lexer::TokenType::rparen)) {
+    return std::make_shared<ast::CallExp>(func_id, args, pos);
+  }
+
   do {
     args.push_back(expression(Precedence::None));
   } while(match(lexer::TokenType::comma));
 
   expect(lexer::TokenType::rparen, "Expected ')'");
-
   return std::make_shared<ast::CallExp>(func_id, args, pos);
 }
 

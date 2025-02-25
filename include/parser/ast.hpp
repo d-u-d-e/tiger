@@ -1,6 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <memory>
+#include <optional>
 #include <parser/symbol.hpp>
 #include <parser/visitor.hpp>
 #include <utility>
@@ -363,7 +364,8 @@ class BreakExp : public Expression,
   int position;
 };
 
-class LetExp : public Expression {
+class LetExp : public Expression,
+               public std::enable_shared_from_this<const LetExp> {
   public:
   LetExp(std::vector<std::shared_ptr<Declaration>> decls,
          std::shared_ptr<Expression> body,
@@ -372,6 +374,10 @@ class LetExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_let_exp(shared_from_this());
+  }
   std::vector<std::shared_ptr<Declaration>> decls;
   std::shared_ptr<Expression> body;
   int position;
@@ -402,16 +408,16 @@ class ArrayExp : public Expression,
 class VarDecl : public Declaration {
   public:
   VarDecl(const Symbol& name,
-          const Symbol& type,
+          std::optional<Symbol> type,
           std::shared_ptr<Expression> init,
           int position)
     : name(name)
-    , type(std::move(type))
+    , type(type)
     , init(std::move(init))
     , position(position)
   { }
   Symbol name;
-  Symbol type;
+  std::optional<Symbol> type;
   std::shared_ptr<Expression> init;
   int position;
 };
@@ -436,23 +442,23 @@ class TypeDecl : public Declaration {
   std::vector<std::shared_ptr<_TypeDecl>> decls;
 };
 
-class DeclField {
+class Field {
   public:
-  DeclField(const Symbol& name, std::shared_ptr<Type> type, int position)
+  Field(const Symbol& name, const Symbol& type, int position)
     : name(name)
-    , type(std::move(type))
+    , type(type)
     , position(position)
   { }
   Symbol name;
-  std::shared_ptr<Type> type;
+  Symbol type;
   int position;
 };
 
 class _FuncDecl {
   public:
   _FuncDecl(const Symbol& name,
-            std::vector<std::shared_ptr<DeclField>> params,
-            const Symbol& result,
+            std::vector<Field> params,
+            std::optional<Symbol> result,
             std::shared_ptr<Expression> body,
             int position)
     : name(name)
@@ -462,34 +468,51 @@ class _FuncDecl {
     , position(position)
   { }
   Symbol name;
-  std::vector<std::shared_ptr<DeclField>> params;
-  Symbol result;
+  std::vector<Field> params;
+  std::optional<Symbol> result;
   std::shared_ptr<Expression> body;
   int position;
 };
 
-class FuncDecl : public Declaration {
+class FuncDecl : public Declaration,
+                 public std::enable_shared_from_this<const FuncDecl> {
   public:
   FuncDecl(std::vector<std::shared_ptr<_FuncDecl>> decls)
     : decls(std::move(decls))
   { }
   std::vector<std::shared_ptr<_FuncDecl>> decls;
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_func_decl(shared_from_this());
+  }
 };
 
 class RecordType : public Type {
   public:
-  RecordType(std::vector<std::shared_ptr<DeclField>> fields)
+  RecordType(std::vector<Field> fields)
     : fields(std::move(fields))
   { }
-  std::vector<std::shared_ptr<DeclField>> fields;
+  std::vector<Field> fields;
 };
 
 class ArrayType : public Type {
   public:
-  ArrayType(const Symbol& name)
+  ArrayType(const Symbol& name, int position)
     : name(name)
+    , position(position)
   { }
   Symbol name;
+  int position;
+};
+
+class NamedType : public Type {
+  public:
+  NamedType(const Symbol& name, int position)
+    : name(name)
+    , position(position)
+  { }
+  Symbol name;
+  int position;
 };
 
 } // namespace ast

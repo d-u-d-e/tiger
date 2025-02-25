@@ -241,6 +241,21 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string
+  visit_let_exp(const std::shared_ptr<const parser::ast::LetExp>& exp) override
+  {
+    // TODO
+    return indent() + exp->field +
+           "LetExp(pos=" + std::to_string(exp->position) + ")";
+  }
+
+  std::string visit_func_decl(
+    const std::shared_ptr<const parser::ast::FuncDecl>& decl) override
+  {
+    // TODO
+    return indent() + decl->field + "FuncDecl()";
+  }
+
   private:
   std::string indent(int depth)
   {
