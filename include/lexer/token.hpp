@@ -1,6 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <format>
+#include <lexer/position.hpp>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -63,20 +64,18 @@ enum class TokenType
 struct Token {
   TokenType type;
   std::string value;
-  int line;
-  int pos;
+  Position pos;
 
   Token() = default;
-  Token(TokenType type, std::string value, int line, int pos)
+  Token(TokenType type, std::string value, Position pos)
     : type(type)
     , value(value)
-    , line(line)
     , pos(pos)
   { }
 
   bool operator==(const Token& other) const
   {
-    return type == other.type && value == other.value && line == other.line;
+    return type == other.type && value == other.value && pos == other.pos;
   }
 };
 

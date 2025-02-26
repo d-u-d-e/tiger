@@ -23,7 +23,7 @@ class LetExp;
 class FuncDecl;
 class VarDecl;
 class TypeDecl;
-class NamedType;
+class NameType;
 class ArrayType;
 class RecordType;
 }; // namespace parser::ast
@@ -74,7 +74,7 @@ class Visitor {
   T virtual visit_type_decl(
     const std::shared_ptr<const parser::ast::TypeDecl>& decl) = 0;
   T virtual visit_named_type(
-    const std::shared_ptr<const parser::ast::NamedType>& type) = 0;
+    const std::shared_ptr<const parser::ast::NameType>& type) = 0;
   T virtual visit_array_type(
     const std::shared_ptr<const parser::ast::ArrayType>& type) = 0;
   T virtual visit_record_type(

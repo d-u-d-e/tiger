@@ -122,8 +122,11 @@ std::string to_string(TokenType type)
 
 std::string to_string(const Token& token)
 {
-  return std::format(
-    "[{}: '{}' ({}, {})]", to_string(token.type), token.value, token.line, token.pos);
+  return std::format("[{}: '{}' ({}, {})]",
+                     to_string(token.type),
+                     token.value,
+                     token.pos.line,
+                     token.pos.column);
 }
 
 std::ostream& operator<<(std::ostream& os, const Token& value)

@@ -83,7 +83,7 @@ class Scanner {
 
   Token eof_token()
   {
-    return Token(TokenType::eof, "$", line, int(current - row));
+    return Token(TokenType::eof, "$", Position(line, int(current - row)));
   }
 
   bool is_eof(const char* current)

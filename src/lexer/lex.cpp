@@ -46,77 +46,81 @@ Token Scanner::punctuation()
   switch(*current) {
   case ',':
     current++;
-    return Token{TokenType::comma, ",", line, int(current - row)};
+    return Token{TokenType::comma, ",", Position(line, int(current - row))};
   case ':':
     current++;
     if(match('=')) {
-      return Token{TokenType::assign_op, ":=", line, int(current - row) - 1};
+      return Token{
+        TokenType::assign_op, ":=", Position(line, int(current - row) - 1)};
     }
-    return Token{TokenType::colon, ":", line, int(current - row)};
+    return Token{TokenType::colon, ":", Position(line, int(current - row))};
   case ';':
     current++;
-    return Token{TokenType::semicolon, ";", line, int(current - row)};
+    return Token{TokenType::semicolon, ";", Position(line, int(current - row))};
   case '(':
     current++;
-    return Token{TokenType::lparen, "(", line, int(current - row)};
+    return Token{TokenType::lparen, "(", Position(line, int(current - row))};
   case ')':
     current++;
-    return Token{TokenType::rparen, ")", line, int(current - row)};
+    return Token{TokenType::rparen, ")", Position(line, int(current - row))};
   case '{':
     current++;
-    return Token{TokenType::lbrace, "{", line, int(current - row)};
+    return Token{TokenType::lbrace, "{", Position(line, int(current - row))};
   case '}':
     current++;
-    return Token{TokenType::rbrace, "}", line, int(current - row)};
+    return Token{TokenType::rbrace, "}", Position(line, int(current - row))};
   case '.':
     current++;
-    return Token{TokenType::dot_op, ".", line, int(current - row)};
+    return Token{TokenType::dot_op, ".", Position(line, int(current - row))};
   case '+':
     current++;
-    return Token{TokenType::plus_op, "+", line, int(current - row)};
+    return Token{TokenType::plus_op, "+", Position(line, int(current - row))};
   case '-':
     current++;
-    return Token{TokenType::minus_op, "-", line, int(current - row)};
+    return Token{TokenType::minus_op, "-", Position(line, int(current - row))};
   case '*':
     current++;
-    return Token{TokenType::times_op, "*", line, int(current - row)};
+    return Token{TokenType::times_op, "*", Position(line, int(current - row))};
   case '/':
     current++;
-    return Token{TokenType::divide_op, "/", line, int(current - row)};
+    return Token{TokenType::divide_op, "/", Position(line, int(current - row))};
   case '=':
     current++;
-    return Token{TokenType::equal_op, "=", line, int(current - row)};
+    return Token{TokenType::equal_op, "=", Position(line, int(current - row))};
   case '<':
     current++;
     if(match('=')) {
       return Token{
-        TokenType::less_equal_op, "<=", line, int(current - row) - 1};
+        TokenType::less_equal_op, "<=", Position(line, int(current - row) - 1)};
     }
     else if(match('>')) {
-      return Token{TokenType::not_equal_op, "<>", line, int(current - row) - 1};
+      return Token{
+        TokenType::not_equal_op, "<>", Position(line, int(current - row) - 1)};
     }
     else {
-      return Token{TokenType::less_op, "<", line, int(current - row)};
+      return Token{TokenType::less_op, "<", Position(line, int(current - row))};
     }
   case '>':
     current++;
     if(match('=')) {
-      return Token{
-        TokenType::greater_equal_op, ">=", line, int(current - row) - 1};
+      return Token{TokenType::greater_equal_op,
+                   ">=",
+                   Position(line, int(current - row) - 1)};
     }
-    return Token{TokenType::greater_op, ">", line, int(current - row)};
+    return Token{
+      TokenType::greater_op, ">", Position(line, int(current - row))};
   case '&':
     current++;
-    return Token{TokenType::and_op, "&", line, int(current - row)};
+    return Token{TokenType::and_op, "&", Position(line, int(current - row))};
   case '|':
     current++;
-    return Token{TokenType::or_op, "|", line, int(current - row)};
+    return Token{TokenType::or_op, "|", Position(line, int(current - row))};
   case '[':
     current++;
-    return Token{TokenType::lbracket, "[", line, int(current - row)};
+    return Token{TokenType::lbracket, "[", Position(line, int(current - row))};
   case ']':
     current++;
-    return Token{TokenType::rbracket, "]", line, int(current - row)};
+    return Token{TokenType::rbracket, "]", Position(line, int(current - row))};
   default:
     break;
   }
@@ -133,8 +137,7 @@ Token Scanner::integer_literal()
   }
   return {TokenType::integer_literal,
           std::string(start, current),
-          line,
-          int(current - row)};
+          Position(line, int(current - row))};
 }
 
 Token Scanner::string_literal()
@@ -169,8 +172,7 @@ Token Scanner::string_literal()
     }
     else {
       current++; // Closing quote
-      return Token{
-        TokenType::string_literal, value, sline, spos};
+      return Token{TokenType::string_literal, value, Position(sline, spos)};
     }
   }
 
@@ -188,9 +190,9 @@ Token Scanner::identifier()
 
   std::string value(start, current);
   if(keywords.find(value) != keywords.end()) {
-    return {keywords.at(value), value, line, int(start - row) + 1};
+    return {keywords.at(value), value, Position(line, int(start - row) + 1)};
   }
-  return {TokenType::identifier, value, line, int(start - row) + 1};
+  return {TokenType::identifier, value, Position(line, int(start - row) + 1)};
 }
 
 Token Scanner::read_token()

@@ -7,75 +7,81 @@ class ASTVisitor : public Visitor<std::string> {
   std::string visit_simple_var(
     const std::shared_ptr<const parser::ast::SimpleVar>& var) override
   {
-    return indent() + var->field + "SimpleVar(symbol\"" + var->name.str +
-           "\", " + std::to_string(var->position) + ")";
+
+    return std::format("{}{}SimpleVar{{symbol\"{}\", pos={}}}",
+                       indent(),
+                       var->field,
+                       var->name.str,
+                       var->position);
   }
 
   std::string visit_field_var(
     const std::shared_ptr<const parser::ast::FieldVar>& var) override
   {
-    std::string result = indent() + var->field + "FieldVar(\n";
+    std::string result = indent() + var->field + "FieldVar{\n";
     depth++;
+    var->var->field = "var=";
     result += var->var->accept(*this) + ",\n";
-    result += indent() + "symbol\"" + var->name.str + "\", " +
-              std::to_string(var->position) + "\n";
+    result += indent() + "symbol\"" + var->name.str +
+              "\", pos=" + var->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_string_exp(
     const std::shared_ptr<const parser::ast::StringExp>& exp) override
   {
-    return indent() + exp->field + "StringExp(\"" + exp->value + "\", " +
-           std::to_string(exp->position) + ")";
+    return std::format(
+      "{}{}StringExp{{pos={}}}", indent(), exp->field, exp->position);
   }
 
   std::string visit_assign_exp(
     const std::shared_ptr<const parser::ast::AssignExp>& exp) override
   {
-    std::string result = indent() + exp->field + "AssignExp(\n";
+    std::string result = indent() + exp->field + "AssignExp{\n";
     depth++;
-    exp->left->field = "var=";
-    exp->right->field = "exp=";
-    result += exp->left->accept(*this) + ",\n";
-    result += exp->right->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + "\n";
+    exp->var->field = "var=";
+    exp->exp->field = "exp=";
+    result += exp->var->accept(*this) + ",\n";
+    result += exp->exp->accept(*this) + ",\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_op_exp(const std::shared_ptr<const parser::ast::OpExp>& exp) override
   {
-    std::string result = indent() + exp->field + "OpExp(\n";
+    std::string result = indent() + exp->field + "OpExp{\n";
     depth++;
     exp->left->field = "left=";
     exp->right->field = "right=";
     result += exp->left->accept(*this) + ",\n";
     result += indent() + "oper=" + parser::ast::to_string(exp->op) + ",\n";
     result += exp->right->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + "\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_int_exp(const std::shared_ptr<const parser::ast::IntExp>& exp) override
   {
-    return indent() + exp->field + "IntExp(" + std::to_string(exp->value) + ")";
+    return std::format(
+      "{}{}IntExp{{{}}}", indent(), exp->field, std::to_string(exp->value));
   }
 
   std::string
   visit_var_exp(const std::shared_ptr<const parser::ast::VarExp>& exp) override
   {
-    std::string result = indent() + exp->field + "VarExp(\n";
+    std::string result = indent() + exp->field + "VarExp{\n";
     depth++;
     result += exp->var->accept(*this) + ",\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
@@ -83,88 +89,88 @@ class ASTVisitor : public Visitor<std::string> {
   visit_seq_exp(const std::shared_ptr<const parser::ast::SeqExp>& exp) override
   {
     int size = exp->exps.size();
-    std::string ind = indent();
-    std::string result = ind + exp->field + "SeqExp[\n";
+    std::string result = indent() + exp->field + "SeqExp{[\n";
 
     if(size != 0) {
       depth++;
       for(int i = 0; i < size; i++) {
         auto& v = exp->exps[i];
         auto& ve = std::get<0>(v);
-        ve->field = "[";
-        result += ve->accept(*this) + ", " + std::to_string(std::get<1>(v)) +
-                  "]" + ((i == size - 1) ? "\n" : ",\n");
+        ve->field = "(";
+        result += ve->accept(*this) + ", pos=" + std::get<1>(v).to_string() +
+                  ")" + ((i == size - 1) ? "\n" : ",\n");
       }
       depth--;
     }
-
-    result += ind + "]";
+    result += indent() + "]}";
     return result;
   }
 
   std::string visit_subscript_var(
     const std::shared_ptr<const parser::ast::SubscriptVar>& var) override
   {
-    std::string result = indent() + var->field + "SubscriptVar(\n";
+    std::string result = indent() + var->field + "SubscriptVar{\n";
     depth++;
     var->var->field = "var=";
     var->exp->field = "exp=";
     result += var->var->accept(*this) + ",\n";
     result += var->exp->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(var->position) + ",\n";
+    result += (indent() + "pos=") + var->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_array_exp(
     const std::shared_ptr<const parser::ast::ArrayExp>& exp) override
   {
-    std::string result = indent() + exp->field + "ArrayExp(\n";
+    std::string result = indent() + exp->field + "ArrayExp{\n";
     depth++;
     result += (indent() + "type=") + exp->type.str + ",\n";
     exp->size->field = "size=";
     result += exp->size->accept(*this) + ",\n";
     exp->init->field = "init=";
     result += exp->init->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_nil_exp(const std::shared_ptr<const parser::ast::NilExp>& exp) override
   {
-    return indent() + exp->field + "NilExp(nil)";
+    return std::format("{}{}NilExp{{{}}}", indent(), exp->field, "nil");
   }
 
   std::string visit_record_exp(
     const std::shared_ptr<const parser::ast::RecordExp>& exp) override
   {
-    std::string result = indent() + exp->field + "RecordExp(\n";
+    std::string result = indent() + exp->field + "RecordExp{\n";
     depth++;
     result += (indent() + "type=symbol\"") + exp->type.str + "\",\n";
-    result += indent() + "fields={\n";
+    result += indent() + "fields=[\n";
     depth++;
-    for(int i = 0; i < exp->fields.size(); i++) {
+    auto size = exp->fields.size();
+    for(int i = 0; i < size; i++) {
       auto& field = exp->fields[i];
-      field.exp->field = "[symbol\"" + field.name.str +
-                         "\", pos=" + std::to_string(field.position) + ", exp=";
-      result += field.exp->accept(*this) + "],\n";
+      field.exp->field = "(symbol\"" + field.name.str +
+                         "\", pos=" + field.position.to_string() + ", exp=";
+      result +=
+        field.exp->accept(*this) + ")" + ((i == size - 1) ? "\n" : ",\n");
     }
     depth--;
-    result += indent() + "}\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += indent() + "],\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_if_exp(const std::shared_ptr<const parser::ast::IfExp>& exp) override
   {
-    std::string result = indent() + exp->field + "IfExp(\n";
+    std::string result = indent() + exp->field + "IfExp{\n";
     depth++;
     exp->cond->field = "cond=";
     result += exp->cond->accept(*this) + ",\n";
@@ -175,38 +181,38 @@ class ASTVisitor : public Visitor<std::string> {
       exp->else_->field = "else=";
       result += exp->else_->accept(*this) + ",\n";
     }
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_break_exp(
     const std::shared_ptr<const parser::ast::BreakExp>& exp) override
   {
-    return indent() + exp->field +
-           "BreakExp(pos=" + std::to_string(exp->position) + ")";
+    return std::format(
+      "{}{}BreakExp{{pos={}}}", indent(), exp->field, exp->position);
   }
 
   std::string visit_while_exp(
     const std::shared_ptr<const parser::ast::WhileExp>& exp) override
   {
-    std::string result = indent() + exp->field + "WhileExp(\n";
+    std::string result = indent() + exp->field + "WhileExp{\n";
     depth++;
     exp->cond->field = "cond=";
     result += exp->cond->accept(*this) + ",\n";
     exp->body->field = "body=";
     result += exp->body->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += indent() + "pos=" + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_for_exp(const std::shared_ptr<const parser::ast::ForExp>& exp) override
   {
-    std::string result = indent() + exp->field + "ForExp(\n";
+    std::string result = indent() + exp->field + "ForExp{\n";
     depth++;
     result += (indent() + "var=symbol\"") + exp->var.str + "\",\n";
     exp->low->field = "low=";
@@ -215,87 +221,72 @@ class ASTVisitor : public Visitor<std::string> {
     result += exp->high->accept(*this) + ",\n";
     exp->body->field = "body=";
     result += exp->body->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += indent() + "pos=" + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_call_exp(
     const std::shared_ptr<const parser::ast::CallExp>& exp) override
   {
-    std::string result = indent() + exp->field + "CallExp(\n";
+    std::string result = indent() + exp->field + "CallExp{\n";
     depth++;
     result += indent() + "func=symbol\"" + exp->name.str + "\",\n";
-    result += indent() + "args=[,\n";
+    result += indent() + "args=[\n";
     depth++;
-    for(int i = 0; i < exp->args.size(); i++) {
+    auto size = exp->args.size();
+    for(int i = 0; i < size; i++) {
       auto& arg = exp->args[i];
-      result += arg->accept(*this) + ",\n";
+      result += arg->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
     }
     depth--;
     result += indent() + "],\n";
-    result += (indent() + "pos=") + std::to_string(exp->position) + ",\n";
+    result += (indent() + "pos=") + exp->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string
   visit_let_exp(const std::shared_ptr<const parser::ast::LetExp>& exp) override
   {
-    std::string result = indent() + exp->field + "LetExp(\n";
+    std::string result = indent() + exp->field + "LetExp{\n";
     depth++;
     result += indent() + "decls=[\n";
     depth++;
-
-    for(auto& decl : exp->decls) {
-      result += decl->accept(*this) + ",\n";
+    auto size = exp->decls.size();
+    for(int i = 0; i < size; i++) {
+      auto& decl = exp->decls[i];
+      result += decl->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
     }
-
     depth--;
     result += indent() + "],\n";
     exp->body->field = "body=";
     result += exp->body->accept(*this) + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_func_decl(
     const std::shared_ptr<const parser::ast::FuncDecl>& decl) override
   {
-    std::string result = indent() + decl->field + "FuncDecl(\n";
-    for(auto& fdecl : decl->decls) {
-      result += indent() + "{\n";
-      depth++;
-      result += indent() + "name=symbol\"" + fdecl->name.str + "\",\n";
-      result += indent() + "params=[\n";
-      depth++;
-      for(auto& arg : fdecl->params) {
-        result += visit_field(arg) + ",\n";
-      }
-      depth--;
-      result += indent() + "],\n";
-      if(fdecl->result) {
-        result +=
-          indent() + "result=symbol\"" + fdecl->result.value().str + "\",\n";
-      }
-      fdecl->body->field = "body=";
-      result += fdecl->body->accept(*this) + ",\n";
-      result += (indent() + "pos=") + std::to_string(fdecl->position) + "\n";
-      depth--;
-      result += indent() + "},\n";
+    std::string result = indent() + decl->field + "FuncDecl{\n";
+    auto size = decl->decls.size();
+    for(int i = 0; i < size; i++) {
+      auto& fdecl = decl->decls[i];
+      result +=
+        visit_single_func_decl(*fdecl) + ((i == size - 1) ? "\n" : ",\n");
     }
-
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_var_decl(
     const std::shared_ptr<const parser::ast::VarDecl>& decl) override
   {
-    std::string result = indent() + decl->field + "VarDecl(\n";
+    std::string result = indent() + decl->field + "VarDecl{\n";
     depth++;
     result += indent() + "name=symbol\"" + decl->name.str + "\",\n";
     if(decl->type) {
@@ -303,81 +294,112 @@ class ASTVisitor : public Visitor<std::string> {
     }
     decl->init->field = "init=";
     result += decl->init->accept(*this) + ",\n";
-    result += (indent() + "pos=") + std::to_string(decl->position) + "\n";
+    result += (indent() + "pos=") + decl->position.to_string() + "\n";
     depth--;
-    return result + indent() + ")";
+    return result + indent() + "}";
   }
 
   std::string visit_type_decl(
     const std::shared_ptr<const parser::ast::TypeDecl>& decl) override
   {
-    std::string result = indent() + decl->field + "TypeDecl(\n";
-    for(auto& tdecl : decl->decls) {
-      result += indent() + "{\n";
+    std::string result = indent() + decl->field + "TypeDecl{\n";
+    auto size = decl->decls.size();
+    for(int i = 0; i < size; i++) {
+      auto& tdecl = decl->decls[i];
+      result += indent() + "(\n";
       depth++;
       result += indent() + "name=symbol\"" + tdecl->name.str + "\",\n";
       tdecl->type->field = "ty=";
       result += tdecl->type->accept(*this) + ",\n";
-      result += (indent() + "pos=") + std::to_string(tdecl->position) + "\n";
+      result += (indent() + "pos=") + tdecl->position.to_string() + "\n";
       depth--;
-      result += indent() + "},\n";
+      result += indent() + ")" + ((i == size - 1) ? "\n" : ",\n");
     }
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_named_type(
-    const std::shared_ptr<const parser::ast::NamedType>& type) override
+    const std::shared_ptr<const parser::ast::NameType>& type) override
   {
-    std::string result = indent() + type->field + "NamedType(\n";
+    std::string result = indent() + type->field + "NameType{\n";
     depth++;
     result += indent() + "name=symbol\"" + type->name.str + "\",\n";
-    result += (indent() + "pos=") + std::to_string(type->position) + "\n";
+    result += (indent() + "pos=") + type->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_array_type(
     const std::shared_ptr<const parser::ast::ArrayType>& type) override
   {
-    std::string result = indent() + type->field + "ArrayType(\n";
+    std::string result = indent() + type->field + "ArrayType{\n";
     depth++;
     result += indent() + "name=symbol\"" + type->name.str + "\",\n";
-    result += (indent() + "pos=") + std::to_string(type->position) + "\n";
+    result += (indent() + "pos=") + type->position.to_string() + "\n";
     depth--;
-    result += indent() + ")";
+    result += indent() + "}";
     return result;
   }
 
   std::string visit_record_type(
     const std::shared_ptr<const parser::ast::RecordType>& type) override
   {
-    std::string result = indent() + type->field + "RecordType(\n";
+    std::string result = indent() + type->field + "RecordType{\n";
     depth++;
-    for (auto& field : type->fields) {
-      result += visit_field(field) + ",\n";
+    auto size = type->fields.size();
+    for(int i = 0; i < size; i++) {
+      auto& field = type->fields[i];
+      result += visit_single_field(field) + ((i == size - 1) ? "\n" : ",\n");
     }
+    depth--;
+    result += indent() + "}";
+    return result;
+  }
+
+  private:
+  std::string visit_single_field(const parser::ast::_Field& f)
+  {
+    std::string result = indent() + "(symbol\"" + f.name.str +
+                         "\", pos=" + f.position.to_string() +
+                         ", type=symbol\"" + f.type.str + "\")";
+    return result;
+  }
+
+  std::string visit_single_func_decl(const parser::ast::_FuncDecl& decl)
+  {
+    std::string result = indent() + "(\n";
+    depth++;
+    result += indent() + "name=symbol\"" + decl.name.str + "\",\n";
+    result += indent() + "params=[\n";
+    depth++;
+    auto size = decl.params.size();
+    for(int i = 0; i < size; i++) {
+      auto& param = decl.params[i];
+      result += visit_single_field(param) + ((i == size - 1) ? "\n" : ",\n");
+    }
+    depth--;
+    result += indent() + "]\n";
+
+    if(decl.result) {
+      result +=
+        indent() + "result=symbol\"" + decl.result.value().str + "\",\n";
+    }
+    decl.body->field = "body=";
+    result += decl.body->accept(*this) + ",\n";
+    result += (indent() + "pos=") + decl.position.to_string() + "\n";
     depth--;
     result += indent() + ")";
     return result;
   }
 
-  private:
-  std::string visit_field(const parser::ast::Field& f)
-  {
-    std::string result = indent() + "(symbol\"" + f.name.str +
-                         "\", pos=" + std::to_string(f.position) +
-                         ", type=symbol\"" + f.type.str + "\")";
-    return result;
-  }
-
-  std::string indent(int depth)
+  inline std::string indent(int depth)
   {
     std::string result(depth * 2, ' ');
     return result;
   }
-  std::string indent()
+  inline std::string indent()
   {
     return indent(depth);
   }

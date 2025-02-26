@@ -12,6 +12,8 @@ namespace parser
 namespace ast
 {
 
+using Position = lexer::Position;
+
 class Expression {
   public:
   virtual std::string accept(Visitor<std::string>& visitor) const = 0;
@@ -85,7 +87,7 @@ inline std::string to_string(Operator op)
 class SimpleVar : public Variable,
                   public std::enable_shared_from_this<const SimpleVar> {
   public:
-  SimpleVar(const Symbol& name, int position)
+  SimpleVar(const Symbol& name, Position position)
     : name(name)
     , position(position)
   { }
@@ -95,14 +97,14 @@ class SimpleVar : public Variable,
   }
 
   Symbol name;
-  int position;
+  Position position;
 };
 
 class FieldVar : public Variable,
                  public std::enable_shared_from_this<const FieldVar> {
   public:
-  FieldVar(std::shared_ptr<Variable> var, const Symbol& name, int position)
-    : var(var)
+  FieldVar(std::shared_ptr<Variable> var, const Symbol& name, Position position)
+    : var(std::move(var))
     , name(name)
     , position(position)
   { }
@@ -112,7 +114,7 @@ class FieldVar : public Variable,
   }
   std::shared_ptr<Variable> var;
   Symbol name;
-  int position;
+  Position position;
 };
 
 class SubscriptVar : public Variable,
@@ -120,9 +122,9 @@ class SubscriptVar : public Variable,
   public:
   SubscriptVar(std::shared_ptr<Variable> var,
                std::shared_ptr<Expression> exp,
-               int position)
-    : var(var)
-    , exp(exp)
+               Position position)
+    : var(std::move(var))
+    , exp(std::move(exp))
     , position(position)
   { }
   std::string accept(Visitor<std::string>& visitor) const override
@@ -131,7 +133,7 @@ class SubscriptVar : public Variable,
   }
   std::shared_ptr<Variable> var;
   std::shared_ptr<Expression> exp;
-  int position;
+  Position position;
 };
 
 class VarExp : public Expression,
@@ -171,7 +173,7 @@ class IntExp : public Expression,
 class StringExp : public Expression,
                   public std::enable_shared_from_this<const StringExp> {
   public:
-  StringExp(const std::string& value, int position)
+  StringExp(const std::string& value, Position position)
     : value(value)
     , position(position)
   { }
@@ -180,7 +182,7 @@ class StringExp : public Expression,
     return visitor.visit_string_exp(shared_from_this());
   }
   std::string value;
-  int position;
+  Position position;
 };
 
 class CallExp : public Expression,
@@ -188,7 +190,7 @@ class CallExp : public Expression,
   public:
   CallExp(const Symbol& func,
           std::vector<std::shared_ptr<Expression>> args,
-          int position)
+          Position position)
     : name(func)
     , args(std::move(args))
     , position(position)
@@ -199,7 +201,7 @@ class CallExp : public Expression,
   }
   Symbol name;
   std::vector<std::shared_ptr<Expression>> args;
-  int position;
+  Position position;
 };
 
 class OpExp : public Expression,
@@ -208,7 +210,7 @@ class OpExp : public Expression,
   OpExp(std::shared_ptr<Expression> left,
         Operator op,
         std::shared_ptr<Expression> right,
-        int position)
+        Position position)
     : left(std::move(left))
     , op(op)
     , right(std::move(right))
@@ -221,25 +223,29 @@ class OpExp : public Expression,
   std::shared_ptr<Expression> left;
   Operator op;
   std::shared_ptr<Expression> right;
-  int position;
+  Position position;
 };
 
-class RecordField {
+class _RecordField {
   public:
-  RecordField(const Symbol& name, std::shared_ptr<Expression> exp, int position)
+  _RecordField(const Symbol& name,
+               std::shared_ptr<Expression> exp,
+               Position position)
     : name(name)
     , exp(std::move(exp))
     , position(position)
   { }
   Symbol name;
   std::shared_ptr<Expression> exp;
-  int position;
+  Position position;
 };
 
 class RecordExp : public Expression,
                   public std::enable_shared_from_this<const RecordExp> {
   public:
-  RecordExp(const Symbol& type, std::vector<RecordField> fields, int position)
+  RecordExp(const Symbol& type,
+            std::vector<_RecordField> fields,
+            Position position)
     : type(type)
     , fields(std::move(fields))
     , position(position)
@@ -249,17 +255,17 @@ class RecordExp : public Expression,
     return visitor.visit_record_exp(shared_from_this());
   }
   Symbol type;
-  std::vector<RecordField> fields;
-  int position;
+  std::vector<_RecordField> fields;
+  Position position;
 };
 
 class SeqExp : public Expression,
                public std::enable_shared_from_this<const SeqExp> {
   public:
-  SeqExp(std::vector<std::pair<std::shared_ptr<Expression>, int>> exps)
+  SeqExp(std::vector<std::pair<std::shared_ptr<Expression>, Position>> exps)
     : exps(std::move(exps))
   { }
-  std::vector<std::pair<std::shared_ptr<Expression>, int>> exps;
+  std::vector<std::pair<std::shared_ptr<Expression>, Position>> exps;
   std::string accept(Visitor<std::string>& visitor) const override
   {
     return visitor.visit_seq_exp(shared_from_this());
@@ -269,20 +275,20 @@ class SeqExp : public Expression,
 class AssignExp : public Expression,
                   public std::enable_shared_from_this<const AssignExp> {
   public:
-  AssignExp(std::shared_ptr<Variable> left,
-            std::shared_ptr<Expression> right,
-            int position)
-    : left(std::move(left))
-    , right(std::move(right))
+  AssignExp(std::shared_ptr<Variable> var,
+            std::shared_ptr<Expression> exp,
+            Position position)
+    : var(std::move(var))
+    , exp(std::move(exp))
     , position(position)
   { }
   std::string accept(Visitor<std::string>& visitor) const override
   {
     return visitor.visit_assign_exp(shared_from_this());
   }
-  std::shared_ptr<Variable> left;
-  std::shared_ptr<Expression> right;
-  int position;
+  std::shared_ptr<Variable> var;
+  std::shared_ptr<Expression> exp;
+  Position position;
 };
 
 class IfExp : public Expression,
@@ -291,7 +297,7 @@ class IfExp : public Expression,
   IfExp(std::shared_ptr<Expression> cond,
         std::shared_ptr<Expression> then,
         std::shared_ptr<Expression> else_,
-        int position)
+        Position position)
     : cond(std::move(cond))
     , then(std::move(then))
     , else_(std::move(else_))
@@ -304,7 +310,7 @@ class IfExp : public Expression,
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> then;
   std::shared_ptr<Expression> else_;
-  int position;
+  Position position;
 };
 
 class WhileExp : public Expression,
@@ -312,7 +318,7 @@ class WhileExp : public Expression,
   public:
   WhileExp(std::shared_ptr<Expression> cond,
            std::shared_ptr<Expression> body,
-           int position)
+           Position position)
     : cond(std::move(cond))
     , body(std::move(body))
     , position(position)
@@ -323,7 +329,7 @@ class WhileExp : public Expression,
   }
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> body;
-  int position;
+  Position position;
 };
 
 class ForExp : public Expression,
@@ -333,7 +339,7 @@ class ForExp : public Expression,
          std::shared_ptr<Expression> low,
          std::shared_ptr<Expression> high,
          std::shared_ptr<Expression> body,
-         int position)
+         Position position)
     : var(var)
     , low(std::move(low))
     , high(std::move(high))
@@ -348,20 +354,20 @@ class ForExp : public Expression,
   std::shared_ptr<Expression> low;
   std::shared_ptr<Expression> high;
   std::shared_ptr<Expression> body;
-  int position;
+  Position position;
 };
 
 class BreakExp : public Expression,
                  public std::enable_shared_from_this<const BreakExp> {
   public:
-  BreakExp(int position)
+  BreakExp(Position position)
     : position(position)
   { }
   std::string accept(Visitor<std::string>& visitor) const override
   {
     return visitor.visit_break_exp(shared_from_this());
   }
-  int position;
+  Position position;
 };
 
 class LetExp : public Expression,
@@ -369,7 +375,7 @@ class LetExp : public Expression,
   public:
   LetExp(std::vector<std::shared_ptr<Declaration>> decls,
          std::shared_ptr<Expression> body,
-         int position)
+         Position position)
     : decls(std::move(decls))
     , body(std::move(body))
     , position(position)
@@ -380,7 +386,7 @@ class LetExp : public Expression,
   }
   std::vector<std::shared_ptr<Declaration>> decls;
   std::shared_ptr<Expression> body;
-  int position;
+  Position position;
 };
 
 class ArrayExp : public Expression,
@@ -389,7 +395,7 @@ class ArrayExp : public Expression,
   ArrayExp(const Symbol& type,
            std::shared_ptr<Expression> size,
            std::shared_ptr<Expression> init,
-           int position)
+           Position position)
     : type(type)
     , size(std::move(size))
     , init(std::move(init))
@@ -402,7 +408,7 @@ class ArrayExp : public Expression,
   Symbol type;
   std::shared_ptr<Expression> size;
   std::shared_ptr<Expression> init;
-  int position;
+  Position position;
 };
 
 class VarDecl : public Declaration,
@@ -411,7 +417,7 @@ class VarDecl : public Declaration,
   VarDecl(const Symbol& name,
           std::optional<Symbol> type,
           std::shared_ptr<Expression> init,
-          int position)
+          Position position)
     : name(name)
     , type(type)
     , init(std::move(init))
@@ -424,19 +430,19 @@ class VarDecl : public Declaration,
   Symbol name;
   std::optional<Symbol> type;
   std::shared_ptr<Expression> init;
-  int position;
+  Position position;
 };
 
 class _TypeDecl {
   public:
-  _TypeDecl(const Symbol& name, std::shared_ptr<Type> type, int position)
+  _TypeDecl(const Symbol& name, std::shared_ptr<Type> type, Position position)
     : name(name)
     , type(std::move(type))
     , position(position)
   { }
   Symbol name;
   std::shared_ptr<Type> type;
-  int position;
+  Position position;
 };
 
 class TypeDecl : public Declaration,
@@ -452,25 +458,68 @@ class TypeDecl : public Declaration,
   std::vector<std::shared_ptr<_TypeDecl>> decls;
 };
 
-class Field {
+class _Field {
   public:
-  Field(const Symbol& name, const Symbol& type, int position)
+  _Field(const Symbol& name, const Symbol& type, Position position)
     : name(name)
     , type(type)
     , position(position)
   { }
   Symbol name;
   Symbol type;
-  int position;
+  Position position;
+};
+
+class RecordType : public Type,
+                   public std::enable_shared_from_this<const RecordType> {
+  public:
+  RecordType(std::vector<_Field> fields)
+    : fields(std::move(fields))
+  { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_record_type(shared_from_this());
+  }
+  std::vector<_Field> fields;
+};
+
+class ArrayType : public Type,
+                  public std::enable_shared_from_this<const ArrayType> {
+  public:
+  ArrayType(const Symbol& name, Position position)
+    : name(name)
+    , position(position)
+  { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_array_type(shared_from_this());
+  }
+  Symbol name;
+  Position position;
+};
+
+class NameType : public Type,
+                 public std::enable_shared_from_this<const NameType> {
+  public:
+  NameType(const Symbol& name, Position position)
+    : name(name)
+    , position(position)
+  { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_named_type(shared_from_this());
+  }
+  Symbol name;
+  Position position;
 };
 
 class _FuncDecl {
   public:
   _FuncDecl(const Symbol& name,
-            std::vector<Field> params,
+            std::vector<_Field> params,
             std::optional<Symbol> result,
             std::shared_ptr<Expression> body,
-            int position)
+            Position position)
     : name(name)
     , params(std::move(params))
     , result(result)
@@ -478,10 +527,10 @@ class _FuncDecl {
     , position(position)
   { }
   Symbol name;
-  std::vector<Field> params;
+  std::vector<_Field> params;
   std::optional<Symbol> result;
   std::shared_ptr<Expression> body;
-  int position;
+  Position position;
 };
 
 class FuncDecl : public Declaration,
@@ -495,49 +544,6 @@ class FuncDecl : public Declaration,
   {
     return visitor.visit_func_decl(shared_from_this());
   }
-};
-
-class RecordType : public Type,
-                   public std::enable_shared_from_this<const RecordType> {
-  public:
-  RecordType(std::vector<Field> fields)
-    : fields(std::move(fields))
-  { }
-  std::string accept(Visitor<std::string>& visitor) const
-  {
-    return visitor.visit_record_type(shared_from_this());
-  }
-  std::vector<Field> fields;
-};
-
-class ArrayType : public Type,
-                  public std::enable_shared_from_this<const ArrayType> {
-  public:
-  ArrayType(const Symbol& name, int position)
-    : name(name)
-    , position(position)
-  { }
-  std::string accept(Visitor<std::string>& visitor) const
-  {
-    return visitor.visit_array_type(shared_from_this());
-  }
-  Symbol name;
-  int position;
-};
-
-class NamedType : public Type,
-                  public std::enable_shared_from_this<const NamedType> {
-  public:
-  NamedType(const Symbol& name, int position)
-    : name(name)
-    , position(position)
-  { }
-  std::string accept(Visitor<std::string>& visitor) const
-  {
-    return visitor.visit_named_type(shared_from_this());
-  }
-  Symbol name;
-  int position;
 };
 
 } // namespace ast

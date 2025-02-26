@@ -93,7 +93,7 @@ std::shared_ptr<ast::Expression> Parser::expression(int precedence)
 
 std::shared_ptr<ast::SeqExp> Parser::sequencing()
 {
-  std::vector<std::pair<std::shared_ptr<ast::Expression>, int>> exps;
+  std::vector<std::pair<std::shared_ptr<ast::Expression>, lexer::Position>> exps;
   // rule: '(' ')'
   if(match(lexer::TokenType::rparen)) {
     return std::make_shared<ast::SeqExp>(exps);
@@ -241,7 +241,7 @@ std::shared_ptr<ast::FuncDecl> Parser::func_decl()
     auto func_id = Symbol{previous.value};
     expect(lexer::TokenType::lparen, "Expected '('");
 
-    std::vector<ast::Field> params;
+    std::vector<ast::_Field> params;
     // parse params
     // rule: <tyfields> = epsilon
     if(!match(lexer::TokenType::rparen)) {
@@ -293,7 +293,7 @@ std::shared_ptr<ast::TypeDecl> Parser::type_decl()
 
     if(match(lexer::TokenType::lbrace)) {
       // record type
-      std::vector<ast::Field> fields;
+      std::vector<ast::_Field> fields;
       if(!check(lexer::TokenType::rbrace)) {
         do {
           expect(lexer::TokenType::identifier, "Expected param name");
@@ -321,7 +321,7 @@ std::shared_ptr<ast::TypeDecl> Parser::type_decl()
       // alias type
       expect(lexer::TokenType::identifier, "Expected type");
       auto type_sym = Symbol{previous.value};
-      auto type = std::make_shared<ast::NamedType>(type_sym, previous.pos);
+      auto type = std::make_shared<ast::NameType>(type_sym, previous.pos);
       decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
     }
   } while(match(lexer::TokenType::type_keyword));
@@ -501,7 +501,7 @@ Parser::record_expr(std::shared_ptr<ast::Expression> lhs)
   auto type_sym = simple_var->name;
   auto type_pos = simple_var->position;
 
-  std::vector<ast::RecordField> fields;
+  std::vector<ast::_RecordField> fields;
   do {
     expect(lexer::TokenType::identifier, "Expected record field name");
     auto field = previous;
@@ -547,7 +547,7 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
   throw std::runtime_error(std::format(
-    "[line {}:{}] Err at {}: {}\n", tok.line, tok.pos, tok, err_msg));
+    "[line {}] Err at {}: {}\n", tok.pos.line, tok, err_msg));
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)
