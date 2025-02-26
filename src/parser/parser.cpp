@@ -278,8 +278,55 @@ std::shared_ptr<ast::FuncDecl> Parser::func_decl()
 
 std::shared_ptr<ast::TypeDecl> Parser::type_decl()
 {
-  // TODO
-  return nullptr;
+  // rule: 'type' <id> '=' <ty>
+  // <ty> = <id> | '{' <tyfields> '}' | 'array' 'of' <id>
+  // <tyfields> = epsilon | <id> ':' <id> (',' <id> ':' <id>)*
+
+  // We have a vector because we might have mutually recursive types
+  std::vector<std::shared_ptr<ast::_TypeDecl>> decls_;
+
+  do {
+    auto pos = previous.pos;
+    expect(lexer::TokenType::identifier, "Expected type name");
+    auto type_id = Symbol{previous.value};
+    expect(lexer::TokenType::equal_op, "Expected '='");
+
+    if(match(lexer::TokenType::lbrace)) {
+      // record type
+      std::vector<ast::Field> fields;
+      if(!check(lexer::TokenType::rbrace)) {
+        do {
+          expect(lexer::TokenType::identifier, "Expected param name");
+          auto param_name = Symbol{previous.value};
+          auto pos = previous.pos;
+          expect(lexer::TokenType::colon, "Expected ':' after param name");
+          expect(lexer::TokenType::identifier, "Expected param type");
+          auto param_type = Symbol{previous.value};
+          fields.push_back({param_name, param_type, pos});
+        } while(match(lexer::TokenType::comma));
+      }
+      expect(lexer::TokenType::rbrace, "Expected '}'");
+      auto type = std::make_shared<ast::RecordType>(fields);
+      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+    }
+    else if(match(lexer::TokenType::array_keyword)) {
+      // array type
+      expect(lexer::TokenType::of_keyword, "Expected 'of'");
+      expect(lexer::TokenType::identifier, "Expected type");
+      auto type_sym = Symbol{previous.value};
+      auto type = std::make_shared<ast::ArrayType>(type_sym, previous.pos);
+      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+    }
+    else {
+      // alias type
+      expect(lexer::TokenType::identifier, "Expected type");
+      auto type_sym = Symbol{previous.value};
+      auto type = std::make_shared<ast::NamedType>(type_sym, previous.pos);
+      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+    }
+  } while(match(lexer::TokenType::type_keyword));
+
+  return std::make_shared<ast::TypeDecl>(decls_);
 }
 
 std::shared_ptr<ast::VarDecl> Parser::var_decl()

@@ -273,9 +273,7 @@ class ASTVisitor : public Visitor<std::string> {
       result += indent() + "params=[\n";
       depth++;
       for(auto& arg : fdecl->params) {
-        result += indent() + "(symbol\"" + arg.name.str +
-                  "\", pos=" + std::to_string(arg.position) +
-                  ", type=symbol\"" + arg.type.str + "\"),\n";
+        result += visit_field(arg) + ",\n";
       }
       depth--;
       result += indent() + "],\n";
@@ -310,7 +308,70 @@ class ASTVisitor : public Visitor<std::string> {
     return result + indent() + ")";
   }
 
+  std::string visit_type_decl(
+    const std::shared_ptr<const parser::ast::TypeDecl>& decl) override
+  {
+    std::string result = indent() + decl->field + "TypeDecl(\n";
+    for(auto& tdecl : decl->decls) {
+      result += indent() + "{\n";
+      depth++;
+      result += indent() + "name=symbol\"" + tdecl->name.str + "\",\n";
+      tdecl->type->field = "ty=";
+      result += tdecl->type->accept(*this) + ",\n";
+      result += (indent() + "pos=") + std::to_string(tdecl->position) + "\n";
+      depth--;
+      result += indent() + "},\n";
+    }
+    result += indent() + ")";
+    return result;
+  }
+
+  std::string visit_named_type(
+    const std::shared_ptr<const parser::ast::NamedType>& type) override
+  {
+    std::string result = indent() + type->field + "NamedType(\n";
+    depth++;
+    result += indent() + "name=symbol\"" + type->name.str + "\",\n";
+    result += (indent() + "pos=") + std::to_string(type->position) + "\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
+  std::string visit_array_type(
+    const std::shared_ptr<const parser::ast::ArrayType>& type) override
+  {
+    std::string result = indent() + type->field + "ArrayType(\n";
+    depth++;
+    result += indent() + "name=symbol\"" + type->name.str + "\",\n";
+    result += (indent() + "pos=") + std::to_string(type->position) + "\n";
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
+  std::string visit_record_type(
+    const std::shared_ptr<const parser::ast::RecordType>& type) override
+  {
+    std::string result = indent() + type->field + "RecordType(\n";
+    depth++;
+    for (auto& field : type->fields) {
+      result += visit_field(field) + ",\n";
+    }
+    depth--;
+    result += indent() + ")";
+    return result;
+  }
+
   private:
+  std::string visit_field(const parser::ast::Field& f)
+  {
+    std::string result = indent() + "(symbol\"" + f.name.str +
+                         "\", pos=" + std::to_string(f.position) +
+                         ", type=symbol\"" + f.type.str + "\")";
+    return result;
+  }
+
   std::string indent(int depth)
   {
     std::string result(depth * 2, ' ');

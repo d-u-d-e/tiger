@@ -439,11 +439,16 @@ class _TypeDecl {
   int position;
 };
 
-class TypeDecl : public Declaration {
+class TypeDecl : public Declaration,
+                 public std::enable_shared_from_this<const TypeDecl> {
   public:
   TypeDecl(std::vector<std::shared_ptr<_TypeDecl>> decls)
     : decls(std::move(decls))
   { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_type_decl(shared_from_this());
+  }
   std::vector<std::shared_ptr<_TypeDecl>> decls;
 };
 
@@ -492,30 +497,45 @@ class FuncDecl : public Declaration,
   }
 };
 
-class RecordType : public Type {
+class RecordType : public Type,
+                   public std::enable_shared_from_this<const RecordType> {
   public:
   RecordType(std::vector<Field> fields)
     : fields(std::move(fields))
   { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_record_type(shared_from_this());
+  }
   std::vector<Field> fields;
 };
 
-class ArrayType : public Type {
+class ArrayType : public Type,
+                  public std::enable_shared_from_this<const ArrayType> {
   public:
   ArrayType(const Symbol& name, int position)
     : name(name)
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_array_type(shared_from_this());
+  }
   Symbol name;
   int position;
 };
 
-class NamedType : public Type {
+class NamedType : public Type,
+                  public std::enable_shared_from_this<const NamedType> {
   public:
   NamedType(const Symbol& name, int position)
     : name(name)
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const
+  {
+    return visitor.visit_named_type(shared_from_this());
+  }
   Symbol name;
   int position;
 };

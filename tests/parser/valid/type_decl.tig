@@ -1,0 +1,7 @@
+let
+    type T = int
+    type U = array of int
+    type list = {val: T, rest: list}
+  in U[3] of 2
+end
+  
