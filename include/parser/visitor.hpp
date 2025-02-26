@@ -21,6 +21,7 @@ class ForExp;
 class CallExp;
 class LetExp;
 class FuncDecl;
+class VarDecl;
 }; // namespace parser::ast
 
 template <typename T>
@@ -64,4 +65,6 @@ class Visitor {
     const std::shared_ptr<const parser::ast::LetExp>& exp) = 0;
   T virtual visit_func_decl(
     const std::shared_ptr<const parser::ast::FuncDecl>& decl) = 0;
+  T virtual visit_var_decl(
+    const std::shared_ptr<const parser::ast::VarDecl>& decl) = 0;
 };

@@ -405,7 +405,8 @@ class ArrayExp : public Expression,
   int position;
 };
 
-class VarDecl : public Declaration {
+class VarDecl : public Declaration,
+                public std::enable_shared_from_this<const VarDecl> {
   public:
   VarDecl(const Symbol& name,
           std::optional<Symbol> type,
@@ -416,6 +417,10 @@ class VarDecl : public Declaration {
     , init(std::move(init))
     , position(position)
   { }
+  std::string accept(Visitor<std::string>& visitor) const override
+  {
+    return visitor.visit_var_decl(shared_from_this());
+  }
   Symbol name;
   std::optional<Symbol> type;
   std::shared_ptr<Expression> init;

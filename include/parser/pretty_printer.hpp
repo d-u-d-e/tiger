@@ -294,6 +294,22 @@ class ASTVisitor : public Visitor<std::string> {
     return result;
   }
 
+  std::string visit_var_decl(
+    const std::shared_ptr<const parser::ast::VarDecl>& decl) override
+  {
+    std::string result = indent() + decl->field + "VarDecl(\n";
+    depth++;
+    result += indent() + "name=symbol\"" + decl->name.str + "\",\n";
+    if(decl->type) {
+      result += indent() + "type=symbol\"" + decl->type.value().str + "\",\n";
+    }
+    decl->init->field = "init=";
+    result += decl->init->accept(*this) + ",\n";
+    result += (indent() + "pos=") + std::to_string(decl->position) + "\n";
+    depth--;
+    return result + indent() + ")";
+  }
+
   private:
   std::string indent(int depth)
   {

@@ -284,8 +284,22 @@ std::shared_ptr<ast::TypeDecl> Parser::type_decl()
 
 std::shared_ptr<ast::VarDecl> Parser::var_decl()
 {
-  // TODO
-  return nullptr;
+
+  // rule: 'var' <id> ':' <id> ':=' <exp>
+  // rule: 'var' <id> ':=' <exp>
+
+  auto pos = previous.pos;
+  expect(lexer::TokenType::identifier, "Expected variable name");
+  auto var_id = Symbol{previous.value};
+  std::optional<Symbol> var_type;
+  if(match(lexer::TokenType::colon)) {
+    expect(lexer::TokenType::identifier, "Expected variable type");
+    var_type = Symbol{previous.value};
+  }
+  expect(lexer::TokenType::assign_op, "Expected ':='");
+  auto body = expression(Precedence::None);
+  auto var_decl = std::make_shared<ast::VarDecl>(var_id, var_type, body, pos);
+  return var_decl;
 }
 
 std::shared_ptr<ast::Declaration> Parser::decl()
