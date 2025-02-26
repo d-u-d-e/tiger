@@ -31,52 +31,28 @@ class RecordType;
 template <typename T>
 class Visitor {
   public:
-  T virtual visit_simple_var(
-    const std::shared_ptr<const parser::ast::SimpleVar>& var) = 0;
-  T virtual visit_string_exp(
-    const std::shared_ptr<const parser::ast::StringExp>& exp) = 0;
-  T virtual visit_assign_exp(
-    const std::shared_ptr<const parser::ast::AssignExp>& exp) = 0;
-  T virtual visit_op_exp(
-    const std::shared_ptr<const parser::ast::OpExp>& exp) = 0;
-  T virtual visit_int_exp(
-    const std::shared_ptr<const parser::ast::IntExp>& exp) = 0;
-  T virtual visit_var_exp(
-    const std::shared_ptr<const parser::ast::VarExp>& exp) = 0;
-  T virtual visit_seq_exp(
-    const std::shared_ptr<const parser::ast::SeqExp>& exp) = 0;
-  T virtual visit_field_var(
-    const std::shared_ptr<const parser::ast::FieldVar>& var) = 0;
-  T virtual visit_subscript_var(
-    const std::shared_ptr<const parser::ast::SubscriptVar>& var) = 0;
-  T virtual visit_array_exp(
-    const std::shared_ptr<const parser::ast::ArrayExp>& exp) = 0;
-  T virtual visit_nil_exp(
-    const std::shared_ptr<const parser::ast::NilExp>& exp) = 0;
-  T virtual visit_record_exp(
-    const std::shared_ptr<const parser::ast::RecordExp>& exp) = 0;
-  T virtual visit_if_exp(
-    const std::shared_ptr<const parser::ast::IfExp>& exp) = 0;
-  T virtual visit_break_exp(
-    const std::shared_ptr<const parser::ast::BreakExp>& exp) = 0;
-  T virtual visit_while_exp(
-    const std::shared_ptr<const parser::ast::WhileExp>& exp) = 0;
-  T virtual visit_for_exp(
-    const std::shared_ptr<const parser::ast::ForExp>& exp) = 0;
-  T virtual visit_call_exp(
-    const std::shared_ptr<const parser::ast::CallExp>& exp) = 0;
-  T virtual visit_let_exp(
-    const std::shared_ptr<const parser::ast::LetExp>& exp) = 0;
-  T virtual visit_func_decl(
-    const std::shared_ptr<const parser::ast::FuncDecl>& decl) = 0;
-  T virtual visit_var_decl(
-    const std::shared_ptr<const parser::ast::VarDecl>& decl) = 0;
-  T virtual visit_type_decl(
-    const std::shared_ptr<const parser::ast::TypeDecl>& decl) = 0;
-  T virtual visit_named_type(
-    const std::shared_ptr<const parser::ast::NameType>& type) = 0;
-  T virtual visit_array_type(
-    const std::shared_ptr<const parser::ast::ArrayType>& type) = 0;
-  T virtual visit_record_type(
-    const std::shared_ptr<const parser::ast::RecordType>& type) = 0;
+  T virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
+  T virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
+  T virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
+  T virtual visit_op_exp(const parser::ast::OpExp& exp) = 0;
+  T virtual visit_int_exp(const parser::ast::IntExp& exp) = 0;
+  T virtual visit_var_exp(const parser::ast::VarExp& exp) = 0;
+  T virtual visit_seq_exp(const parser::ast::SeqExp& exp) = 0;
+  T virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
+  T virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
+  T virtual visit_array_exp(const parser::ast::ArrayExp& exp) = 0;
+  T virtual visit_nil_exp(const parser::ast::NilExp& exp) = 0;
+  T virtual visit_record_exp(const parser::ast::RecordExp& exp) = 0;
+  T virtual visit_if_exp(const parser::ast::IfExp& exp) = 0;
+  T virtual visit_break_exp(const parser::ast::BreakExp& exp) = 0;
+  T virtual visit_while_exp(const parser::ast::WhileExp& exp) = 0;
+  T virtual visit_for_exp(const parser::ast::ForExp& exp) = 0;
+  T virtual visit_call_exp(const parser::ast::CallExp& exp) = 0;
+  T virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
+  T virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
+  T virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
+  T virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
+  T virtual visit_named_type(const parser::ast::NameType& type) = 0;
+  T virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
+  T virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };

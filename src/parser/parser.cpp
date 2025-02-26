@@ -64,10 +64,10 @@ void Parser::parse()
   std::cout << exp->accept(pretty_printer) << std::endl;
 }
 
-std::shared_ptr<ast::Expression> Parser::expression(int precedence)
+std::unique_ptr<ast::Expression> Parser::expression(int precedence)
 {
 
-  std::shared_ptr<ast::Expression> lhs;
+  std::unique_ptr<ast::Expression> lhs;
   advance();
   auto rule = pratt_table.at(previous.type);
   if(rule.prefix_rule == nullptr) {
@@ -85,117 +85,125 @@ std::shared_ptr<ast::Expression> Parser::expression(int precedence)
       return nullptr;
     }
     advance(); // skip infix operator
-    lhs = rule.infix_rule(lhs);
+    lhs = rule.infix_rule(std::move(lhs));
     rule = pratt_table.at(current.type);
   }
   return lhs;
 }
 
-std::shared_ptr<ast::SeqExp> Parser::sequencing()
+std::unique_ptr<ast::SeqExp> Parser::sequencing()
 {
-  std::vector<std::pair<std::shared_ptr<ast::Expression>, lexer::Position>> exps;
+  std::vector<std::pair<std::unique_ptr<ast::Expression>, lexer::Position>>
+    exps{};
+
   // rule: '(' ')'
   if(match(lexer::TokenType::rparen)) {
-    return std::make_shared<ast::SeqExp>(exps);
+    return std::make_unique<ast::SeqExp>(std::move(exps));
   }
 
-  // rule: <exp> (';' <exp>)* ')'
+  // rule: '(' <exp> (';' <exp>)* ')'
   do {
     auto pos = current.pos;
-    exps.push_back({expression(Precedence::None), pos});
+    exps.emplace_back(expression(Precedence::None), pos);
   } while(match(lexer::TokenType::semicolon));
 
-  expect(lexer::TokenType::rparen, "Expected ')'");
-  return std::make_shared<ast::SeqExp>(exps);
+  expect(lexer::TokenType::rparen,
+         "Expected ')' closing a sequence expression");
+  return std::make_unique<ast::SeqExp>(std::move(exps));
 }
 
-std::shared_ptr<ast::VarExp> Parser::variable()
+std::unique_ptr<ast::VarExp> Parser::variable()
 {
+  // we parsed an identifier as an infix operator
   auto var =
-    std::make_shared<ast::SimpleVar>(Symbol{previous.value}, previous.pos);
-  return std::make_shared<ast::VarExp>(var);
+    std::make_unique<ast::SimpleVar>(Symbol{previous.value}, previous.pos);
+  return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::shared_ptr<ast::VarExp>
-Parser::record_field(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::VarExp>
+Parser::record_field(std::unique_ptr<ast::Expression> lhs)
 {
-  auto lhs_var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+  // rule: <id> '.' <id>
+  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
 
   if(!lhs_var) {
-    error_at(previous, "Expected variable");
+    error_at(previous, "Expected variable before token '.'");
     return nullptr;
   }
 
-  expect(lexer::TokenType::identifier, "Expected record field name");
+  expect(lexer::TokenType::identifier,
+         "Expected record field name after token '.'");
   auto field = previous;
-  auto var = std::make_shared<ast::FieldVar>(
-    lhs_var->var, Symbol(field.value), field.pos);
-
-  return std::make_shared<ast::VarExp>(var);
+  auto var = std::make_unique<ast::FieldVar>(
+    std::move(lhs_var->var), Symbol(field.value), field.pos);
+  return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::shared_ptr<ast::Expression>
-Parser::array_subscript(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::Expression>
+Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
 {
-  auto subscript_tok = previous;
-  // Parse the expression between brackets
-  auto between_exp = expression(Precedence::None);
-  expect(lexer::TokenType::rbracket, "Expected ']'");
+  // rule: <id> '[' <exp> ']'
+  // rule: <id> '[' <exp> ']' of <exp>
 
-  // Next check whether we have an array exp or a subscript var
-  auto lhs_var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
+  auto subscript_tok = previous;
+  // parse the expression between brackets
+  auto between_exp = expression(Precedence::None);
+  expect(lexer::TokenType::rbracket,
+         "Expected ']' closing subscript expression");
+
+  // next check whether we have an array exp or a subscript var
+  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+
+  if(!lhs_var) {
+    error_at(subscript_tok, "Expected variable before token '['");
+    return nullptr;
+  }
 
   if(match(lexer::TokenType::of_keyword)) {
-    // The parser must have found a simple variable as lhs
-    if(!lhs_var || typeid(*lhs_var->var) != typeid(ast::SimpleVar)) {
+    // the parser must have found a simple variable as lhs
+    auto simple_var = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
+
+    if(!simple_var) {
       error_at(subscript_tok,
-               "The left hand side of an array exp must be an identifier");
+               "Expected type identifier before token '[' of array expression");
       return nullptr;
     }
 
-    auto simple_var = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_var->var);
     auto ty_symbol = simple_var->name;
 
     // Compute the init expression
-    std::shared_ptr<ast::Expression> init = expression(Precedence::None);
+    std::unique_ptr<ast::Expression> init = expression(Precedence::None);
 
-    return std::make_shared<ast::ArrayExp>(
-      ty_symbol, between_exp, init, simple_var->position);
+    return std::make_unique<ast::ArrayExp>(
+      ty_symbol, std::move(between_exp), std::move(init), simple_var->position);
   }
 
-  // Otherwise this must be a subscript var
-  if(!lhs_var) {
-    error_at(subscript_tok,
-             "The left hand side of an array exp must be an identifier");
-    return nullptr;
-  }
-
-  auto var = std::make_shared<ast::SubscriptVar>(
-    lhs_var->var, between_exp, subscript_tok.pos);
-  return std::make_shared<ast::VarExp>(var);
+  auto var = std::make_unique<ast::SubscriptVar>(
+    std::move(lhs_var->var), std::move(between_exp), subscript_tok.pos);
+  return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::shared_ptr<ast::IntExp> Parser::integer_literal()
+std::unique_ptr<ast::IntExp> Parser::integer_literal()
 {
-  return std::make_shared<ast::IntExp>(std::stoi(previous.value));
+  return std::make_unique<ast::IntExp>(std::stoi(previous.value));
 }
 
-std::shared_ptr<ast::StringExp> Parser::string_literal()
+std::unique_ptr<ast::StringExp> Parser::string_literal()
 {
-  return std::make_shared<ast::StringExp>(previous.value, previous.pos);
+  return std::make_unique<ast::StringExp>(previous.value, previous.pos);
 }
 
-std::shared_ptr<ast::WhileExp> Parser::while_expr()
+std::unique_ptr<ast::WhileExp> Parser::while_expr()
 {
   // rule: 'while' <exp> 'do' <exp>
   auto pos = previous.pos;
   auto cond = expression(Precedence::None);
-  expect(lexer::TokenType::do_keyword, "Expected 'do'");
+  expect(lexer::TokenType::do_keyword, "Expected 'do' after while condition");
   auto body = expression(Precedence::None);
-  return std::make_shared<ast::WhileExp>(cond, body, pos);
+  return std::make_unique<ast::WhileExp>(std::move(cond), std::move(body), pos);
 }
 
-std::shared_ptr<ast::ForExp> Parser::for_expr()
+std::unique_ptr<ast::ForExp> Parser::for_expr()
 {
   // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
   auto pos = previous.pos;
@@ -210,31 +218,32 @@ std::shared_ptr<ast::ForExp> Parser::for_expr()
   expect(lexer::TokenType::do_keyword, "Expected 'do'");
   auto body = expression(Precedence::None);
 
-  return std::make_shared<ast::ForExp>(var, low, high, body, pos);
+  return std::make_unique<ast::ForExp>(
+    var, std::move(low), std::move(high), std::move(body), pos);
 }
 
-std::shared_ptr<ast::BreakExp> Parser::break_expr()
+std::unique_ptr<ast::BreakExp> Parser::break_expr()
 {
   // rule: 'break'
-  return std::make_shared<ast::BreakExp>(previous.pos);
+  return std::make_unique<ast::BreakExp>(previous.pos);
 }
 
-std::shared_ptr<ast::LetExp> Parser::let_expr()
+std::unique_ptr<ast::LetExp> Parser::let_expr()
 {
   auto pos = previous.pos;
   auto decs = decls();
   expect(lexer::TokenType::in_keyword, "Expected 'in'");
   auto body = expression(Precedence::None);
   expect(lexer::TokenType::end_keyword, "Expected 'end'");
-  return std::make_shared<ast::LetExp>(decs, body, pos);
+  return std::make_unique<ast::LetExp>(std::move(decs), std::move(body), pos);
 }
 
-std::shared_ptr<ast::FuncDecl> Parser::func_decl()
+std::unique_ptr<ast::FuncDecl> Parser::func_decl()
 {
   // rule: 'function' <id> '(' <tyfields> ')' '=' <exp>
   // rule: 'function' <id> '(' <tyfields> ')' ':' <id> '=' <exp>
 
-  std::vector<std::shared_ptr<ast::_FuncDecl>> fdecls;
+  std::vector<std::unique_ptr<ast::_FuncDecl>> fdecls;
   do {
     auto func_tok_pos = previous.pos;
     expect(lexer::TokenType::identifier, "Expected function name");
@@ -253,7 +262,7 @@ std::shared_ptr<ast::FuncDecl> Parser::func_decl()
         expect(lexer::TokenType::colon, "Expected ':' after param name");
         expect(lexer::TokenType::identifier, "Expected param type");
         auto param_type = Symbol{previous.value};
-        params.push_back({param_name, param_type, pos});
+        params.emplace_back(param_name, param_type, pos);
       } while(match(lexer::TokenType::comma));
       expect(lexer::TokenType::rparen, "Expected ')'");
     }
@@ -267,23 +276,23 @@ std::shared_ptr<ast::FuncDecl> Parser::func_decl()
 
     expect(lexer::TokenType::equal_op, "Expected '='");
     auto body = expression(Precedence::None);
-    auto fun_decl = std::make_shared<ast::_FuncDecl>(
-      func_id, params, result, body, func_tok_pos);
-    fdecls.push_back(fun_decl);
+    auto fun_decl = std::make_unique<ast::_FuncDecl>(
+      func_id, params, result, std::move(body), func_tok_pos);
+    fdecls.emplace_back(std::move(fun_decl));
 
   } while(match(lexer::TokenType::function_keyword));
 
-  return std::make_shared<ast::FuncDecl>(fdecls);
+  return std::make_unique<ast::FuncDecl>(std::move(fdecls));
 }
 
-std::shared_ptr<ast::TypeDecl> Parser::type_decl()
+std::unique_ptr<ast::TypeDecl> Parser::type_decl()
 {
   // rule: 'type' <id> '=' <ty>
   // <ty> = <id> | '{' <tyfields> '}' | 'array' 'of' <id>
   // <tyfields> = epsilon | <id> ':' <id> (',' <id> ':' <id>)*
 
   // We have a vector because we might have mutually recursive types
-  std::vector<std::shared_ptr<ast::_TypeDecl>> decls_;
+  std::vector<std::unique_ptr<ast::_TypeDecl>> decls_;
 
   do {
     auto pos = previous.pos;
@@ -302,34 +311,37 @@ std::shared_ptr<ast::TypeDecl> Parser::type_decl()
           expect(lexer::TokenType::colon, "Expected ':' after param name");
           expect(lexer::TokenType::identifier, "Expected param type");
           auto param_type = Symbol{previous.value};
-          fields.push_back({param_name, param_type, pos});
+          fields.emplace_back(param_name, param_type, pos);
         } while(match(lexer::TokenType::comma));
       }
       expect(lexer::TokenType::rbrace, "Expected '}'");
-      auto type = std::make_shared<ast::RecordType>(fields);
-      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+      auto type = std::make_unique<ast::RecordType>(fields);
+      decls_.emplace_back(
+        std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
     }
     else if(match(lexer::TokenType::array_keyword)) {
       // array type
       expect(lexer::TokenType::of_keyword, "Expected 'of'");
       expect(lexer::TokenType::identifier, "Expected type");
       auto type_sym = Symbol{previous.value};
-      auto type = std::make_shared<ast::ArrayType>(type_sym, previous.pos);
-      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+      auto type = std::make_unique<ast::ArrayType>(type_sym, previous.pos);
+      decls_.emplace_back(
+        std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
     }
     else {
       // alias type
       expect(lexer::TokenType::identifier, "Expected type");
       auto type_sym = Symbol{previous.value};
-      auto type = std::make_shared<ast::NameType>(type_sym, previous.pos);
-      decls_.push_back(std::make_shared<ast::_TypeDecl>(type_id, type, pos));
+      auto type = std::make_unique<ast::NameType>(type_sym, previous.pos);
+      decls_.emplace_back(
+        std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
     }
   } while(match(lexer::TokenType::type_keyword));
 
-  return std::make_shared<ast::TypeDecl>(decls_);
+  return std::make_unique<ast::TypeDecl>(std::move(decls_));
 }
 
-std::shared_ptr<ast::VarDecl> Parser::var_decl()
+std::unique_ptr<ast::VarDecl> Parser::var_decl()
 {
 
   // rule: 'var' <id> ':' <id> ':=' <exp>
@@ -345,11 +357,12 @@ std::shared_ptr<ast::VarDecl> Parser::var_decl()
   }
   expect(lexer::TokenType::assign_op, "Expected ':='");
   auto body = expression(Precedence::None);
-  auto var_decl = std::make_shared<ast::VarDecl>(var_id, var_type, body, pos);
+  auto var_decl =
+    std::make_unique<ast::VarDecl>(var_id, var_type, std::move(body), pos);
   return var_decl;
 }
 
-std::shared_ptr<ast::Declaration> Parser::decl()
+std::unique_ptr<ast::Declaration> Parser::decl()
 {
   if(match(lexer::TokenType::var_keyword)) {
     return var_decl();
@@ -366,13 +379,13 @@ std::shared_ptr<ast::Declaration> Parser::decl()
   }
 }
 
-std::vector<std::shared_ptr<ast::Declaration>> Parser::decls()
+std::vector<std::unique_ptr<ast::Declaration>> Parser::decls()
 {
   // rule: <decl> (<decl>)*
-  auto vec = std::vector<std::shared_ptr<ast::Declaration>>{};
+  auto vec = std::vector<std::unique_ptr<ast::Declaration>>{};
 
   do {
-    vec.push_back(decl());
+    vec.emplace_back(decl());
   } while(check(lexer::TokenType::var_keyword) ||
           check(lexer::TokenType::type_keyword) ||
           check(lexer::TokenType::function_keyword));
@@ -380,7 +393,7 @@ std::vector<std::shared_ptr<ast::Declaration>> Parser::decls()
   return vec;
 }
 
-std::shared_ptr<ast::IfExp> Parser::if_expr()
+std::unique_ptr<ast::IfExp> Parser::if_expr()
 {
   // rule: 'if' <exp> 'then' <exp> ('else' <exp>)?
   auto pos = previous.pos;
@@ -388,118 +401,138 @@ std::shared_ptr<ast::IfExp> Parser::if_expr()
   expect(lexer::TokenType::then_keyword, "Expected 'then'");
   auto then = expression(Precedence::None);
 
-  std::shared_ptr<ast::Expression> else_ = nullptr;
+  std::unique_ptr<ast::Expression> else_ = nullptr;
   if(match(lexer::TokenType::else_keyword)) {
     // else belongs to closest if
     else_ = expression(Precedence::None);
   }
-  return std::make_shared<ast::IfExp>(cond, then, else_, pos);
+  return std::make_unique<ast::IfExp>(
+    std::move(cond), std::move(then), std::move(else_), pos);
 }
 
-std::shared_ptr<ast::NilExp> Parser::nil_literal()
+std::unique_ptr<ast::NilExp> Parser::nil_literal()
 {
-  return std::make_shared<ast::NilExp>();
+  return std::make_unique<ast::NilExp>();
 }
 
-std::shared_ptr<ast::OpExp>
-Parser::binary_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::OpExp>
+Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 {
   auto op = previous;
   auto prec = pratt_table.at(op.type).precedence_value;
   auto rhs = expression(prec + 1);
-  return std::make_shared<ast::OpExp>(lhs, map_operator(op.type), rhs, op.pos);
+  return std::make_unique<ast::OpExp>(
+    std::move(lhs), map_operator(op.type), std::move(rhs), op.pos);
 }
 
-std::shared_ptr<ast::OpExp> Parser::unary_expr()
+std::unique_ptr<ast::OpExp> Parser::unary_expr()
 {
   // rule: '-' <exp>
   // This is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
   auto tok_pos = previous.pos;
   auto rhs = expression(Precedence::Unary);
-  auto lhs = std::make_shared<ast::IntExp>(0);
-  return std::make_shared<ast::OpExp>(lhs, ast::Operator::Minus, rhs, tok_pos);
+  auto lhs = std::make_unique<ast::IntExp>(0);
+  return std::make_unique<ast::OpExp>(
+    std::move(lhs), ast::Operator::Minus, std::move(rhs), tok_pos);
 }
 
-std::shared_ptr<ast::Expression>
-Parser::and_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::Expression>
+Parser::and_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <exp> & <exp>
   // e1 & e2 is translated as `if e1 then e2 else 0`
 
   auto pos = previous.pos;
   auto rhs = expression(Precedence::And);
-  return std::make_shared<ast::IfExp>(
-    lhs, rhs, std::make_shared<ast::IntExp>(0), pos);
+  return std::make_unique<ast::IfExp>(
+    std::move(lhs), std::move(rhs), std::make_unique<ast::IntExp>(0), pos);
 }
 
-std::shared_ptr<ast::Expression>
-Parser::or_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::Expression>
+Parser::or_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <exp> | <exp>
   // e1 | e2 is translated as `if e1 then e1 else e2`
 
   auto pos = previous.pos;
   auto rhs = expression(Precedence::Or);
-  return std::make_shared<ast::IfExp>(lhs, lhs, rhs, pos);
+  auto shared_lhs = std::shared_ptr<ast::Expression>(std::move(lhs));
+  return std::make_unique<ast::IfExp>(
+    shared_lhs, shared_lhs, std::shared_ptr(std::move(rhs)), pos);
 }
 
-std::shared_ptr<ast::AssignExp>
-Parser::assign_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::AssignExp>
+Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
 {
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
-  auto var = std::dynamic_pointer_cast<ast::VarExp>(lhs);
 
-  if(var) {
-    return std::make_shared<ast::AssignExp>(var->var, rhs, op.pos);
+  if(typeid(*lhs) != typeid(ast::VarExp)) {
+    error_at(op, "Invalid assignment target");
+    return nullptr;
   }
 
-  error_at(op, "Invalid assignment target");
-  return nullptr;
+  auto& var = dynamic_cast<ast::VarExp&>(*lhs);
+  return std::make_unique<ast::AssignExp>(
+    std::move(var.var), std::move(rhs), op.pos);
 }
 
-std::shared_ptr<ast::CallExp>
-Parser::call_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::CallExp>
+Parser::call_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <id> '(' <exp> (',' <exp>)* ')'
 
   auto pos = previous.pos;
-  auto lhs_fun = std::dynamic_pointer_cast<ast::VarExp>(lhs);
-  if(!lhs_fun || typeid(*lhs_fun->var) != typeid(ast::SimpleVar)) {
+
+  if(typeid(*lhs) != typeid(ast::VarExp)) {
+    error_at(previous, "Expected identifier as function name");
+    return nullptr;
+  }
+
+  auto& lhs_fun = dynamic_cast<ast::VarExp&>(*lhs);
+
+  if(typeid(*lhs_fun.var) != typeid(ast::SimpleVar)) {
     error_at(previous, "Expected identifier as function name");
     return nullptr;
   }
 
   // Get the func identifier
-  auto func_id = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_fun->var)->name;
-  std::vector<std::shared_ptr<ast::Expression>> args;
+  auto func_id = dynamic_cast<ast::SimpleVar&>(*lhs_fun.var).name;
+  std::vector<std::unique_ptr<ast::Expression>> args;
 
   if(match(lexer::TokenType::rparen)) {
-    return std::make_shared<ast::CallExp>(func_id, args, pos);
+    return std::make_unique<ast::CallExp>(func_id, std::move(args), pos);
   }
 
   do {
-    args.push_back(expression(Precedence::None));
+    args.emplace_back(expression(Precedence::None));
   } while(match(lexer::TokenType::comma));
 
   expect(lexer::TokenType::rparen, "Expected ')'");
-  return std::make_shared<ast::CallExp>(func_id, args, pos);
+  return std::make_unique<ast::CallExp>(func_id, std::move(args), pos);
 }
 
-std::shared_ptr<ast::Expression>
-Parser::record_expr(std::shared_ptr<ast::Expression> lhs)
+std::unique_ptr<ast::Expression>
+Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <id> '{' <id> '=' <exp> (',' <id> '=' <exp>)*'}'
 
-  auto lhs_type = std::dynamic_pointer_cast<ast::VarExp>(lhs);
-  if(!lhs_type || typeid(*lhs_type->var) != typeid(ast::SimpleVar)) {
+  if(typeid(*lhs) != typeid(ast::VarExp)) {
     error_at(previous, "Expected identifier as record type");
     return nullptr;
   }
+
+  auto& lhs_type = dynamic_cast<ast::VarExp&>(*lhs);
+
+  if(typeid(*lhs_type.var) != typeid(ast::SimpleVar)) {
+    error_at(previous, "Expected identifier as record type");
+    return nullptr;
+  }
+
   // Get the type identifier
-  auto simple_var = std::dynamic_pointer_cast<ast::SimpleVar>(lhs_type->var);
-  auto type_sym = simple_var->name;
-  auto type_pos = simple_var->position;
+  auto& simple_var = dynamic_cast<ast::SimpleVar&>(*lhs_type.var);
+  auto type_sym = simple_var.name;
+  auto type_pos = simple_var.position;
 
   std::vector<ast::_RecordField> fields;
   do {
@@ -507,11 +540,12 @@ Parser::record_expr(std::shared_ptr<ast::Expression> lhs)
     auto field = previous;
     expect(lexer::TokenType::equal_op, "Expected '='");
     auto exp = expression(Precedence::None);
-    fields.push_back({Symbol(field.value), exp, field.pos});
+    fields.emplace_back(Symbol(field.value), std::move(exp), field.pos);
   } while(match(lexer::TokenType::comma));
 
   expect(lexer::TokenType::rbrace, "Expected '}'");
-  return std::make_shared<ast::RecordExp>(type_sym, fields, type_pos);
+  return std::make_unique<ast::RecordExp>(
+    type_sym, std::move(fields), type_pos);
 }
 
 void Parser::advance()
@@ -546,8 +580,8 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
 
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
-  throw std::runtime_error(std::format(
-    "[line {}] Err at {}: {}\n", tok.pos.line, tok, err_msg));
+  throw std::runtime_error(
+    std::format("[line {}] Err at {}: {}\n", tok.pos.line, tok, err_msg));
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)
