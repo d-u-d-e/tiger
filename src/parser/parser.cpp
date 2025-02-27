@@ -71,7 +71,7 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
   advance();
   auto rule = pratt_table.at(previous.type);
   if(rule.prefix_rule == nullptr) {
-    error_at(previous, "Expected expression");
+    error_at(previous, "expected expression");
     return nullptr;
   }
   // when the prefix rule gets called, the prefix token has already been consumed
@@ -81,7 +81,7 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
 
   while(rule.precedence_value > precedence) {
     if(rule.infix_rule == nullptr) {
-      error_at(current, "Unexpected token");
+      error_at(current, "unexpected token");
       return nullptr;
     }
     advance(); // skip infix operator
@@ -93,22 +93,22 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
 
 std::unique_ptr<ast::SeqExp> Parser::sequencing()
 {
+  // rule: '(' ')'
+  // rule: '(' <exp> (';' <exp>)* ')'
+
   std::vector<std::pair<std::unique_ptr<ast::Expression>, lexer::Position>>
     exps{};
-
-  // rule: '(' ')'
   if(match(lexer::TokenType::rparen)) {
     return std::make_unique<ast::SeqExp>(std::move(exps));
   }
 
-  // rule: '(' <exp> (';' <exp>)* ')'
   do {
     auto pos = current.pos;
     exps.emplace_back(expression(Precedence::None), pos);
   } while(match(lexer::TokenType::semicolon));
 
   expect(lexer::TokenType::rparen,
-         "Expected ')' closing a sequence expression");
+         "expected ')' closing a sequence expression");
   return std::make_unique<ast::SeqExp>(std::move(exps));
 }
 
@@ -127,12 +127,12 @@ Parser::record_field(std::unique_ptr<ast::Expression> lhs)
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
 
   if(!lhs_var) {
-    error_at(previous, "Expected variable before token '.'");
+    error_at(previous, "expected variable before token '.'");
     return nullptr;
   }
 
   expect(lexer::TokenType::identifier,
-         "Expected record field name after token '.'");
+         "expected record field name after token '.'");
   auto field = previous;
   auto var = std::make_unique<ast::FieldVar>(
     std::move(lhs_var->var), Symbol(field.value), field.pos);
@@ -149,13 +149,13 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
   // parse the expression between brackets
   auto between_exp = expression(Precedence::None);
   expect(lexer::TokenType::rbracket,
-         "Expected ']' closing subscript expression");
+         "expected ']' closing subscript expression");
 
   // next check whether we have an array exp or a subscript var
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
 
   if(!lhs_var) {
-    error_at(subscript_tok, "Expected variable before token '['");
+    error_at(subscript_tok, "expected variable before token '['");
     return nullptr;
   }
 
@@ -165,7 +165,7 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
 
     if(!simple_var) {
       error_at(subscript_tok,
-               "Expected type identifier before token '[' of array expression");
+               "expected type identifier before token '[' of array expression");
       return nullptr;
     }
 
@@ -198,7 +198,7 @@ std::unique_ptr<ast::WhileExp> Parser::while_expr()
   // rule: 'while' <exp> 'do' <exp>
   auto pos = previous.pos;
   auto cond = expression(Precedence::None);
-  expect(lexer::TokenType::do_keyword, "Expected 'do' after while condition");
+  expect(lexer::TokenType::do_keyword, "expected 'do' after while condition");
   auto body = expression(Precedence::None);
   return std::make_unique<ast::WhileExp>(std::move(cond), std::move(body), pos);
 }
@@ -207,15 +207,15 @@ std::unique_ptr<ast::ForExp> Parser::for_expr()
 {
   // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
   auto pos = previous.pos;
-  expect(lexer::TokenType::identifier, "Expected identifier");
+  expect(lexer::TokenType::identifier, "expected identifier");
   auto var = Symbol{previous.value};
-  expect(lexer::TokenType::assign_op, "Expected ':='");
+  expect(lexer::TokenType::assign_op, "expected ':='");
   auto low = expression(Precedence::None);
 
-  expect(lexer::TokenType::to_keyword, "Expected 'to'");
+  expect(lexer::TokenType::to_keyword, "expected 'to'");
   auto high = expression(Precedence::None);
 
-  expect(lexer::TokenType::do_keyword, "Expected 'do'");
+  expect(lexer::TokenType::do_keyword, "expected 'do'");
   auto body = expression(Precedence::None);
 
   return std::make_unique<ast::ForExp>(
@@ -230,11 +230,12 @@ std::unique_ptr<ast::BreakExp> Parser::break_expr()
 
 std::unique_ptr<ast::LetExp> Parser::let_expr()
 {
+  // rule: 'let' <decls> 'in' <exp> 'end'
   auto pos = previous.pos;
   auto decs = decls();
-  expect(lexer::TokenType::in_keyword, "Expected 'in'");
+  expect(lexer::TokenType::in_keyword, "expected 'in' after let decls");
   auto body = expression(Precedence::None);
-  expect(lexer::TokenType::end_keyword, "Expected 'end'");
+  expect(lexer::TokenType::end_keyword, "expected 'end' after let expression");
   return std::make_unique<ast::LetExp>(std::move(decs), std::move(body), pos);
 }
 
@@ -242,39 +243,41 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
 {
   // rule: 'function' <id> '(' <tyfields> ')' '=' <exp>
   // rule: 'function' <id> '(' <tyfields> ')' ':' <id> '=' <exp>
+  // rule: <tyfields> = epsilon
+  // rule: <tyfields> = <id> ':' <id> (',' <id> ':' <id>)*
 
+  // we have a vector because we might have mutually recursive functions
   std::vector<std::unique_ptr<ast::_FuncDecl>> fdecls;
   do {
     auto func_tok_pos = previous.pos;
-    expect(lexer::TokenType::identifier, "Expected function name");
+    expect(lexer::TokenType::identifier, "expected function name");
     auto func_id = Symbol{previous.value};
-    expect(lexer::TokenType::lparen, "Expected '('");
+    expect(lexer::TokenType::lparen, "expected '(' in function declaration");
 
-    std::vector<ast::_Field> params;
     // parse params
-    // rule: <tyfields> = epsilon
-    if(!match(lexer::TokenType::rparen)) {
-      // rule: <tyfields> = <id> ':' <id> (',' <id> ':' <id>)*
+    std::vector<ast::_Field> params;
+    if(!check(lexer::TokenType::rparen)) {
       do {
-        expect(lexer::TokenType::identifier, "Expected param name");
+        expect(lexer::TokenType::identifier, "expected parameter name");
         auto param_name = Symbol{previous.value};
         auto pos = previous.pos;
-        expect(lexer::TokenType::colon, "Expected ':' after param name");
-        expect(lexer::TokenType::identifier, "Expected param type");
+        expect(lexer::TokenType::colon, "expected ':' after parameter name");
+        expect(lexer::TokenType::identifier, "expected parameter type");
         auto param_type = Symbol{previous.value};
         params.emplace_back(param_name, param_type, pos);
       } while(match(lexer::TokenType::comma));
-      expect(lexer::TokenType::rparen, "Expected ')'");
     }
+    expect(lexer::TokenType::rparen, "expected ')' in function declaration");
 
+    // parse return type
     std::optional<Symbol> result;
     if(match(lexer::TokenType::colon)) {
-      // parse return type
-      expect(lexer::TokenType::identifier, "Expected return type");
+      expect(lexer::TokenType::identifier, "expected function return type");
       result = Symbol{previous.value};
     }
 
-    expect(lexer::TokenType::equal_op, "Expected '='");
+    // parse body
+    expect(lexer::TokenType::equal_op, "expected '=' before function body");
     auto body = expression(Precedence::None);
     auto fun_decl = std::make_unique<ast::_FuncDecl>(
       func_id, params, result, std::move(body), func_tok_pos);
@@ -288,41 +291,44 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
 std::unique_ptr<ast::TypeDecl> Parser::type_decl()
 {
   // rule: 'type' <id> '=' <ty>
-  // <ty> = <id> | '{' <tyfields> '}' | 'array' 'of' <id>
-  // <tyfields> = epsilon | <id> ':' <id> (',' <id> ':' <id>)*
+  // rule: <ty> = <id> | '{' <tyfields> '}' | 'array' 'of' <id>
+  // rule: <tyfields> = epsilon | <id> ':' <id> (',' <id> ':' <id>)*
 
-  // We have a vector because we might have mutually recursive types
+  // we have a vector because we might have mutually recursive types
   std::vector<std::unique_ptr<ast::_TypeDecl>> decls_;
 
   do {
     auto pos = previous.pos;
-    expect(lexer::TokenType::identifier, "Expected type name");
+    expect(lexer::TokenType::identifier,
+           "expected type name after token 'type'");
     auto type_id = Symbol{previous.value};
-    expect(lexer::TokenType::equal_op, "Expected '='");
+    expect(lexer::TokenType::equal_op, "expected '=' after type identifier");
 
     if(match(lexer::TokenType::lbrace)) {
       // record type
       std::vector<ast::_Field> fields;
       if(!check(lexer::TokenType::rbrace)) {
         do {
-          expect(lexer::TokenType::identifier, "Expected param name");
+          expect(lexer::TokenType::identifier, "expected parameter name");
           auto param_name = Symbol{previous.value};
           auto pos = previous.pos;
-          expect(lexer::TokenType::colon, "Expected ':' after param name");
-          expect(lexer::TokenType::identifier, "Expected param type");
+          expect(lexer::TokenType::colon, "expected ':' after parameter name");
+          expect(lexer::TokenType::identifier,
+                 "expected parameter type after token ':'");
           auto param_type = Symbol{previous.value};
           fields.emplace_back(param_name, param_type, pos);
         } while(match(lexer::TokenType::comma));
       }
-      expect(lexer::TokenType::rbrace, "Expected '}'");
+      expect(lexer::TokenType::rbrace, "expected '}' after type fields");
       auto type = std::make_unique<ast::RecordType>(fields);
       decls_.emplace_back(
         std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
     }
     else if(match(lexer::TokenType::array_keyword)) {
       // array type
-      expect(lexer::TokenType::of_keyword, "Expected 'of'");
-      expect(lexer::TokenType::identifier, "Expected type");
+      expect(lexer::TokenType::of_keyword, "expected 'of' after 'array' token");
+      expect(lexer::TokenType::identifier,
+             "expected type identifier after 'of' token");
       auto type_sym = Symbol{previous.value};
       auto type = std::make_unique<ast::ArrayType>(type_sym, previous.pos);
       decls_.emplace_back(
@@ -330,7 +336,8 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
     }
     else {
       // alias type
-      expect(lexer::TokenType::identifier, "Expected type");
+      expect(lexer::TokenType::identifier,
+             "expected type identifier after '=' token");
       auto type_sym = Symbol{previous.value};
       auto type = std::make_unique<ast::NameType>(type_sym, previous.pos);
       decls_.emplace_back(
@@ -348,14 +355,16 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
   // rule: 'var' <id> ':=' <exp>
 
   auto pos = previous.pos;
-  expect(lexer::TokenType::identifier, "Expected variable name");
+  expect(lexer::TokenType::identifier, "expected variable identifier");
   auto var_id = Symbol{previous.value};
   std::optional<Symbol> var_type;
   if(match(lexer::TokenType::colon)) {
-    expect(lexer::TokenType::identifier, "Expected variable type");
+    expect(lexer::TokenType::identifier,
+           "expected variable type after ':' token");
     var_type = Symbol{previous.value};
   }
-  expect(lexer::TokenType::assign_op, "Expected ':='");
+  expect(lexer::TokenType::assign_op,
+         "expected ':=' in a variable declaration");
   auto body = expression(Precedence::None);
   auto var_decl =
     std::make_unique<ast::VarDecl>(var_id, var_type, std::move(body), pos);
@@ -374,7 +383,7 @@ std::unique_ptr<ast::Declaration> Parser::decl()
     return func_decl();
   }
   else {
-    error_at(current, "Expected declaration");
+    error_at(current, "expected declaration");
     return nullptr;
   }
 }
@@ -382,6 +391,7 @@ std::unique_ptr<ast::Declaration> Parser::decl()
 std::vector<std::unique_ptr<ast::Declaration>> Parser::decls()
 {
   // rule: <decl> (<decl>)*
+
   auto vec = std::vector<std::unique_ptr<ast::Declaration>>{};
 
   do {
@@ -396,9 +406,10 @@ std::vector<std::unique_ptr<ast::Declaration>> Parser::decls()
 std::unique_ptr<ast::IfExp> Parser::if_expr()
 {
   // rule: 'if' <exp> 'then' <exp> ('else' <exp>)?
+
   auto pos = previous.pos;
   auto cond = expression(Precedence::None);
-  expect(lexer::TokenType::then_keyword, "Expected 'then'");
+  expect(lexer::TokenType::then_keyword, "expected 'then' after if condition");
   auto then = expression(Precedence::None);
 
   std::unique_ptr<ast::Expression> else_ = nullptr;
@@ -456,6 +467,7 @@ Parser::or_expr(std::unique_ptr<ast::Expression> lhs)
 
   auto pos = previous.pos;
   auto rhs = expression(Precedence::Or);
+  // we need shared pointers here :(
   auto shared_lhs = std::shared_ptr<ast::Expression>(std::move(lhs));
   return std::make_unique<ast::IfExp>(
     shared_lhs, shared_lhs, std::shared_ptr(std::move(rhs)), pos);
@@ -464,17 +476,22 @@ Parser::or_expr(std::unique_ptr<ast::Expression> lhs)
 std::unique_ptr<ast::AssignExp>
 Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
 {
+  // rule: <lvalue> ':=' <exp>
+  // rule <lvalue> = <id> | <lvalue> '.' <id> | <lvalue> '[' <exp> ']'
+
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
 
-  if(typeid(*lhs) != typeid(ast::VarExp)) {
-    error_at(op, "Invalid assignment target");
+  auto var = dynamic_cast<ast::VarExp*>(lhs.get());
+
+  if(!var) {
+    // asserting that lhs is an lvalue
+    error_at(op, "invalid assignment target");
     return nullptr;
   }
 
-  auto& var = dynamic_cast<ast::VarExp&>(*lhs);
   return std::make_unique<ast::AssignExp>(
-    std::move(var.var), std::move(rhs), op.pos);
+    std::move(var->var), std::move(rhs), op.pos);
 }
 
 std::unique_ptr<ast::CallExp>
@@ -484,66 +501,67 @@ Parser::call_expr(std::unique_ptr<ast::Expression> lhs)
 
   auto pos = previous.pos;
 
-  if(typeid(*lhs) != typeid(ast::VarExp)) {
-    error_at(previous, "Expected identifier as function name");
+  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+
+  if(!lhs_var) {
+    error_at(previous, "expected identifier as function name");
     return nullptr;
   }
 
-  auto& lhs_fun = dynamic_cast<ast::VarExp&>(*lhs);
+  auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
 
-  if(typeid(*lhs_fun.var) != typeid(ast::SimpleVar)) {
-    error_at(previous, "Expected identifier as function name");
+  if(!lhs_simple) {
+    error_at(previous, "expected identifier as function name");
     return nullptr;
   }
 
-  // Get the func identifier
-  auto func_id = dynamic_cast<ast::SimpleVar&>(*lhs_fun.var).name;
+  auto func_id = lhs_simple->name;
   std::vector<std::unique_ptr<ast::Expression>> args;
 
-  if(match(lexer::TokenType::rparen)) {
-    return std::make_unique<ast::CallExp>(func_id, std::move(args), pos);
+  if(!check(lexer::TokenType::rparen)) {
+    do {
+      args.emplace_back(expression(Precedence::None));
+    } while(match(lexer::TokenType::comma));
   }
 
-  do {
-    args.emplace_back(expression(Precedence::None));
-  } while(match(lexer::TokenType::comma));
-
-  expect(lexer::TokenType::rparen, "Expected ')'");
+  expect(lexer::TokenType::rparen, "expected ')' after function arguments");
   return std::make_unique<ast::CallExp>(func_id, std::move(args), pos);
 }
 
 std::unique_ptr<ast::Expression>
 Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
 {
+  // rule: <id> '{' '}'
   // rule: <id> '{' <id> '=' <exp> (',' <id> '=' <exp>)*'}'
 
-  if(typeid(*lhs) != typeid(ast::VarExp)) {
-    error_at(previous, "Expected identifier as record type");
+  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+  if(!lhs_var) {
+    error_at(previous, "expected identifier as record type");
     return nullptr;
   }
 
-  auto& lhs_type = dynamic_cast<ast::VarExp&>(*lhs);
-
-  if(typeid(*lhs_type.var) != typeid(ast::SimpleVar)) {
-    error_at(previous, "Expected identifier as record type");
+  auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
+  if(!lhs_simple) {
+    error_at(previous, "expected identifier as record type");
     return nullptr;
   }
 
-  // Get the type identifier
-  auto& simple_var = dynamic_cast<ast::SimpleVar&>(*lhs_type.var);
-  auto type_sym = simple_var.name;
-  auto type_pos = simple_var.position;
-
+  auto type_sym = lhs_simple->name;
+  auto type_pos = lhs_simple->position;
   std::vector<ast::_RecordField> fields;
-  do {
-    expect(lexer::TokenType::identifier, "Expected record field name");
-    auto field = previous;
-    expect(lexer::TokenType::equal_op, "Expected '='");
-    auto exp = expression(Precedence::None);
-    fields.emplace_back(Symbol(field.value), std::move(exp), field.pos);
-  } while(match(lexer::TokenType::comma));
 
-  expect(lexer::TokenType::rbrace, "Expected '}'");
+  if(!check(lexer::TokenType::rbrace)) {
+    do {
+      expect(lexer::TokenType::identifier, "expected record field name");
+      auto field = previous;
+      expect(lexer::TokenType::equal_op,
+             "expected '=' after record field name");
+      auto exp = expression(Precedence::None);
+      fields.emplace_back(Symbol(field.value), std::move(exp), field.pos);
+    } while(match(lexer::TokenType::comma));
+  }
+
+  expect(lexer::TokenType::rbrace, "expected '}' after record fields");
   return std::make_unique<ast::RecordExp>(
     type_sym, std::move(fields), type_pos);
 }
