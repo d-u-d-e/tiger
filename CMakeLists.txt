@@ -19,7 +19,7 @@ add_executable(
 )
 target_include_directories(tiger PRIVATE include)
 
-#set(BUILD_TEST_RUNNER ON)
+set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
 if(BUILD_TEST_RUNNER)
 
