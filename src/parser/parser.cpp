@@ -1,12 +1,11 @@
 
 #include <parser/parser.hpp>
-#include <parser/pretty_printer.hpp>
 #include <utility>
 
 namespace parser
 {
 
-void Parser::parse()
+std::unique_ptr<ast::Expression> Parser::parse()
 {
   current = scanner.next();
   pratt_table.insert({
@@ -58,10 +57,10 @@ void Parser::parse()
     {lexer::TokenType::rbrace,            PrecedenceRule(Precedence(None),        nullptr,                              nullptr)},
     // clang-format on
   });
+
   auto exp = expression(Precedence::None);
-  // do something with it
-  ASTVisitor pretty_printer;
-  std::cout << exp->accept(pretty_printer) << std::endl;
+  expect(lexer::TokenType::eof, "unexpected token after expression");
+  return exp;
 }
 
 std::unique_ptr<ast::Expression> Parser::expression(int precedence)

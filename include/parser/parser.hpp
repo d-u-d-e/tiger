@@ -41,7 +41,7 @@ class Parser {
   public:
   Parser(lexer::Scanner& scanner)
     : scanner(scanner){};
-  void parse();
+  std::unique_ptr<ast::Expression> parse();
 
   private:
   lexer::Token current;

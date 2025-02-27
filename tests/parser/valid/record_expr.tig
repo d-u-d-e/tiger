@@ -1,0 +1,3 @@
+/* record expr + empty record expr */
+
+(T {a = 3, b = 2}; U {})
