@@ -44,40 +44,40 @@ class Variable {
 
 enum class Operator
 {
-  Plus,
-  Minus,
-  Times,
-  Divide,
-  Equal,
-  NotEqual,
-  Less,
-  LessEqual,
-  Greater,
-  GreaterEqual
+  plus,
+  minus,
+  times,
+  divide,
+  equal,
+  not_equal,
+  less,
+  less_equal,
+  greater,
+  greater_equal
 };
 
 inline std::string to_string(Operator op)
 {
   switch(op) {
-  case Operator::Plus:
+  case Operator::plus:
     return "PlusOp";
-  case Operator::Minus:
+  case Operator::minus:
     return "MinusOp";
-  case Operator::Times:
+  case Operator::times:
     return "TimesOp";
-  case Operator::Divide:
+  case Operator::divide:
     return "DivideOp";
-  case Operator::Equal:
+  case Operator::equal:
     return "EqualOp";
-  case Operator::NotEqual:
+  case Operator::not_equal:
     return "NotEqualOp";
-  case Operator::Less:
+  case Operator::less:
     return "LessOp";
-  case Operator::LessEqual:
+  case Operator::less_equal:
     return "LessEqualOp";
-  case Operator::Greater:
+  case Operator::greater:
     return "GreaterOp";
-  case Operator::GreaterEqual:
+  case Operator::greater_equal:
     return "GreaterEqualOp";
   }
   assert(false);

@@ -455,7 +455,7 @@ std::unique_ptr<ast::OpExp> Parser::unary_expr()
   auto rhs = expression(Precedence::Unary);
   auto lhs = std::make_unique<ast::IntExp>(0);
   return std::make_unique<ast::OpExp>(
-    std::move(lhs), ast::Operator::Minus, std::move(rhs), tok_pos);
+    std::move(lhs), ast::Operator::minus, std::move(rhs), tok_pos);
 }
 
 std::unique_ptr<ast::Expression>
@@ -617,25 +617,25 @@ ast::Operator Parser::map_operator(lexer::TokenType type)
 {
   switch(type) {
   case lexer::TokenType::plus_op:
-    return ast::Operator::Plus;
+    return ast::Operator::plus;
   case lexer::TokenType::minus_op:
-    return ast::Operator::Minus;
+    return ast::Operator::minus;
   case lexer::TokenType::times_op:
-    return ast::Operator::Times;
+    return ast::Operator::times;
   case lexer::TokenType::divide_op:
-    return ast::Operator::Divide;
+    return ast::Operator::divide;
   case lexer::TokenType::equal_op:
-    return ast::Operator::Equal;
+    return ast::Operator::equal;
   case lexer::TokenType::not_equal_op:
-    return ast::Operator::NotEqual;
+    return ast::Operator::not_equal;
   case lexer::TokenType::less_op:
-    return ast::Operator::Less;
+    return ast::Operator::less;
   case lexer::TokenType::less_equal_op:
-    return ast::Operator::LessEqual;
+    return ast::Operator::less_equal;
   case lexer::TokenType::greater_op:
-    return ast::Operator::Greater;
+    return ast::Operator::greater;
   case lexer::TokenType::greater_equal_op:
-    return ast::Operator::GreaterEqual;
+    return ast::Operator::greater_equal;
   }
   assert(false);
   std::unreachable();
@@ -644,12 +644,12 @@ ast::Operator Parser::map_operator(lexer::TokenType type)
 bool Parser::is_comparison_operator(ast::Operator type)
 {
   switch(type) {
-  case ast::Operator::Equal:
-  case ast::Operator::NotEqual:
-  case ast::Operator::Less:
-  case ast::Operator::LessEqual:
-  case ast::Operator::Greater:
-  case ast::Operator::GreaterEqual:
+  case ast::Operator::equal:
+  case ast::Operator::not_equal:
+  case ast::Operator::less:
+  case ast::Operator::less_equal:
+  case ast::Operator::greater:
+  case ast::Operator::greater_equal:
     return true;
   }
   return false;
