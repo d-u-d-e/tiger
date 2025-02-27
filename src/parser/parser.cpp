@@ -170,7 +170,7 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
 
     auto ty_symbol = simple_var->name;
 
-    // Compute the init expression
+    // compute the init expression
     std::unique_ptr<ast::Expression> init = expression(Precedence::None);
 
     return std::make_unique<ast::ArrayExp>(
@@ -449,7 +449,7 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 std::unique_ptr<ast::OpExp> Parser::unary_expr()
 {
   // rule: '-' <exp>
-  // This is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
+  // this is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
   auto tok_pos = previous.pos;
   auto rhs = expression(Precedence::Unary);
   auto lhs = std::make_unique<ast::IntExp>(0);
@@ -487,7 +487,7 @@ std::unique_ptr<ast::AssignExp>
 Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <lvalue> ':=' <exp>
-  // rule <lvalue> = <id> | <lvalue> '.' <id> | <lvalue> '[' <exp> ']'
+  // rule: <lvalue> = <id> | <lvalue> '.' <id> | <lvalue> '[' <exp> ']'
 
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
@@ -578,7 +578,6 @@ Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
 
 void Parser::advance()
 {
-  //std::cout << current << std::endl;
   previous = current;
   current = scanner.next();
 }
