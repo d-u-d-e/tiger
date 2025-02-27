@@ -431,9 +431,20 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 {
   auto op = previous;
   auto prec = pratt_table.at(op.type).precedence_value;
-  auto rhs = expression(prec + 1);
+  auto rhs = expression(prec); // parse precedence > prec
+
+  auto lhs_op = dynamic_cast<ast::OpExp*>(lhs.get());
+  auto ast_op = map_operator(op.type);
+
+  if(lhs_op && is_comparison_operator(ast_op) &&
+     is_comparison_operator(lhs_op->op)) {
+    // comparison is not associative
+    error_at(op, "cannot chain comparison operators");
+    return nullptr;
+  }
+
   return std::make_unique<ast::OpExp>(
-    std::move(lhs), map_operator(op.type), std::move(rhs), op.pos);
+    std::move(lhs), ast_op, std::move(rhs), op.pos);
 }
 
 std::unique_ptr<ast::OpExp> Parser::unary_expr()
@@ -628,6 +639,20 @@ ast::Operator Parser::map_operator(lexer::TokenType type)
   }
   assert(false);
   std::unreachable();
+}
+
+bool Parser::is_comparison_operator(ast::Operator type)
+{
+  switch(type) {
+  case ast::Operator::Equal:
+  case ast::Operator::NotEqual:
+  case ast::Operator::Less:
+  case ast::Operator::LessEqual:
+  case ast::Operator::Greater:
+  case ast::Operator::GreaterEqual:
+    return true;
+  }
+  return false;
 }
 
 } // namespace parser

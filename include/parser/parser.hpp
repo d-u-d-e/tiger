@@ -48,6 +48,7 @@ class Parser {
   lexer::Token previous;
 
   ast::Operator map_operator(lexer::TokenType type);
+  bool is_comparison_operator(ast::Operator type);
 
   bool match(lexer::TokenType type);
   void expect(lexer::TokenType type, const std::string& err_msg);
