@@ -608,7 +608,7 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
   throw std::runtime_error(
-    std::format("[line {}] Err at {}: {}\n", tok.pos.line, tok, err_msg));
+    std::format("[line {}:{}] Err at {}: {}\n", tok.pos.line, tok.pos.column, tok, err_msg));
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)

@@ -1,0 +1,7 @@
+/* a for expression */
+
+let 
+    var i := 0
+  in
+    for i := 0 to 5 do (print(i); i = i + 1)
+end

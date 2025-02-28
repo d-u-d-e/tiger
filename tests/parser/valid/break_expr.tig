@@ -1,0 +1,7 @@
+/* a while expression with a break expression */
+
+let 
+    var i : int := 5
+  in
+    while i > 0 do (print(i); if i = 0 then break)
+end

@@ -29,7 +29,7 @@ class ASTVisitor : public Visitor<std::string> {
 
   std::string visit_string_exp(const parser::ast::StringExp& exp) override
   {
-    return std::format("{}{}StringExp{{{}, pos={}}}",
+    return std::format("{}{}StringExp{{\"{}\", pos={}}}",
                        indent(),
                        exp.field,
                        exp.value,

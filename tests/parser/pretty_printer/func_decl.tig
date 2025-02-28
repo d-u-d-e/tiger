@@ -1,5 +1,0 @@
-let
-    function g(a: int, b: string) = a
-    function f() : int = 0
-  in g(2) + f()
-end

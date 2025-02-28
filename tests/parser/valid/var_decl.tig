@@ -1,0 +1,7 @@
+/* variable decl with and without type information */
+
+let
+    var a := 100
+    var b : string := "hello"
+  in (a; b)
+end

@@ -1,0 +1,8 @@
+/* unary minus is supported for integers only */
+
+(
+    -3+2;
+    ---0;
+    -0*3;
+    2+-3
+)

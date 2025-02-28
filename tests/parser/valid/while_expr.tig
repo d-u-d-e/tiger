@@ -1,0 +1,7 @@
+/* a while expression */
+
+let 
+    var i : int := 5
+  in
+    while i > 0 do (print(i); i = i - 1)
+end

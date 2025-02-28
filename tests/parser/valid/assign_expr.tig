@@ -1,0 +1,11 @@
+/* assign expressions */
+
+(
+    /* all left sides must be lvalues */
+    a := 2;
+    a := b;
+    a.b := c;
+    a[0] := c.d;
+    a.b[0] := 0;
+    a.b.c[0].d[1] := 0
+)

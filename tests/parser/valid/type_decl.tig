@@ -1,0 +1,12 @@
+/* type declarations */
+
+let
+    /* name type */
+    type T = int
+    /* record types */
+    type R1 = {}
+    type R2 = {a: int, b: string}
+    /* array type */
+    type U = array of R2
+  in U[1] of R2{a = 0, b = "null"}
+end

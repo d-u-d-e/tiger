@@ -1,5 +1,0 @@
-let 
-    var test := 3
-    var b : int := 0
-  in test + b
-end

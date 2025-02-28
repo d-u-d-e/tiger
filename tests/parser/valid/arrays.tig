@@ -1,0 +1,6 @@
+/* array expression + array subscript */
+let 
+    type T = array of int
+    var arr := T[10] of 0
+  in arr[0]
+end

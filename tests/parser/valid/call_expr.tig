@@ -1,0 +1,7 @@
+/* call expressions */
+
+(
+    f(0, 1, 2);
+    g();
+    h(a)
+)

@@ -1,0 +1,12 @@
+/* some if expressions */
+
+(   
+    /* with else */
+    if 0 then print("0") else print("1");
+
+    /* without else */
+    if 1 then print("1");
+
+    /* else binds to closest if */
+    if c then if cc then 0 else 1
+)
