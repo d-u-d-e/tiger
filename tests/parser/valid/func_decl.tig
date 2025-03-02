@@ -12,5 +12,5 @@ let
     function g(a: int, b: int, c: string) = 0
     
   in
-    (f(); print(is_even(6)))
+    f(); print(is_even(6))
 end

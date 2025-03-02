@@ -229,13 +229,31 @@ std::unique_ptr<ast::BreakExp> Parser::break_expr()
 
 std::unique_ptr<ast::LetExp> Parser::let_expr()
 {
-  // rule: 'let' <decls> 'in' <exp> 'end'
+  // rule: 'let' <decls> 'in' <exps> 'end'
+  // rule: exps = epsilon | <exp> (';' <exp>)*
   auto pos = previous.pos;
   auto decs = decls();
   expect(lexer::TokenType::in_keyword, "expected 'in' after let decls");
-  auto body = expression(Precedence::None);
-  expect(lexer::TokenType::end_keyword, "expected 'end' after let expression");
-  return std::make_unique<ast::LetExp>(std::move(decs), std::move(body), pos);
+
+  std::vector<std::pair<std::unique_ptr<ast::Expression>, lexer::Position>>
+    exps;
+  std::unique_ptr<ast::Expression> let_body{};
+
+  // parse the body as a sequence of expressions separated by ';'
+  if(!match(lexer::TokenType::end_keyword)) {
+
+    do {
+      auto exp_pos = current.pos;
+      exps.emplace_back(expression(Precedence::None), exp_pos);
+    } while(match(lexer::TokenType::semicolon));
+
+    expect(lexer::TokenType::end_keyword,
+           "expected 'end' after let expression");
+  }
+
+  let_body = std::make_unique<ast::SeqExp>(std::move(exps));
+  return std::make_unique<ast::LetExp>(
+    std::move(decs), std::move(let_body), pos);
 }
 
 std::unique_ptr<ast::FuncDecl> Parser::func_decl()
@@ -607,8 +625,11 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
 
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
-  throw std::runtime_error(
-    std::format("[line {}:{}] Err at {}: {}\n", tok.pos.line, tok.pos.column, tok, err_msg));
+  throw std::runtime_error(std::format("[line {}:{}] Err at {}: {}\n",
+                                       tok.pos.line,
+                                       tok.pos.column,
+                                       tok,
+                                       err_msg));
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)

@@ -124,4 +124,30 @@ TEST_CASE("call_expr.tig")
   CHECK_NOTHROW(parser.parse());
 }
 
+TEST_CASE("valid_book_examples")
+{
+  /* These should all pass the syntax check, except test49.tig */
+  CHECK_NOTHROW(for(auto& file
+                    : std::filesystem::directory_iterator(
+                      std::filesystem::path("../tests/book/"))) {
+    auto file_path = file.path();
+
+    if(file_path.filename().string() == "test49.tig") {
+      continue;
+    }
+    lexer::Scanner scanner(file.path());
+    parser::Parser parser(scanner);
+
+    parser.parse();
+  });
+}
+
+TEST_CASE("invalid_book_examples")
+{
+  auto path = std::filesystem::path("../tests/book/test49.tig");
+  lexer::Scanner scanner(path);
+  parser::Parser parser(scanner);
+  CHECK_THROWS(parser.parse());
+}
+
 TEST_SUITE_END();
