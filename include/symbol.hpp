@@ -5,29 +5,32 @@
 
 namespace symbol
 {
+
+using Identifier = uint32_t;
+
 class Symbol {
   public:
-  Symbol(const std::string& name, uint32_t identifier)
-    : str(name)
-    , identifier(identifier){};
+  Symbol(const std::string& name, Identifier id)
+    : name_(name)
+    , id_(id){};
 
   const std::string& name() const
   {
-    return str;
+    return name_;
   }
-  uint32_t id() const
+  Identifier id() const
   {
-    return identifier;
+    return id_;
   }
   bool operator==(const Symbol& other) const
   {
     // fast check
-    return identifier == other.identifier;
+    return id_ == other.id_;
   }
 
   private:
-  std::string str;
-  uint32_t identifier;
+  std::string name_;
+  Identifier id_;
 };
 
 class SymbolTable {
@@ -41,7 +44,7 @@ class SymbolTable {
   std::string dump() const;
 
   private:
-  uint32_t identifier{0};
+  Identifier identifier{0};
   std::unordered_map<std::string, Symbol> table;
 };
 } // namespace symbol
