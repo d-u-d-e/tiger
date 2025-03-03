@@ -16,6 +16,7 @@ add_executable(
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
+    src/symbol.cpp
 )
 target_include_directories(tiger PRIVATE include)
 
@@ -32,6 +33,7 @@ if(BUILD_TEST_RUNNER)
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
+    src/symbol.cpp
     )
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)

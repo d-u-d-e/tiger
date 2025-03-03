@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <memory>
 #include <optional>
-#include <parser/symbol.hpp>
 #include <parser/visitor.hpp>
+#include <symbol.hpp>
 #include <utility>
 #include <vector>
 
@@ -86,7 +86,7 @@ inline std::string to_string(Operator op)
 
 class SimpleVar : public Variable {
   public:
-  SimpleVar(const Symbol& name, Position position)
+  SimpleVar(const symbol::Symbol& name, Position position)
     : name(name)
     , position(position)
   { }
@@ -95,13 +95,15 @@ class SimpleVar : public Variable {
     return visitor.visit_simple_var(*this);
   }
 
-  Symbol name;
+  symbol::Symbol name;
   Position position;
 };
 
 class FieldVar : public Variable {
   public:
-  FieldVar(std::unique_ptr<Variable> var, const Symbol& name, Position position)
+  FieldVar(std::unique_ptr<Variable> var,
+           const symbol::Symbol& name,
+           Position position)
     : var(std::move(var))
     , name(name)
     , position(position)
@@ -111,7 +113,7 @@ class FieldVar : public Variable {
     return visitor.visit_field_var(*this);
   }
   std::unique_ptr<Variable> var;
-  Symbol name;
+  symbol::Symbol name;
   Position position;
 };
 
@@ -180,7 +182,7 @@ class StringExp : public Expression {
 
 class CallExp : public Expression {
   public:
-  CallExp(const Symbol& func,
+  CallExp(const symbol::Symbol& func,
           std::vector<std::unique_ptr<Expression>> args,
           Position position)
     : name(func)
@@ -191,7 +193,7 @@ class CallExp : public Expression {
   {
     return visitor.visit_call_exp(*this);
   }
-  Symbol name;
+  symbol::Symbol name;
   std::vector<std::unique_ptr<Expression>> args;
   Position position;
 };
@@ -219,21 +221,21 @@ class OpExp : public Expression {
 
 class _RecordField {
   public:
-  _RecordField(const Symbol& name,
+  _RecordField(const symbol::Symbol& name,
                std::unique_ptr<Expression> exp,
                Position position)
     : name(name)
     , exp(std::move(exp))
     , position(position)
   { }
-  Symbol name;
+  symbol::Symbol name;
   std::unique_ptr<Expression> exp;
   Position position;
 };
 
 class RecordExp : public Expression {
   public:
-  RecordExp(const Symbol& type,
+  RecordExp(const symbol::Symbol& type,
             std::vector<_RecordField> fields,
             Position position)
     : type(type)
@@ -244,7 +246,7 @@ class RecordExp : public Expression {
   {
     return visitor.visit_record_exp(*this);
   }
-  Symbol type;
+  symbol::Symbol type;
   std::vector<_RecordField> fields;
   Position position;
 };
@@ -320,7 +322,7 @@ class WhileExp : public Expression {
 
 class ForExp : public Expression {
   public:
-  ForExp(const Symbol& var,
+  ForExp(const symbol::Symbol& var,
          std::unique_ptr<Expression> low,
          std::unique_ptr<Expression> high,
          std::unique_ptr<Expression> body,
@@ -335,7 +337,7 @@ class ForExp : public Expression {
   {
     return visitor.visit_for_exp(*this);
   }
-  Symbol var;
+  symbol::Symbol var;
   std::unique_ptr<Expression> low;
   std::unique_ptr<Expression> high;
   std::unique_ptr<Expression> body;
@@ -374,7 +376,7 @@ class LetExp : public Expression {
 
 class ArrayExp : public Expression {
   public:
-  ArrayExp(const Symbol& type,
+  ArrayExp(const symbol::Symbol& type,
            std::unique_ptr<Expression> size,
            std::unique_ptr<Expression> init,
            Position position)
@@ -387,7 +389,7 @@ class ArrayExp : public Expression {
   {
     return visitor.visit_array_exp(*this);
   }
-  Symbol type;
+  symbol::Symbol type;
   std::unique_ptr<Expression> size;
   std::unique_ptr<Expression> init;
   Position position;
@@ -395,8 +397,8 @@ class ArrayExp : public Expression {
 
 class VarDecl : public Declaration {
   public:
-  VarDecl(const Symbol& name,
-          std::optional<Symbol> type,
+  VarDecl(const symbol::Symbol& name,
+          std::optional<symbol::Symbol> type,
           std::unique_ptr<Expression> init,
           Position position)
     : name(name)
@@ -408,20 +410,22 @@ class VarDecl : public Declaration {
   {
     return visitor.visit_var_decl(*this);
   }
-  Symbol name;
-  std::optional<Symbol> type;
+  symbol::Symbol name;
+  std::optional<symbol::Symbol> type;
   std::unique_ptr<Expression> init;
   Position position;
 };
 
 class _TypeDecl {
   public:
-  _TypeDecl(const Symbol& name, std::unique_ptr<Type> type, Position position)
+  _TypeDecl(const symbol::Symbol& name,
+            std::unique_ptr<Type> type,
+            Position position)
     : name(name)
     , type(std::move(type))
     , position(position)
   { }
-  Symbol name;
+  symbol::Symbol name;
   std::unique_ptr<Type> type;
   Position position;
 };
@@ -440,13 +444,15 @@ class TypeDecl : public Declaration {
 
 class _Field {
   public:
-  _Field(const Symbol& name, const Symbol& type, Position position)
+  _Field(const symbol::Symbol& name,
+         const symbol::Symbol& type,
+         Position position)
     : name(name)
     , type(type)
     , position(position)
   { }
-  Symbol name;
-  Symbol type;
+  symbol::Symbol name;
+  symbol::Symbol type;
   Position position;
 };
 
@@ -464,7 +470,7 @@ class RecordType : public Type {
 
 class ArrayType : public Type {
   public:
-  ArrayType(const Symbol& name, Position position)
+  ArrayType(const symbol::Symbol& name, Position position)
     : name(name)
     , position(position)
   { }
@@ -472,13 +478,13 @@ class ArrayType : public Type {
   {
     return visitor.visit_array_type(*this);
   }
-  Symbol name;
+  symbol::Symbol name;
   Position position;
 };
 
 class NameType : public Type {
   public:
-  NameType(const Symbol& name, Position position)
+  NameType(const symbol::Symbol& name, Position position)
     : name(name)
     , position(position)
   { }
@@ -486,15 +492,15 @@ class NameType : public Type {
   {
     return visitor.visit_named_type(*this);
   }
-  Symbol name;
+  symbol::Symbol name;
   Position position;
 };
 
 class _FuncDecl {
   public:
-  _FuncDecl(const Symbol& name,
+  _FuncDecl(const symbol::Symbol& name,
             std::vector<_Field> params,
-            std::optional<Symbol> result,
+            std::optional<symbol::Symbol> result,
             std::unique_ptr<Expression> body,
             Position position)
     : name(name)
@@ -503,9 +509,9 @@ class _FuncDecl {
     , body(std::move(body))
     , position(position)
   { }
-  Symbol name;
+  symbol::Symbol name;
   std::vector<_Field> params;
-  std::optional<Symbol> result;
+  std::optional<symbol::Symbol> result;
   std::unique_ptr<Expression> body;
   Position position;
 };

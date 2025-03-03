@@ -2,6 +2,7 @@
 #include <functional>
 #include <lexer/lex.hpp>
 #include <parser/ast.hpp>
+#include <symbol.hpp>
 
 namespace parser
 {
@@ -39,13 +40,22 @@ class PrecedenceRule {
 
 class Parser {
   public:
-  Parser(lexer::Scanner& scanner)
-    : scanner(scanner){};
+  Parser(lexer::Scanner& scanner, symbol::SymbolTable& symbol_table)
+    : scanner(scanner)
+    , symbol_table(symbol_table){};
   std::unique_ptr<ast::Expression> parse();
 
   private:
+  lexer::Scanner& scanner;
+  symbol::SymbolTable& symbol_table;
   lexer::Token current;
   lexer::Token previous;
+  std::unordered_map<lexer::TokenType, PrecedenceRule> pratt_table;
+
+  inline const symbol::Symbol& symbol(const std::string& name)
+  {
+    return symbol_table.symbol(name);
+  }
 
   ast::Operator map_operator(lexer::TokenType type);
   bool is_comparison_operator(ast::Operator type);
@@ -55,8 +65,6 @@ class Parser {
   void advance();
   bool check(lexer::TokenType type);
   void error_at(const lexer::Token& tok, const std::string& err_msg);
-  lexer::Scanner& scanner;
-  std::unordered_map<lexer::TokenType, PrecedenceRule> pratt_table;
 
   std::unique_ptr<ast::Expression> expression(int precedence);
   std::unique_ptr<ast::SeqExp> sequencing();

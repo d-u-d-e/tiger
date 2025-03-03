@@ -115,7 +115,7 @@ std::unique_ptr<ast::VarExp> Parser::variable()
 {
   // we parsed an identifier as an infix operator
   auto var =
-    std::make_unique<ast::SimpleVar>(Symbol{previous.value}, previous.pos);
+    std::make_unique<ast::SimpleVar>(symbol(previous.value), previous.pos);
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
@@ -134,7 +134,7 @@ Parser::record_field(std::unique_ptr<ast::Expression> lhs)
          "expected record field name after token '.'");
   auto field = previous;
   auto var = std::make_unique<ast::FieldVar>(
-    std::move(lhs_var->var), Symbol(field.value), field.pos);
+    std::move(lhs_var->var), symbol(field.value), field.pos);
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
@@ -207,7 +207,7 @@ std::unique_ptr<ast::ForExp> Parser::for_expr()
   // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
   auto pos = previous.pos;
   expect(lexer::TokenType::identifier, "expected identifier");
-  auto var = Symbol{previous.value};
+  auto var =symbol(previous.value);
   expect(lexer::TokenType::assign_op, "expected ':='");
   auto low = expression(Precedence::None);
 
@@ -268,7 +268,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
   do {
     auto func_tok_pos = previous.pos;
     expect(lexer::TokenType::identifier, "expected function name");
-    auto func_id = Symbol{previous.value};
+    auto func_id = symbol(previous.value);
     expect(lexer::TokenType::lparen, "expected '(' in function declaration");
 
     // parse params
@@ -276,21 +276,21 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
     if(!check(lexer::TokenType::rparen)) {
       do {
         expect(lexer::TokenType::identifier, "expected parameter name");
-        auto param_name = Symbol{previous.value};
+        auto param_name = symbol(previous.value);
         auto pos = previous.pos;
         expect(lexer::TokenType::colon, "expected ':' after parameter name");
         expect(lexer::TokenType::identifier, "expected parameter type");
-        auto param_type = Symbol{previous.value};
+        auto param_type = symbol(previous.value);
         params.emplace_back(param_name, param_type, pos);
       } while(match(lexer::TokenType::comma));
     }
     expect(lexer::TokenType::rparen, "expected ')' in function declaration");
 
     // parse return type
-    std::optional<Symbol> result;
+    std::optional<symbol::Symbol> result;
     if(match(lexer::TokenType::colon)) {
       expect(lexer::TokenType::identifier, "expected function return type");
-      result = Symbol{previous.value};
+      result = symbol(previous.value);
     }
 
     // parse body
@@ -318,7 +318,7 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
     auto pos = previous.pos;
     expect(lexer::TokenType::identifier,
            "expected type name after token 'type'");
-    auto type_id = Symbol{previous.value};
+    auto type_id = symbol(previous.value);
     expect(lexer::TokenType::equal_op, "expected '=' after type identifier");
 
     if(match(lexer::TokenType::lbrace)) {
@@ -327,12 +327,12 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
       if(!check(lexer::TokenType::rbrace)) {
         do {
           expect(lexer::TokenType::identifier, "expected parameter name");
-          auto param_name = Symbol{previous.value};
+          auto param_name = symbol(previous.value);
           auto pos = previous.pos;
           expect(lexer::TokenType::colon, "expected ':' after parameter name");
           expect(lexer::TokenType::identifier,
                  "expected parameter type after token ':'");
-          auto param_type = Symbol{previous.value};
+          auto param_type = symbol(previous.value);
           fields.emplace_back(param_name, param_type, pos);
         } while(match(lexer::TokenType::comma));
       }
@@ -346,7 +346,7 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
       expect(lexer::TokenType::of_keyword, "expected 'of' after 'array' token");
       expect(lexer::TokenType::identifier,
              "expected type identifier after 'of' token");
-      auto type_sym = Symbol{previous.value};
+      auto type_sym = symbol(previous.value);
       auto type = std::make_unique<ast::ArrayType>(type_sym, previous.pos);
       decls_.emplace_back(
         std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
@@ -355,7 +355,7 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
       // alias type
       expect(lexer::TokenType::identifier,
              "expected type identifier after '=' token");
-      auto type_sym = Symbol{previous.value};
+      auto type_sym = symbol(previous.value);
       auto type = std::make_unique<ast::NameType>(type_sym, previous.pos);
       decls_.emplace_back(
         std::make_unique<ast::_TypeDecl>(type_id, std::move(type), pos));
@@ -373,12 +373,12 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
 
   auto pos = previous.pos;
   expect(lexer::TokenType::identifier, "expected variable identifier");
-  auto var_id = Symbol{previous.value};
-  std::optional<Symbol> var_type;
+  auto var_id = symbol(previous.value);
+  std::optional<symbol::Symbol> var_type;
   if(match(lexer::TokenType::colon)) {
     expect(lexer::TokenType::identifier,
            "expected variable type after ':' token");
-    var_type = Symbol{previous.value};
+    var_type = symbol(previous.value);
   }
   expect(lexer::TokenType::assign_op,
          "expected ':=' in a variable declaration");
@@ -585,7 +585,7 @@ Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
       expect(lexer::TokenType::equal_op,
              "expected '=' after record field name");
       auto exp = expression(Precedence::None);
-      fields.emplace_back(Symbol(field.value), std::move(exp), field.pos);
+      fields.emplace_back(symbol(field.value), std::move(exp), field.pos);
     } while(match(lexer::TokenType::comma));
   }
 
