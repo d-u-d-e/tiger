@@ -47,4 +47,5 @@ class SymbolTable {
   Identifier identifier{0};
   std::unordered_map<std::string, Symbol> table;
 };
+
 } // namespace symbol

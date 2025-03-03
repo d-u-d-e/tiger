@@ -31,12 +31,29 @@ class FuncEntry {
   std::shared_ptr<types::Type> result;
 };
 
-using Entry = std::variant<VarEntry, FuncEntry>;
+using VEntry = std::variant<VarEntry, FuncEntry>;
+using TEntry = std::shared_ptr<types::Type>;
 
 template <typename T>
 class Environment {
   public:
   Environment() = default;
+  void insert(const symbol::Identifier& id, const T& value) {
+    table[id].push_front(value);
+  }
+  std::string dump() const {
+    std::string result;
+    for(const auto& [id, l] : table) {
+      
+      result += std::to_string(id) + ":\n";
+      for (const auto& v : l) {
+        result += std::format("   {}", v->to_string());
+        result += "\n";
+      }
+      result += "\n"; 
+    }
+    return result;
+  }
 
   private:
   std::unordered_map<symbol::Identifier, std::list<T>> table;
