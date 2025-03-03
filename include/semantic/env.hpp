@@ -38,7 +38,7 @@ template <typename T>
 class Environment {
   public:
   Environment() = default;
-  void insert(const symbol::Identifier& id, const T& value) {
+  void enter(const symbol::Identifier& id, const T& value) {
     table[id].push_front(value);
   }
   std::string dump() const {

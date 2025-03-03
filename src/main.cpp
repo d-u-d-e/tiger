@@ -32,8 +32,8 @@ int main(int argc, char** argv)
   Environment<TEntry> tenv;
 
   std::cout << "Environment:" << std::endl;
-  tenv.insert(0, std::make_shared<semantic::types::Integer>());
-  tenv.insert(0, std::make_shared<semantic::types::String>());
+  tenv.enter(0, std::make_shared<semantic::types::Integer>());
+  tenv.enter(0, std::make_shared<semantic::types::String>());
 
   std::vector<std::pair<symbol::Symbol, std::shared_ptr<semantic::types::Type>>>
     fields;
@@ -43,9 +43,9 @@ int main(int argc, char** argv)
                                   std::make_shared<semantic::types::String>()));
   fields.push_back(std::make_pair(symbol::Symbol("z", 2),
                                   std::make_shared<semantic::types::String>()));
-  tenv.insert(1, std::make_shared<semantic::types::Record>(fields, 100));
+  tenv.enter(1, std::make_shared<semantic::types::Record>(fields, 100));
 
-  tenv.insert(1,
+  tenv.enter(1,
               std::make_shared<semantic::types::Array>(
                 std::make_shared<semantic::types::String>(), 200));
 
