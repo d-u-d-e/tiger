@@ -1,13 +1,9 @@
 #pragma once
 #include <memory>
-#include <optional>
 #include <symbol.hpp>
 #include <vector>
 
-namespace semantic
-{
-
-namespace types
+namespace semantic::types
 {
 
 class Type {
@@ -17,30 +13,18 @@ class Type {
 };
 
 struct Integer : public Type {
-  std::string to_string() override
-  {
-    return "int";
-  }
+  std::string to_string() override;
 };
 struct String : public Type {
-  std::string to_string() override
-  {
-    return "string";
-  }
+  std::string to_string() override;
 };
 struct Nil : public Type {
-  std::string to_string() override
-  {
-    return "nil";
-  }
+  std::string to_string() override;
 };
 
 // Used to indicate that an expression returns no value
 struct Unit : public Type {
-  std::string to_string() override
-  {
-    return "unit";
-  }
+  std::string to_string() override;
 };
 
 struct Record : public Type {
@@ -55,23 +39,7 @@ struct Record : public Type {
     return unique == other.unique;
   }
 
-  std::string to_string() override
-  {
-    std::string result = "Record(" + std::to_string(unique) + "){";
-    /*for(const auto& [name, type] : fields) {
-      result +=
-        "  " + name.name() + ": " +
-        (typeid(type) == typeid(Record) ? "Record" : type->to_string()) + "\n";
-    }*/
-    auto size = fields.size();
-
-    for (auto i = 0; i < size; i++) {
-      auto& [name, type] = fields[i];
-      result += name.name() + ": " + type->to_string() + (i == size - 1 ? "" : ", ");
-    }
-    return result + "}";
-  }
-
+  std::string to_string() override;
   std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields;
   uint32_t unique;
 };
@@ -87,12 +55,7 @@ struct Array : public Type {
     return unique == other.unique;
   }
 
-  std::string to_string() override
-  {
-    std::string result = "Array(" + std::to_string(unique) + ")";
-    return result;
-  }
-
+  std::string to_string() override;
   std::shared_ptr<Type> type;
   uint32_t unique;
 };
@@ -107,6 +70,4 @@ struct Name : public Type {
   std::shared_ptr<Type> type;
 };
 
-} // namespace types
-
-}; // namespace semantic
+} // namespace semantic::types

@@ -15,8 +15,11 @@ add_executable(
     src/main.cpp
     src/lexer/lex.cpp
     src/lexer/token.cpp
+
     src/parser/parser.cpp
+    
     src/symbol.cpp
+    src/semantic/types.cpp
 )
 target_include_directories(tiger PRIVATE include)
 
@@ -27,13 +30,16 @@ if(BUILD_TEST_RUNNER)
     CPMAddPackage("https://github.com/doctest/doctest.git@2.4.11")
     add_executable(test-runner
     tests/main.cpp
-    tests/lexer/test_lexer.cpp
-    tests/parser/test_parser.cpp
 
+    tests/lexer/test_lexer.cpp
     src/lexer/lex.cpp
     src/lexer/token.cpp
+
+    tests/parser/test_parser.cpp
     src/parser/parser.cpp
+
     src/symbol.cpp
+    src/semantic/types.cpp
     )
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)

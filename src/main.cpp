@@ -7,8 +7,6 @@
 #include <semantic/env.hpp>
 #include <symbol.hpp>
 
-#include <symbol_table.hpp>
-
 int main(int argc, char** argv)
 {
   std::filesystem::path s = argv[1];
@@ -33,7 +31,7 @@ int main(int argc, char** argv)
   Environment<VEntry> venv;
   Environment<TEntry> tenv;
 
-  symbol::SymbolTable<TEntry> t;
+  symbol::Table<TEntry> t;
 
   /*
     let
