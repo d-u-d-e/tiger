@@ -2,9 +2,11 @@
 #include <list>
 #include <memory>
 #include <semantic/types.hpp>
+#include <stack>
 #include <symbol.hpp>
 #include <unordered_map>
 #include <variant>
+#include <optional>
 
 namespace semantic
 {
@@ -38,25 +40,67 @@ template <typename T>
 class Environment {
   public:
   Environment() = default;
-  void enter(const symbol::Identifier& id, const T& value) {
-    table[id].push_front(value);
+
+  void enter(const symbol::Symbol& s, const T& value)
+  {
+    table[s].push_front(value);
+    stack.push(s);
   }
-  std::string dump() const {
-    std::string result;
-    for(const auto& [id, l] : table) {
-      
-      result += std::to_string(id) + ":\n";
-      for (const auto& v : l) {
-        result += std::format("   {}", v->to_string());
-        result += "\n";
+
+  std::optional<T> lookup(const symbol::Symbol& s)
+  {
+    try {
+      return table.at(s).front();
+    }
+    catch(std::out_of_range&) {
+      return std::nullopt;
+    }
+  }
+
+  void begin_scope()
+  {
+    // push a scope_marker
+    stack.push(symbol::scope_marker);
+  }
+
+  void end_scope()
+  {
+    // pop all elements until a scope_marker is found
+    while(true) {
+      assert(stack.size() > 0);
+      auto& elem = stack.top();
+      stack.pop();
+      if(elem == symbol::scope_marker) {
+        break;
       }
-      result += "\n"; 
+      table.at(elem).pop_front();
+    }
+  }
+
+  std::string dump() const
+  {
+    std::string result;
+    for(const auto& [s, l] : table) {
+      result += std::to_string(s.id()) + "-> " + s.name() + "\n";
+      for(const auto& v : l) {
+        result += std::format("   {}\n", v->to_string());
+      }
+      result += "--------------------\n";
     }
     return result;
   }
 
+  struct KeyHasher {
+    size_t operator()(const symbol::Symbol& a) const
+    {
+      return a.id();
+    }
+  };
+
   private:
-  std::unordered_map<symbol::Identifier, std::list<T>> table;
+  std::stack<symbol::Symbol> stack;
+  // This is an overkill, we only need a table with chaining
+  std::unordered_map<symbol::Symbol, std::list<T>, KeyHasher> table;
 };
 
 } // namespace environment
