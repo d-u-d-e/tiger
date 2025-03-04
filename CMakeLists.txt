@@ -17,7 +17,7 @@ add_executable(
     src/lexer/token.cpp
 
     src/parser/parser.cpp
-    
+
     src/symbol.cpp
     src/semantic/types.cpp
 )
@@ -38,6 +38,7 @@ if(BUILD_TEST_RUNNER)
     tests/parser/test_parser.cpp
     src/parser/parser.cpp
 
+    tests/semantic/test_env.cpp
     src/symbol.cpp
     src/semantic/types.cpp
     )
