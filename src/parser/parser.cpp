@@ -65,7 +65,6 @@ std::unique_ptr<ast::Expression> Parser::parse()
 
 std::unique_ptr<ast::Expression> Parser::expression(int precedence)
 {
-
   std::unique_ptr<ast::Expression> lhs;
   advance();
   auto rule = pratt_table.at(previous.type);
@@ -75,7 +74,6 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
   }
   // when the prefix rule gets called, the prefix token has already been consumed
   lhs = rule.prefix_rule();
-
   rule = pratt_table.at(current.type);
 
   while(rule.precedence_value > precedence) {
@@ -123,8 +121,8 @@ std::unique_ptr<ast::VarExp>
 Parser::record_field(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <id> '.' <id>
-  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
 
+  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
   if(!lhs_var) {
     error_at(previous, "expected variable before token '.'");
     return nullptr;
@@ -195,6 +193,7 @@ std::unique_ptr<ast::StringExp> Parser::string_literal()
 std::unique_ptr<ast::WhileExp> Parser::while_expr()
 {
   // rule: 'while' <exp> 'do' <exp>
+
   auto pos = previous.pos;
   auto cond = expression(Precedence::None);
   expect(lexer::TokenType::do_keyword, "expected 'do' after while condition");
@@ -205,9 +204,10 @@ std::unique_ptr<ast::WhileExp> Parser::while_expr()
 std::unique_ptr<ast::ForExp> Parser::for_expr()
 {
   // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
+
   auto pos = previous.pos;
   expect(lexer::TokenType::identifier, "expected identifier");
-  auto var =symbol(previous.value);
+  auto var = symbol(previous.value);
   expect(lexer::TokenType::assign_op, "expected ':='");
   auto low = expression(Precedence::None);
 
@@ -224,6 +224,7 @@ std::unique_ptr<ast::ForExp> Parser::for_expr()
 std::unique_ptr<ast::BreakExp> Parser::break_expr()
 {
   // rule: 'break'
+
   return std::make_unique<ast::BreakExp>(previous.pos);
 }
 
@@ -231,6 +232,7 @@ std::unique_ptr<ast::LetExp> Parser::let_expr()
 {
   // rule: 'let' <decls> 'in' <exps> 'end'
   // rule: exps = epsilon | <exp> (';' <exp>)*
+
   auto pos = previous.pos;
   auto decs = decls();
   expect(lexer::TokenType::in_keyword, "expected 'in' after let decls");
@@ -467,6 +469,7 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 std::unique_ptr<ast::OpExp> Parser::unary_expr()
 {
   // rule: '-' <exp>
+
   // this is implemented as a subtraction from 0 (Tiger only supports integer arithmetics)
   auto tok_pos = previous.pos;
   auto rhs = expression(Precedence::Unary);
@@ -479,8 +482,8 @@ std::unique_ptr<ast::Expression>
 Parser::and_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <exp> & <exp>
-  // e1 & e2 is translated as `if e1 then e2 else 0`
 
+  // e1 & e2 is translated as `if e1 then e2 else 0`
   auto pos = previous.pos;
   auto rhs = expression(Precedence::And);
   return std::make_unique<ast::IfExp>(
@@ -491,8 +494,8 @@ std::unique_ptr<ast::Expression>
 Parser::or_expr(std::unique_ptr<ast::Expression> lhs)
 {
   // rule: <exp> | <exp>
-  // e1 | e2 is translated as `if e1 then e1 else e2`
 
+  // e1 | e2 is translated as `if e1 then e1 else e2`
   auto pos = previous.pos;
   auto rhs = expression(Precedence::Or);
   // we need shared pointers here :(
@@ -509,9 +512,7 @@ Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
 
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
-
   auto var = dynamic_cast<ast::VarExp*>(lhs.get());
-
   if(!var) {
     // asserting that lhs is an lvalue
     error_at(op, "invalid assignment target");
@@ -528,16 +529,13 @@ Parser::call_expr(std::unique_ptr<ast::Expression> lhs)
   // rule: <id> '(' <exp> (',' <exp>)* ')'
 
   auto pos = previous.pos;
-
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
-
   if(!lhs_var) {
     error_at(previous, "expected identifier as function name");
     return nullptr;
   }
 
   auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
-
   if(!lhs_simple) {
     error_at(previous, "expected identifier as function name");
     return nullptr;

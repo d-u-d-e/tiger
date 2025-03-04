@@ -6,7 +6,7 @@ namespace lexer
 
 char Scanner::escape_sequence(const char** current)
 {
-  // Current points to the backslash
+  // current points to the backslash
   char ch1 = peek(1);
   char ch2 = peek(2);
   char ch3 = peek(3);
@@ -148,7 +148,7 @@ Token Scanner::string_literal()
   We don't support escaping control characters like ^c. 
   */
 
-  current++; // First token is the opening quote
+  current++; // first token is the opening quote
   std::string value;
   int sline = line;
   int spos = int(current - row);
@@ -171,7 +171,7 @@ Token Scanner::string_literal()
       current++;
     }
     else {
-      current++; // Closing quote
+      current++; // closing quote
       return Token{TokenType::string_literal, value, Position(sline, spos)};
     }
   }
