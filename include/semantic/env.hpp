@@ -4,6 +4,7 @@
 #include <semantic/types.hpp>
 #include <stack>
 #include <variant>
+#include <format>
 
 namespace semantic::environment
 {
@@ -41,7 +42,7 @@ class Environment {
     stack.push(s);
   };
 
-  std::optional<T> lookup(const symbol::Symbol& s)
+  std::optional<T> lookup(const symbol::Symbol& s) const
   {
     return table.lookup(s);
   }

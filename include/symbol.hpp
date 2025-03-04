@@ -76,7 +76,7 @@ class Table {
     count++;
   }
 
-  std::optional<T> lookup(const Symbol& s)
+  std::optional<T> lookup(const Symbol& s) const
   {
     size_t index = s.id() % capacity;
     auto iter = std::find_if(table[index].begin(),
