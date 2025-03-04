@@ -7,6 +7,8 @@
 #include <semantic/env.hpp>
 #include <symbol.hpp>
 
+#include <symbol_table.hpp>
+
 int main(int argc, char** argv)
 {
   std::filesystem::path s = argv[1];
@@ -30,6 +32,8 @@ int main(int argc, char** argv)
   using namespace semantic::environment;
   Environment<VEntry> venv;
   Environment<TEntry> tenv;
+
+  symbol::SymbolTable<TEntry> t;
 
   /*
     let
@@ -77,4 +81,9 @@ int main(int argc, char** argv)
   std::cout << "lookup R: " << type_R->to_string() << "\n\n";
   tenv.end_scope();
   std::cout << tenv.dump() << "\n\n";
+
+  t.enter(T, std::make_shared<semantic::types::String>());
+  auto e = t.lookup(T);
+  auto entry = e.value()->to_string();
+
 }
