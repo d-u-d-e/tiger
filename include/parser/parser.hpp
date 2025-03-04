@@ -40,14 +40,14 @@ class PrecedenceRule {
 
 class Parser {
   public:
-  Parser(lexer::Scanner& scanner, symbol::SymbolTable& symbol_table)
+  Parser(lexer::Scanner& scanner, symbol::StringTable& symbol_table)
     : scanner(scanner)
     , symbol_table(symbol_table){};
   std::unique_ptr<ast::Expression> parse();
 
   private:
   lexer::Scanner& scanner;
-  symbol::SymbolTable& symbol_table;
+  symbol::StringTable& symbol_table;
   lexer::Token current;
   lexer::Token previous;
   std::unordered_map<lexer::TokenType, PrecedenceRule> pratt_table;

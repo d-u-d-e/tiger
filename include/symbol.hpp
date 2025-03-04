@@ -33,7 +33,7 @@ class Symbol {
   Identifier id_;
 };
 
-class SymbolTable {
+class StringTable {
   public:
   std::string name(const Symbol& symbol) const
   {
@@ -44,8 +44,10 @@ class SymbolTable {
   std::string dump() const;
 
   private:
-  Identifier identifier{0};
+  Identifier identifier{1};
   std::unordered_map<std::string, Symbol> table;
 };
+
+  extern Symbol scope_marker;
 
 } // namespace symbol
