@@ -8,7 +8,8 @@ template <typename T>
 auto lookup_and_verify =
   [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
     CHECK_FALSE(!tenv.lookup(s).has_value());
-    CHECK_FALSE(typeid(*tenv.lookup(s).value()) != typeid(T));
+    auto t = dynamic_cast<T*>(tenv.lookup(s).value().get());
+    CHECK_FALSE(t == nullptr);
   };
 
 TEST_CASE("nested_scopes_types.tig")
@@ -40,11 +41,11 @@ TEST_CASE("nested_scopes_types.tig")
 
   tenv.begin_scope();
   tenv.enter(T, std::make_shared<semantic::types::Integer>());
-  lookup_and_verify<std::shared_ptr<semantic::types::Integer>>(tenv, T);
+  lookup_and_verify<semantic::types::Integer>(tenv, T);
 
   tenv.begin_scope();
   tenv.enter(T, std::make_shared<semantic::types::String>());
-  lookup_and_verify<std::shared_ptr<semantic::types::String>>(tenv, T);
+  lookup_and_verify<semantic::types::String>(tenv, T);
 
   tenv.end_scope();
 
