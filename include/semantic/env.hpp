@@ -30,6 +30,8 @@ class FuncEntry {
 
 using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;
 using TEntry = std::shared_ptr<types::Type>;
+std::string to_string(const VEntry& entry);
+std::string to_string(const TEntry& entry);
 
 template <typename T>
 class Environment {
@@ -81,8 +83,8 @@ class Environment {
       }
       result += "-----------------\n";
       for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + s.name() + ": ";
-        result += std::format("{}\n", v->to_string());
+        result += std::to_string(s.id()) + "-> " + s.name() + ": " +
+                  to_string(v) + "\n";
       }
     }
     return result;

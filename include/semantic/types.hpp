@@ -69,5 +69,4 @@ struct Name : public Type {
   symbol::Symbol name;
   std::shared_ptr<Type> type;
 };
-
 } // namespace semantic::types
