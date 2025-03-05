@@ -74,7 +74,7 @@ TEST_CASE("nested_scopes_types.tig")
   lookup_tentry<semantic::types::Array>(tenv, A);
 
   tenv.end_scope();
-  lookup_tentry<semantic::types::String, false>(tenv, T);
+  CHECK(tenv.size() == 0);
 }
 
 TEST_CASE("nested_scopes_vars_funcs.tig")
