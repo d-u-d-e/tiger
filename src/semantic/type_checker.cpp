@@ -162,7 +162,7 @@ TEntry TypeChecker::visit_array_exp(const parser::ast::ArrayExp& exp)
       error_at(exp.position, "the type of the array elements must match");
     }
   }
-  return std::make_shared<types::Array>(tinit);
+  return texpr.value();
 };
 
 TEntry TypeChecker::visit_nil_exp(const parser::ast::NilExp& exp)
