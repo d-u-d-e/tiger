@@ -6,6 +6,7 @@
 #include <symbol.hpp>
 #include <utility>
 #include <vector>
+#include <lexer/position.hpp>
 
 namespace parser
 {

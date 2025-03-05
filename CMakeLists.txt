@@ -21,6 +21,7 @@ add_executable(
     src/symbol.cpp
     src/semantic/types.cpp
     src/semantic/env.cpp
+    src/semantic/type_checker.cpp
 )
 target_include_directories(tiger PRIVATE include)
 
