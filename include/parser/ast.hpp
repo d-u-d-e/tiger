@@ -5,6 +5,7 @@
 #include <optional>
 #include <parser/visitor.hpp>
 #include <semantic/types.hpp>
+#include <semantic/visitor.hpp>
 #include <symbol.hpp>
 #include <utility>
 #include <vector>
@@ -15,38 +16,50 @@ namespace ast
 {
 
 using Position = lexer::Position;
+using TypeCheckerExprVisitor =
+  semantic::ExprVisitor<std::shared_ptr<semantic::types::Type>>;
+using TypeCheckerVarVisitor =
+  semantic::VarVisitor<std::shared_ptr<semantic::types::Type>>;
+using TypeCheckerTypeVisitor =
+  semantic::TypeVisitor<std::shared_ptr<semantic::types::Type>>;
+using TypeCheckerDeclVisitor = semantic::DeclVisitor<void>;
+
+using PrettyPrinterExprVisitor = ExprVisitor<std::string>;
+using PrettyPrinterVarVisitor = VarVisitor<std::string>;
+using PrettyPrinterDeclVisitor = DeclVisitor<std::string>;
+using PrettyPrinterTypeVisitor = TypeVisitor<std::string>;
 
 class Expression {
   public:
-  virtual std::string accept(ExprVisitor<std::string>& visitor) const = 0;
-  virtual std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
+  virtual std::string accept(PrettyPrinterExprVisitor& visitor) const = 0;
+  virtual std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const = 0;
   virtual ~Expression() = default;
   std::string field;
 };
 
 class Declaration {
   public:
-  virtual std::string accept(DeclVisitor<std::string>& visitor) const = 0;
-  virtual void accept(DeclVisitor<void>& visitor) const = 0;
+  virtual std::string accept(PrettyPrinterDeclVisitor& visitor) const = 0;
+  virtual void accept(TypeCheckerDeclVisitor& visitor) const = 0;
   virtual ~Declaration() = default;
   std::string field;
 };
 
 class Type {
   public:
-  virtual std::string accept(TypeVisitor<std::string>& visitor) const = 0;
-  virtual std::shared_ptr<semantic::types::Type> accept(
-    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
+  virtual std::string accept(PrettyPrinterTypeVisitor& visitor) const = 0;
+  virtual std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerTypeVisitor& visitor) const = 0;
   virtual ~Type() = default;
   std::string field;
 };
 
 class Variable {
   public:
-  virtual std::string accept(VarVisitor<std::string>& visitor) const = 0;
+  virtual std::string accept(PrettyPrinterVarVisitor& visitor) const = 0;
   virtual std::shared_ptr<semantic::types::Type>
-  accept(VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
+  accept(TypeCheckerVarVisitor& visitor) const = 0;
   virtual ~Variable() = default;
   std::string field;
 };
@@ -99,13 +112,13 @@ class SimpleVar : public Variable {
     : name(name)
     , position(position)
   { }
-  std::string accept(VarVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterVarVisitor& visitor) const override
   {
     return visitor.visit_simple_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_simple_var(*this);
   }
@@ -123,13 +136,13 @@ class FieldVar : public Variable {
     , name(name)
     , position(position)
   { }
-  std::string accept(VarVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterVarVisitor& visitor) const override
   {
     return visitor.visit_field_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_field_var(*this);
   }
@@ -148,13 +161,13 @@ class SubscriptVar : public Variable {
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(VarVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterVarVisitor& visitor) const override
   {
     return visitor.visit_subscript_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_subscript_var(*this);
   }
@@ -169,13 +182,13 @@ class VarExp : public Expression {
   VarExp(std::unique_ptr<Variable> var)
     : var(std::move(var))
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_var_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_var_exp(*this);
   }
@@ -184,13 +197,13 @@ class VarExp : public Expression {
 };
 
 class NilExp : public Expression {
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_nil_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_nil_exp(*this);
   }
@@ -201,13 +214,13 @@ class IntExp : public Expression {
   IntExp(int value)
     : value(value)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_int_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_int_exp(*this);
   }
@@ -221,13 +234,13 @@ class StringExp : public Expression {
     : value(value)
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_string_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_string_exp(*this);
   }
@@ -245,13 +258,13 @@ class CallExp : public Expression {
     , args(std::move(args))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_call_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_call_exp(*this);
   }
@@ -272,13 +285,13 @@ class OpExp : public Expression {
     , right(std::move(right))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_op_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_op_exp(*this);
   }
@@ -312,13 +325,13 @@ class RecordExp : public Expression {
     , fields(std::move(fields))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_record_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_record_exp(*this);
   }
@@ -334,13 +347,13 @@ class SeqExp : public Expression {
     : exps(std::move(exps))
   { }
   std::vector<std::pair<std::unique_ptr<Expression>, Position>> exps;
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_seq_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_seq_exp(*this);
   }
@@ -355,13 +368,13 @@ class AssignExp : public Expression {
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_assign_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_assign_exp(*this);
   }
@@ -382,13 +395,13 @@ class IfExp : public Expression {
     , else_(std::move(else_))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_if_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_if_exp(*this);
   }
@@ -408,13 +421,13 @@ class WhileExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_while_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_while_exp(*this);
   }
@@ -437,13 +450,13 @@ class ForExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_for_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_for_exp(*this);
   }
@@ -460,13 +473,13 @@ class BreakExp : public Expression {
   BreakExp(Position position)
     : position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_break_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_break_exp(*this);
   }
@@ -483,13 +496,13 @@ class LetExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_let_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_let_exp(*this);
   }
@@ -510,13 +523,13 @@ class ArrayExp : public Expression {
     , init(std::move(init))
     , position(position)
   { }
-  std::string accept(ExprVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterExprVisitor& visitor) const override
   {
     return visitor.visit_array_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_array_exp(*this);
   }
@@ -538,12 +551,12 @@ class VarDecl : public Declaration {
     , init(std::move(init))
     , position(position)
   { }
-  std::string accept(DeclVisitor<std::string>& visitor) const override
+  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
 
-  void accept(DeclVisitor<void>& visitor) const override
+  void accept(TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
@@ -573,12 +586,12 @@ class TypeDecl : public Declaration {
   TypeDecl(std::vector<std::unique_ptr<_TypeDecl>> decls)
     : decls(std::move(decls))
   { }
-  std::string accept(DeclVisitor<std::string>& visitor) const
+  std::string accept(PrettyPrinterDeclVisitor& visitor) const
   {
     return visitor.visit_type_decl(*this);
   }
 
-  void accept(DeclVisitor<void>& visitor) const override
+  void accept(TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_type_decl(*this);
   }
@@ -605,13 +618,13 @@ class RecordType : public Type {
   RecordType(std::vector<_Field> fields)
     : fields(std::move(fields))
   { }
-  std::string accept(TypeVisitor<std::string>& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const
   {
     return visitor.visit_record_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_record_type(*this);
   }
@@ -625,13 +638,13 @@ class ArrayType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(TypeVisitor<std::string>& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const
   {
     return visitor.visit_array_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_array_type(*this);
   }
@@ -646,13 +659,13 @@ class NameType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(TypeVisitor<std::string>& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const
   {
     return visitor.visit_named_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type> accept(
-    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  std::shared_ptr<semantic::types::Type>
+  accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_named_type(*this);
   }
@@ -687,12 +700,12 @@ class FuncDecl : public Declaration {
     : decls(std::move(decls))
   { }
   std::vector<std::unique_ptr<_FuncDecl>> decls;
-  std::string accept(DeclVisitor<std::string>& visitor) const
+  std::string accept(PrettyPrinterDeclVisitor& visitor) const
   {
     return visitor.visit_func_decl(*this);
   }
 
-  void accept(DeclVisitor<void>& visitor) const override
+  void accept(TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_func_decl(*this);
   }
