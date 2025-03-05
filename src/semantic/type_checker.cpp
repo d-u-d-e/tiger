@@ -143,9 +143,26 @@ TEntry TypeChecker::visit_seq_exp(const parser::ast::SeqExp& exp)
 
 TEntry TypeChecker::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
-  // TODO
   std::cout << "type checking array exp" << std::endl;
-  return nullptr;
+
+  auto tsize = exp.size->accept(*this);
+  auto tinit = exp.init->accept(*this);
+
+  auto texpr = tenv.lookup(exp.type);
+  if(!texpr || !check_type<types::Array>(*texpr.value())) {
+    error_at(exp.position,
+             std::format("undefined array type '{}'", exp.type.name()));
+  }
+  else if(!check_type<types::Integer>(*tsize)) {
+    error_at(exp.position, "the size of the array must be an integer");
+  }
+  else {
+    auto array_type = dynamic_cast<types::Array*>(texpr.value().get());
+    if(!is_same_type(array_type->type, tinit)) {
+      error_at(exp.position, "the type of the array elements must match");
+    }
+  }
+  return std::make_shared<types::Array>(tinit);
 };
 
 TEntry TypeChecker::visit_nil_exp(const parser::ast::NilExp& exp)
@@ -378,9 +395,14 @@ TEntry TypeChecker::visit_name_type(const parser::ast::NameType& type)
 
 TEntry TypeChecker::visit_array_type(const parser::ast::ArrayType& type)
 {
-  //TODO
   std::cout << "type checking array type" << std::endl;
-  return nullptr;
+  auto elem_type = tenv.lookup(type.name);
+  if(!elem_type) {
+    error_at(type.position,
+             std::format("undefined type '{}'", type.name.name()));
+  }
+
+  return std::make_shared<types::Array>(elem_type.value());
 };
 
 TEntry TypeChecker::visit_record_type(const parser::ast::RecordType& type)
