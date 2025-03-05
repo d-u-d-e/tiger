@@ -5,6 +5,7 @@
 #include <parser/pretty_printer.hpp>
 
 #include <semantic/env.hpp>
+#include <semantic/type_checker.hpp>
 #include <symbol.hpp>
 
 int main(int argc, char** argv)
@@ -19,10 +20,17 @@ int main(int argc, char** argv)
   auto exp = parser.parse();
 
   // pretty print the ast
-  ASTVisitor pretty_printer;
+  parser::ast::PrettyPrinter pretty_printer;
   std::cout << exp->accept(pretty_printer) << std::endl << std::endl;
 
   // dump the string table
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
+
+  auto tenv =
+    std::make_shared<semantic::env::Environment<semantic::env::TEntry>>();
+  auto venv =
+    std::make_shared<semantic::env::Environment<semantic::env::VEntry>>();
+
+  semantic::TypeChecker type_checker(tenv, venv);
 }

@@ -6,7 +6,7 @@
 #include <stack>
 #include <variant>
 
-namespace semantic::environment
+namespace semantic::env
 {
 
 class VarEntry {
@@ -95,4 +95,4 @@ class Environment {
   symbol::Table<T> table;
 };
 
-} // namespace semantic::environment
+} // namespace semantic::env

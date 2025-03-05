@@ -1,7 +1,13 @@
 #pragma once
 #include <parser/ast.hpp>
 
-class ASTVisitor : public Visitor<std::string> {
+namespace parser::ast
+{
+
+class PrettyPrinter : public ExprVisitor<std::string>,
+                      public VarVisitor<std::string>,
+                      public DeclVisitor<std::string>,
+                      public TypeVisitor<std::string> {
 
   public:
   std::string visit_simple_var(const parser::ast::SimpleVar& var) override
@@ -384,3 +390,5 @@ class ASTVisitor : public Visitor<std::string> {
   }
   int depth{0};
 };
+
+} // namespace parser::ast

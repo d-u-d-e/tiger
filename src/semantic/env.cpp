@@ -1,6 +1,6 @@
 #include <semantic/env.hpp>
 
-namespace semantic::environment
+namespace semantic::env
 {
 
 std::string to_string(const VEntry& entry)
@@ -26,4 +26,4 @@ std::string to_string(const TEntry& entry)
   return entry->to_string();
 }
 
-} // namespace semantic::environment
+} // namespace semantic::env

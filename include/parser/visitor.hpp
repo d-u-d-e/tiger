@@ -26,20 +26,16 @@ class TypeDecl;
 class NameType;
 class ArrayType;
 class RecordType;
-}; // namespace parser::ast
 
 template <typename T>
-class Visitor {
+class ExprVisitor {
   public:
-  T virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   T virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
   T virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
   T virtual visit_op_exp(const parser::ast::OpExp& exp) = 0;
   T virtual visit_int_exp(const parser::ast::IntExp& exp) = 0;
   T virtual visit_var_exp(const parser::ast::VarExp& exp) = 0;
   T virtual visit_seq_exp(const parser::ast::SeqExp& exp) = 0;
-  T virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
-  T virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
   T virtual visit_array_exp(const parser::ast::ArrayExp& exp) = 0;
   T virtual visit_nil_exp(const parser::ast::NilExp& exp) = 0;
   T virtual visit_record_exp(const parser::ast::RecordExp& exp) = 0;
@@ -49,10 +45,30 @@ class Visitor {
   T virtual visit_for_exp(const parser::ast::ForExp& exp) = 0;
   T virtual visit_call_exp(const parser::ast::CallExp& exp) = 0;
   T virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
+};
+
+template <typename T>
+class DeclVisitor {
+  public:
   T virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
   T virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
   T virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
+};
+
+template <typename T>
+class TypeVisitor {
+  public:
   T virtual visit_named_type(const parser::ast::NameType& type) = 0;
   T virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   T virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };
+
+template <typename T>
+class VarVisitor {
+  public:
+  T virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
+  T virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
+  T virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
+};
+
+}; // namespace parser::ast

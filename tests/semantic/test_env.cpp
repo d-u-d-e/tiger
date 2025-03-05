@@ -2,7 +2,7 @@
 #include <semantic/env.hpp>
 
 TEST_SUITE_BEGIN("environment");
-using namespace semantic::environment;
+using namespace semantic::env;
 
 template <typename T, bool expected = true>
 auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {

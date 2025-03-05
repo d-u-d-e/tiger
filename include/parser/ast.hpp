@@ -1,12 +1,13 @@
 #pragma once
 #include <assert.h>
+#include <lexer/position.hpp>
 #include <memory>
 #include <optional>
 #include <parser/visitor.hpp>
+#include <semantic/types.hpp>
 #include <symbol.hpp>
 #include <utility>
 #include <vector>
-#include <lexer/position.hpp>
 
 namespace parser
 {
@@ -17,28 +18,35 @@ using Position = lexer::Position;
 
 class Expression {
   public:
-  virtual std::string accept(Visitor<std::string>& visitor) const = 0;
+  virtual std::string accept(ExprVisitor<std::string>& visitor) const = 0;
+  virtual std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
   virtual ~Expression() = default;
   std::string field;
 };
 
 class Declaration {
   public:
-  virtual std::string accept(Visitor<std::string>& visitor) const = 0;
+  virtual std::string accept(DeclVisitor<std::string>& visitor) const = 0;
+  virtual void accept(DeclVisitor<void>& visitor) const = 0;
   virtual ~Declaration() = default;
   std::string field;
 };
 
 class Type {
   public:
-  virtual std::string accept(Visitor<std::string>& visitor) const = 0;
+  virtual std::string accept(TypeVisitor<std::string>& visitor) const = 0;
+  virtual std::shared_ptr<semantic::types::Type> accept(
+    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
   virtual ~Type() = default;
   std::string field;
 };
 
 class Variable {
   public:
-  virtual std::string accept(Visitor<std::string>& visitor) const = 0;
+  virtual std::string accept(VarVisitor<std::string>& visitor) const = 0;
+  virtual std::shared_ptr<semantic::types::Type>
+  accept(VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const = 0;
   virtual ~Variable() = default;
   std::string field;
 };
@@ -91,7 +99,13 @@ class SimpleVar : public Variable {
     : name(name)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(VarVisitor<std::string>& visitor) const override
+  {
+    return visitor.visit_simple_var(*this);
+  }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
   {
     return visitor.visit_simple_var(*this);
   }
@@ -109,10 +123,17 @@ class FieldVar : public Variable {
     , name(name)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(VarVisitor<std::string>& visitor) const override
   {
     return visitor.visit_field_var(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_field_var(*this);
+  }
+
   std::unique_ptr<Variable> var;
   symbol::Symbol name;
   Position position;
@@ -127,10 +148,17 @@ class SubscriptVar : public Variable {
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(VarVisitor<std::string>& visitor) const override
   {
     return visitor.visit_subscript_var(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    VarVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_subscript_var(*this);
+  }
+
   std::unique_ptr<Variable> var;
   std::unique_ptr<Expression> exp;
   Position position;
@@ -141,15 +169,28 @@ class VarExp : public Expression {
   VarExp(std::unique_ptr<Variable> var)
     : var(std::move(var))
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_var_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_var_exp(*this);
+  }
+
   std::unique_ptr<Variable> var;
 };
 
 class NilExp : public Expression {
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
+  {
+    return visitor.visit_nil_exp(*this);
+  }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
   {
     return visitor.visit_nil_exp(*this);
   }
@@ -160,10 +201,17 @@ class IntExp : public Expression {
   IntExp(int value)
     : value(value)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_int_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_int_exp(*this);
+  }
+
   int value;
 };
 
@@ -173,10 +221,17 @@ class StringExp : public Expression {
     : value(value)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_string_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_string_exp(*this);
+  }
+
   std::string value;
   Position position;
 };
@@ -190,10 +245,17 @@ class CallExp : public Expression {
     , args(std::move(args))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_call_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_call_exp(*this);
+  }
+
   symbol::Symbol name;
   std::vector<std::unique_ptr<Expression>> args;
   Position position;
@@ -210,10 +272,17 @@ class OpExp : public Expression {
     , right(std::move(right))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_op_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_op_exp(*this);
+  }
+
   std::unique_ptr<Expression> left;
   Operator op;
   std::unique_ptr<Expression> right;
@@ -243,10 +312,17 @@ class RecordExp : public Expression {
     , fields(std::move(fields))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_record_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_record_exp(*this);
+  }
+
   symbol::Symbol type;
   std::vector<_RecordField> fields;
   Position position;
@@ -258,7 +334,13 @@ class SeqExp : public Expression {
     : exps(std::move(exps))
   { }
   std::vector<std::pair<std::unique_ptr<Expression>, Position>> exps;
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
+  {
+    return visitor.visit_seq_exp(*this);
+  }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
   {
     return visitor.visit_seq_exp(*this);
   }
@@ -273,10 +355,17 @@ class AssignExp : public Expression {
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_assign_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_assign_exp(*this);
+  }
+
   std::unique_ptr<Variable> var;
   std::unique_ptr<Expression> exp;
   Position position;
@@ -293,10 +382,17 @@ class IfExp : public Expression {
     , else_(std::move(else_))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_if_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_if_exp(*this);
+  }
+
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> then;
   std::shared_ptr<Expression> else_;
@@ -312,10 +408,17 @@ class WhileExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_while_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_while_exp(*this);
+  }
+
   std::unique_ptr<Expression> cond;
   std::unique_ptr<Expression> body;
   Position position;
@@ -334,10 +437,17 @@ class ForExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_for_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_for_exp(*this);
+  }
+
   symbol::Symbol var;
   std::unique_ptr<Expression> low;
   std::unique_ptr<Expression> high;
@@ -350,10 +460,17 @@ class BreakExp : public Expression {
   BreakExp(Position position)
     : position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_break_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_break_exp(*this);
+  }
+
   Position position;
 };
 
@@ -366,10 +483,17 @@ class LetExp : public Expression {
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_let_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_let_exp(*this);
+  }
+
   std::vector<std::unique_ptr<Declaration>> decls;
   std::unique_ptr<Expression> body;
   Position position;
@@ -386,10 +510,17 @@ class ArrayExp : public Expression {
     , init(std::move(init))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(ExprVisitor<std::string>& visitor) const override
   {
     return visitor.visit_array_exp(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    ExprVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_array_exp(*this);
+  }
+
   symbol::Symbol type;
   std::unique_ptr<Expression> size;
   std::unique_ptr<Expression> init;
@@ -407,10 +538,16 @@ class VarDecl : public Declaration {
     , init(std::move(init))
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const override
+  std::string accept(DeclVisitor<std::string>& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
+
+  void accept(DeclVisitor<void>& visitor) const override
+  {
+    return visitor.visit_var_decl(*this);
+  }
+
   symbol::Symbol name;
   std::optional<symbol::Symbol> type;
   std::unique_ptr<Expression> init;
@@ -436,10 +573,16 @@ class TypeDecl : public Declaration {
   TypeDecl(std::vector<std::unique_ptr<_TypeDecl>> decls)
     : decls(std::move(decls))
   { }
-  std::string accept(Visitor<std::string>& visitor) const
+  std::string accept(DeclVisitor<std::string>& visitor) const
   {
     return visitor.visit_type_decl(*this);
   }
+
+  void accept(DeclVisitor<void>& visitor) const override
+  {
+    return visitor.visit_type_decl(*this);
+  }
+
   std::vector<std::unique_ptr<_TypeDecl>> decls;
 };
 
@@ -462,10 +605,17 @@ class RecordType : public Type {
   RecordType(std::vector<_Field> fields)
     : fields(std::move(fields))
   { }
-  std::string accept(Visitor<std::string>& visitor) const
+  std::string accept(TypeVisitor<std::string>& visitor) const
   {
     return visitor.visit_record_type(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_record_type(*this);
+  }
+
   std::vector<_Field> fields;
 };
 
@@ -475,10 +625,17 @@ class ArrayType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const
+  std::string accept(TypeVisitor<std::string>& visitor) const
   {
     return visitor.visit_array_type(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_array_type(*this);
+  }
+
   symbol::Symbol name;
   Position position;
 };
@@ -489,10 +646,17 @@ class NameType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(Visitor<std::string>& visitor) const
+  std::string accept(TypeVisitor<std::string>& visitor) const
   {
     return visitor.visit_named_type(*this);
   }
+
+  std::shared_ptr<semantic::types::Type> accept(
+    TypeVisitor<std::shared_ptr<semantic::types::Type>>& visitor) const override
+  {
+    return visitor.visit_named_type(*this);
+  }
+
   symbol::Symbol name;
   Position position;
 };
@@ -523,7 +687,12 @@ class FuncDecl : public Declaration {
     : decls(std::move(decls))
   { }
   std::vector<std::unique_ptr<_FuncDecl>> decls;
-  std::string accept(Visitor<std::string>& visitor) const
+  std::string accept(DeclVisitor<std::string>& visitor) const
+  {
+    return visitor.visit_func_decl(*this);
+  }
+
+  void accept(DeclVisitor<void>& visitor) const override
   {
     return visitor.visit_func_decl(*this);
   }
