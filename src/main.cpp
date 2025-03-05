@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 
   std::cout << tenv.dump() << "\n";
   // lookup R
-  auto type_R = tenv.lookup(R).value();
+  auto type_R = tenv.lookup(R).value(); 
   std::cout << "lookup R: " << type_R->to_string() << "\n\n";
   tenv.end_scope();
   std::cout << tenv.dump() << "\n\n";

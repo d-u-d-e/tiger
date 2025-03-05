@@ -4,13 +4,24 @@
 TEST_SUITE_BEGIN("environment");
 using namespace semantic::environment;
 
-template <typename T>
-auto lookup_and_verify =
-  [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
-    CHECK_FALSE(!tenv.lookup(s).has_value());
-    auto t = dynamic_cast<T*>(tenv.lookup(s).value().get());
-    CHECK_FALSE(t == nullptr);
-  };
+template <typename T, bool expected = true>
+auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
+  auto lookup = tenv.lookup(s);
+  CHECK(lookup.has_value() == expected);
+  if constexpr(expected) {
+    auto t = dynamic_cast<T*>(lookup.value().get());
+    CHECK(t != nullptr);
+  }
+};
+
+template <typename T, bool expected = true>
+auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
+  auto lookup = venv.lookup(s);
+  CHECK(lookup.has_value() == expected);
+  if constexpr(expected) {
+    CHECK(std::holds_alternative<T>(lookup.value()));
+  }
+};
 
 TEST_CASE("nested_scopes_types.tig")
 {
@@ -29,9 +40,7 @@ TEST_CASE("nested_scopes_types.tig")
     end
   */
 
-  Environment<VEntry> venv;
   Environment<TEntry> tenv;
-
   auto T = symbol::Symbol("T", 1);
   auto x = symbol::Symbol("x", 2);
   auto y = symbol::Symbol("y", 3);
@@ -41,17 +50,14 @@ TEST_CASE("nested_scopes_types.tig")
 
   tenv.begin_scope();
   tenv.enter(T, std::make_shared<semantic::types::Integer>());
-  lookup_and_verify<semantic::types::Integer>(tenv, T);
+  lookup_tentry<semantic::types::Integer>(tenv, T);
 
   tenv.begin_scope();
   tenv.enter(T, std::make_shared<semantic::types::String>());
-  lookup_and_verify<semantic::types::String>(tenv, T);
+  lookup_tentry<semantic::types::String>(tenv, T);
 
   tenv.end_scope();
-
-  /*CHECK_FALSE(tenv.lookup(T).has_value());
-  CHECK_FALSE(typeid(*tenv.lookup(T).value()) !=
-              typeid(std::shared_ptr<semantic::types::Integer>));
+  lookup_tentry<semantic::types::Integer>(tenv, T);
 
   std::vector<std::pair<symbol::Symbol, std::shared_ptr<semantic::types::Type>>>
     fields;
@@ -62,7 +68,69 @@ TEST_CASE("nested_scopes_types.tig")
 
   tenv.enter(A,
              std::make_shared<semantic::types::Array>(
-               std::make_shared<semantic::types::String>(), 1));*/
+               std::make_shared<semantic::types::String>(), 1));
+
+  lookup_tentry<semantic::types::Record>(tenv, R);
+  lookup_tentry<semantic::types::Array>(tenv, A);
+
+  tenv.end_scope();
+  lookup_tentry<semantic::types::String, false>(tenv, T);
+}
+
+TEST_CASE("nested_scopes_vars_funcs.tig")
+{
+  // We are basically testing the environment for the following program
+
+  /*
+    let
+      var a := 2
+      let 
+        var b : string = "hello"
+        function f(x: int, y: string): string = x
+       in
+      end
+      function g(x: string): string = x
+    in
+    end
+  */
+
+  Environment<VEntry> venv;
+  auto a = symbol::Symbol("a", 1);
+  auto b = symbol::Symbol("b", 2);
+  auto f = symbol::Symbol("f", 3);
+  auto g = symbol::Symbol("g", 4);
+  auto x = symbol::Symbol("x", 5);
+  auto y = symbol::Symbol("y", 6);
+
+  venv.begin_scope();
+  VEntry ventry = VarEntry(std::make_shared<semantic::types::Integer>());
+  venv.enter(a, ventry);
+  lookup_ventry<VarEntry>(venv, a);
+
+  venv.begin_scope();
+  ventry = VarEntry(std::make_shared<semantic::types::String>());
+  venv.enter(b, ventry);
+  lookup_ventry<VarEntry>(venv, b);
+
+  std::vector<std::shared_ptr<semantic::types::Type>> formals;
+  formals.push_back(std::make_shared<semantic::types::Integer>());
+  formals.push_back(std::make_shared<semantic::types::String>());
+  ventry = FuncEntry(formals, std::make_shared<semantic::types::String>());
+  venv.enter(f, ventry);
+  lookup_ventry<FuncEntry>(venv, f);
+
+  venv.end_scope();
+  lookup_ventry<VarEntry, false>(venv, b);
+  lookup_ventry<VarEntry, false>(venv, f);
+
+  formals.clear();
+  formals.push_back(std::make_shared<semantic::types::String>());
+  ventry = FuncEntry(formals, std::make_shared<semantic::types::String>());
+  venv.enter(g, ventry);
+  lookup_ventry<FuncEntry>(venv, g);
+
+  venv.end_scope();
+  CHECK(venv.size() == 0);
 }
 
 TEST_SUITE_END();

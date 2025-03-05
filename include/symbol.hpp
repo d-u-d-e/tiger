@@ -66,13 +66,13 @@ class Table {
     table = std::make_unique<std::list<std::pair<Symbol, T>>[]>(capacity);
   }
 
-  void enter(const Symbol& s, T&& value)
+  void enter(const Symbol& s, const T& value)
   {
     if(count + 1 > capacity * load_factor) {
       grow();
     }
     size_t index = s.id() % capacity;
-    table[index].emplace_front(s, std::forward<T>(value));
+    table[index].emplace_front(s, value);
     count++;
   }
 
@@ -112,6 +112,11 @@ class Table {
   const_iterator end() const
   {
     return &table[capacity];
+  }
+
+  size_t size() const
+  {
+    return count;
   }
 
   private:

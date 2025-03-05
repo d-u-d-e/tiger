@@ -1,10 +1,10 @@
 #pragma once
+#include <format>
 #include <memory>
 #include <optional>
 #include <semantic/types.hpp>
 #include <stack>
 #include <variant>
-#include <format>
 
 namespace semantic::environment
 {
@@ -28,7 +28,7 @@ class FuncEntry {
   std::shared_ptr<types::Type> result;
 };
 
-using VEntry = std::variant<VarEntry, FuncEntry>;
+using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;
 using TEntry = std::shared_ptr<types::Type>;
 
 template <typename T>
@@ -36,9 +36,9 @@ class Environment {
   public:
   Environment() = default;
 
-  void enter(const symbol::Symbol& s, T&& value)
+  void enter(const symbol::Symbol& s, const T& value)
   {
-    table.enter(s, std::forward<T>(value));
+    table.enter(s, value);
     stack.push(s);
   };
 
@@ -65,6 +65,11 @@ class Environment {
       }
       table.pop(elem);
     }
+  }
+
+  size_t size() const
+  {
+    return table.size();
   }
 
   std::string dump() const
