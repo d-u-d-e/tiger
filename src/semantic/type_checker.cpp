@@ -34,9 +34,18 @@ TEntry TypeChecker::visit_string_exp(const parser::ast::StringExp& exp)
 
 TEntry TypeChecker::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
-  // TODO
-  std::cout << "type checking assign exp" << std::endl;
-  return nullptr;
+  auto tvar = exp.var->accept(*this);
+  auto trhs = exp.exp->accept(*this);
+
+  if(check_type<types::Record>(*tvar) && check_type<types::Nil>(*trhs)) {
+    // can assign nil to a record variable
+    return unit_type;
+  }
+  else if(!is_same_type(tvar, trhs)) {
+    error_at(exp.position, "types do not match");
+    return nullptr;
+  }
+  return unit_type;
 };
 
 template <typename T>
@@ -61,7 +70,7 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
     if(is_same_type(tl, tr) && check_type<types::Integer>(*tl)) {
       return int_type;
     }
-    error_at(exp.position, "Operands must be integers");
+    error_at(exp.position, "operands must be integers");
     break;
   }
   case parser::ast::Operator::equal:
@@ -75,14 +84,14 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
       else if(check_type<types::Nil>(*tr) && check_type<types::Record>(*tl)) {
         return int_type;
       }
-      error_at(exp.position, "Operands must be of the same type");
+      error_at(exp.position, "operands must be of the same type");
     }
     else if(check_type<types::Integer>(*tl) || check_type<types::String>(*tl) ||
             check_type<types::Array>(*tl)) {
       return int_type;
     }
     error_at(exp.position,
-             "Operands must be integers, strings, records or arrays");
+             "operands must be integers, strings, records or arrays");
     break;
   }
 
@@ -93,13 +102,13 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
     // these can be applied to integers or strings
 
     if(!is_same_type(tl, tr)) {
-      error_at(exp.position, "Operands must be of the same type");
+      error_at(exp.position, "operands must be of the same type");
       break;
     }
     else if(check_type<types::Integer>(*tl) || check_type<types::String>(*tl)) {
       return int_type;
     }
-    error_at(exp.position, "Operands must be integers or strings");
+    error_at(exp.position, "operands must be integers or strings");
     break;
   }
   default:
@@ -165,16 +174,43 @@ TEntry TypeChecker::visit_break_exp(const parser::ast::BreakExp& exp)
 
 TEntry TypeChecker::visit_while_exp(const parser::ast::WhileExp& exp)
 {
-  // TODO
   std::cout << "type checking while exp" << std::endl;
-  return nullptr;
+
+  // condition must be an integer
+  if(!check_type<types::Integer>(*exp.cond->accept(*this))) {
+
+    error_at(exp.position, "the condition must be an integer");
+  } // body must not produce any value
+  else if(!check_type<types::Unit>(*exp.body->accept(*this))) {
+    error_at(exp.position,
+             "the body of the while loop must not produce any value");
+  }
+  return unit_type;
 };
 
 TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
 {
-  // TODO
   std::cout << "type checking for exp" << std::endl;
-  return nullptr;
+
+  // high and low must be integers
+  if(!check_type<types::Integer>(*exp.low->accept(*this))) {
+    error_at(exp.position, "the lower bound must be an integer");
+  }
+  else if(!check_type<types::Integer>(*exp.high->accept(*this))) {
+    error_at(exp.position, "the upper bound must be an integer");
+  } // body must not produce any value
+  else {
+    venv.begin_scope();
+    venv.enter(exp.var, VarEntry(int_type));
+    auto tb = exp.body->accept(*this);
+    venv.end_scope();
+
+    if(!check_type<types::Unit>(*tb)) {
+      error_at(exp.position,
+               "the body of the for loop must not produce any value");
+    }
+  }
+  return unit_type;
 };
 
 TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
