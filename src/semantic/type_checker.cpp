@@ -11,7 +11,11 @@ static auto unit_type = std::make_shared<types::Unit>();
 
 TypeChecker::TypeChecker(symbol::StringTable& string_table)
   : string_table(string_table)
-{ }
+{
+  tenv.enter(string_table.symbol("int"), int_type);
+  tenv.enter(string_table.symbol("string"), string_type);
+  tenv.enter(string_table.symbol("nil"), nil_type);
+}
 
 void TypeChecker::error_at(const lexer::Position& pos,
                            const std::string& err_msg)
@@ -43,7 +47,6 @@ TEntry TypeChecker::visit_assign_exp(const parser::ast::AssignExp& exp)
   }
   else if(!is_same_type(tvar, trhs)) {
     error_at(exp.position, "types do not match");
-    return nullptr;
   }
   return unit_type;
 };
@@ -239,9 +242,52 @@ TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
 
 void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
-  // TODO
   std::cout << "type checking func decl" << std::endl;
+  // TODO: mutually recursive functions
+  auto& fdecl = decl.decls[0];
+
+  // type check the parameters
+  std::vector<TEntry> formals;
+  venv.begin_scope(); // variables in the body scope
+  for(auto& param : fdecl->params) {
+    auto tparam = tenv.lookup(param.type);
+    if(!tparam) {
+      error_at(param.position,
+               std::format("undefined parameter type '{}'", param.type.name()));
+    }
+    formals.push_back(tparam.value());
+    venv.enter(param.name, VarEntry(tparam.value()));
+  }
+
+  // type check the return type
+  TEntry tresult{};
+  if(fdecl->result) {
+    auto opt_tresult = tenv.lookup(fdecl->result.value());
+    if(!opt_tresult) {
+      error_at(fdecl->position,
+               std::format("undefined return type '{}'",
+                           fdecl->result.value().name()));
+    }
+    else {
+      tresult = opt_tresult.value();
+    }
+  }
+
+  // add the function to the body scope allowing recursive functions
+  venv.enter(fdecl->name, FuncEntry(formals, tresult));
+
+  // type check the body
+  auto tbody = fdecl->body->accept(*this);
+  if(!is_same_type(tresult, tbody)) {
+    // TODO: augment fdecl to hold the return type position
+    error_at(fdecl->position, "return type does not match the body type");
+  }
+  venv.end_scope(); // end body scope
+
+  // add the function to the value env
+  venv.enter(fdecl->name, FuncEntry(formals, tresult));
 };
+
 void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   std::cout << "type checking var decl" << std::endl;
