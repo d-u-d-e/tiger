@@ -163,9 +163,28 @@ TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
 
 TEntry TypeChecker::visit_if_exp(const parser::ast::IfExp& exp)
 {
-  //TODO
   std::cout << "type checking if exp" << std::endl;
-  return nullptr;
+
+  auto tc = exp.cond->accept(*this);
+  if(!check_type<types::Integer>(*tc)) {
+    error_at(exp.position, "the condition must be an integer");
+  }
+
+  auto tt = exp.then->accept(*this);
+
+  if(exp.else_) {
+    auto te = exp.else_->accept(*this);
+    if(!is_same_type(tt, te)) {
+      error_at(exp.position, "types of then and else branches must match");
+    }
+    return tt;
+  }
+  else {
+    if(!check_type<types::Unit>(*tt)) {
+      error_at(exp.position, "the then branch must not produce any value");
+    }
+  }
+  return unit_type;
 };
 
 TEntry TypeChecker::visit_break_exp(const parser::ast::BreakExp& exp)
@@ -278,10 +297,12 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   // type check the body
   auto tbody = fdecl->body->accept(*this);
-  if(!is_same_type(tresult, tbody)) {
+
+  if(tresult && !is_same_type(tresult, tbody) || !tresult && !check_type<types::Unit>(*tbody)) {
     // TODO: augment fdecl to hold the return type position
     error_at(fdecl->position, "return type does not match the body type");
   }
+
   venv.end_scope(); // end body scope
 
   // add the function to the value env
@@ -291,21 +312,40 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
 void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   std::cout << "type checking var decl" << std::endl;
+
   auto tvar = decl.init->accept(*this);
+  if(decl.type) {
+    auto tdecl = tenv.lookup(decl.type.value());
+    // TODO: add position to the type
+    if(!tdecl) {
+      error_at(decl.position,
+               std::format("undefined type '{}'", decl.type.value().name()));
+    }
+    if(!is_same_type(tdecl.value(), tvar)) {
+      error_at(decl.position, "type mismatch");
+    }
+  }
   venv.enter(decl.name, VarEntry(tvar));
 };
 
 void TypeChecker::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
-  // TODO
   std::cout << "type checking type decl" << std::endl;
+  // TODO: mutually recursive types
+
+  auto& tdecl = decl.decls[0];
+  tenv.enter(tdecl->name, tdecl->type->accept(*this));
 };
 
 TEntry TypeChecker::visit_name_type(const parser::ast::NameType& type)
 {
-  // TODO
   std::cout << "type checking name type" << std::endl;
-  return nullptr;
+  auto t = tenv.lookup(type.name);
+  if(!t) {
+    error_at(type.position,
+             std::format("undefined type '{}'", type.name.name()));
+  }
+  return t.value();
 };
 
 TEntry TypeChecker::visit_array_type(const parser::ast::ArrayType& type)
