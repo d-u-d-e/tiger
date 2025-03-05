@@ -27,10 +27,6 @@ int main(int argc, char** argv)
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
 
-  auto tenv =
-    std::make_shared<semantic::env::Environment<semantic::env::TEntry>>();
-  auto venv =
-    std::make_shared<semantic::env::Environment<semantic::env::VEntry>>();
-
-  semantic::TypeChecker type_checker(tenv, venv);
+  semantic::TypeChecker type_checker(string_table);
+  type_checker.check(*exp);
 }

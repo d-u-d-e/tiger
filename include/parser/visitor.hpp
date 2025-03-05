@@ -58,7 +58,7 @@ class DeclVisitor {
 template <typename T>
 class TypeVisitor {
   public:
-  T virtual visit_named_type(const parser::ast::NameType& type) = 0;
+  T virtual visit_name_type(const parser::ast::NameType& type) = 0;
   T virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   T virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };

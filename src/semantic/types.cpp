@@ -25,7 +25,7 @@ std::string Unit::to_string()
 
 std::string Record::to_string()
 {
-  std::string result = "Record(" + std::to_string(unique) + ") {";
+  std::string result = "Record{";
   auto size = fields.size();
 
   for(auto i = 0; i < size; i++) {
@@ -38,7 +38,7 @@ std::string Record::to_string()
 
 std::string Array::to_string()
 {
-  std::string result = "Array(" + std::to_string(unique) + ")";
+  std::string result = "Array";
   return result;
 }
 

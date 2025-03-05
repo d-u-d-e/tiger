@@ -1,3 +1,4 @@
+#include <cassert>
 #include <format>
 #include <symbol.hpp>
 
@@ -20,8 +21,8 @@ std::string StringTable::dump() const
   auto constexpr col1_width = 20;
   auto constexpr col2_width = 5;
 
-  result = std::format(
-    "{:<{}} | {:<{}}\n", "name", col1_width, "id", col2_width);
+  result =
+    std::format("{:<{}} | {:<{}}\n", "name", col1_width, "id", col2_width);
   result += std::string(col1_width + col2_width + 3, '-') + '\n';
 
   for(const auto& [name, symbol] : table) {

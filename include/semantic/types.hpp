@@ -28,36 +28,21 @@ struct Unit : public Type {
 };
 
 struct Record : public Type {
-  Record(std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields,
-         uint32_t unique)
+  Record(std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields)
     : fields(std::move(fields))
-    , unique(unique)
   { }
-
-  bool operator==(const Record& other) const
-  {
-    return unique == other.unique;
-  }
 
   std::string to_string() override;
   std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields;
-  uint32_t unique;
 };
 
 struct Array : public Type {
-  Array(std::shared_ptr<Type> type, uint32_t unique)
+  Array(std::shared_ptr<Type> type)
     : type(std::move(type))
-    , unique(unique)
   { }
-
-  bool operator==(const Array& other) const
-  {
-    return unique == other.unique;
-  }
 
   std::string to_string() override;
   std::shared_ptr<Type> type;
-  uint32_t unique;
 };
 
 struct Name : public Type {

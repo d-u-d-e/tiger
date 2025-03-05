@@ -661,13 +661,13 @@ class NameType : public Type {
   { }
   std::string accept(PrettyPrinterTypeVisitor& visitor) const
   {
-    return visitor.visit_named_type(*this);
+    return visitor.visit_name_type(*this);
   }
 
   std::shared_ptr<semantic::types::Type>
   accept(TypeCheckerTypeVisitor& visitor) const override
   {
-    return visitor.visit_named_type(*this);
+    return visitor.visit_name_type(*this);
   }
 
   symbol::Symbol name;

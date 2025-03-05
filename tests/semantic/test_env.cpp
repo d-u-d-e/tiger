@@ -64,11 +64,11 @@ TEST_CASE("nested_scopes_types.tig")
   fields.emplace_back(x, std::make_shared<semantic::types::Integer>());
   fields.emplace_back(y, std::make_shared<semantic::types::String>());
   fields.emplace_back(z, std::make_shared<semantic::types::String>());
-  tenv.enter(R, std::make_shared<semantic::types::Record>(fields, 0));
+  tenv.enter(R, std::make_shared<semantic::types::Record>(fields));
 
   tenv.enter(A,
              std::make_shared<semantic::types::Array>(
-               std::make_shared<semantic::types::String>(), 1));
+               std::make_shared<semantic::types::String>()));
 
   lookup_tentry<semantic::types::Record>(tenv, R);
   lookup_tentry<semantic::types::Array>(tenv, A);

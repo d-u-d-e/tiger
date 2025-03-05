@@ -307,7 +307,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     return result;
   }
 
-  std::string visit_named_type(const parser::ast::NameType& type) override
+  std::string visit_name_type(const parser::ast::NameType& type) override
   {
     std::string result = indent() + type.field + "NameType{\n";
     depth++;
