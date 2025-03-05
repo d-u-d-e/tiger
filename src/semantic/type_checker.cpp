@@ -237,9 +237,36 @@ TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
 
 TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
 {
-  // TODO
   std::cout << "type checking call exp" << std::endl;
-  return nullptr;
+
+  auto opt_fentry = venv.lookup(exp.name);
+  if(!opt_fentry || !std::holds_alternative<FuncEntry>(opt_fentry.value())) {
+    error_at(exp.position,
+             std::format("undefined function '{}'", exp.name.name()));
+  }
+  auto& fentry = std::get<FuncEntry>(opt_fentry.value());
+
+  // check the arguments
+  auto fsize = fentry.formals.size();
+  auto asize = exp.args.size();
+
+  if(asize != fsize) {
+    error_at(exp.position,
+             std::format("expected {} arguments, got {}", fsize, asize));
+  }
+
+  for(int i = 0; i < asize; i++) {
+    auto tactual = exp.args[i]->accept(*this);
+    auto expected = fentry.formals[i];
+    if(!is_same_type(expected, tactual)) {
+      error_at(exp.position,
+               std::format("argument {} expects type '{}', got '{}'",
+                           i,
+                           expected->to_string(),
+                           tactual->to_string()));
+    }
+  }
+  return fentry.result;
 };
 
 TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
@@ -298,7 +325,8 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
   // type check the body
   auto tbody = fdecl->body->accept(*this);
 
-  if(tresult && !is_same_type(tresult, tbody) || !tresult && !check_type<types::Unit>(*tbody)) {
+  if(tresult && !is_same_type(tresult, tbody) ||
+     !tresult && !check_type<types::Unit>(*tbody)) {
     // TODO: augment fdecl to hold the return type position
     error_at(fdecl->position, "return type does not match the body type");
   }
