@@ -173,9 +173,46 @@ TEntry TypeChecker::visit_nil_exp(const parser::ast::NilExp& exp)
 
 TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
 {
-  //TODO
   std::cout << "type checking record exp" << std::endl;
-  return nullptr;
+
+  auto rtype = tenv.lookup(exp.type);
+  if(!rtype || !check_type<types::Record>(*rtype.value())) {
+    error_at(exp.position,
+             std::format("undefined record type '{}'", exp.type.name()));
+  }
+  auto record_type = dynamic_cast<types::Record*>(rtype.value().get());
+
+  auto rsize = record_type->fields.size();
+  auto esize = exp.fields.size();
+
+  if(rsize != esize) {
+    error_at(exp.position,
+             std::format("expected {} fields, got {}", rsize, esize));
+  }
+
+  for(int i = 0; i < rsize; i++) {
+    auto& formal_rfield = record_type->fields[i];
+    auto& actual_rfield = exp.fields[i];
+
+    // check field name agreement
+    if(formal_rfield.first != actual_rfield.name) {
+      error_at(actual_rfield.position,
+               std::format("expected field '{}', got '{}'",
+                           formal_rfield.first.name(),
+                           actual_rfield.name.name()));
+    }
+
+    // check field type agreement
+    auto actual_type_rfield = actual_rfield.exp->accept(*this);
+    if(!is_same_type(formal_rfield.second, actual_type_rfield)) {
+      error_at(actual_rfield.position,
+               std::format("expected type '{}' for field '{}', got '{}'",
+                           formal_rfield.second->to_string(),
+                           actual_rfield.name.name(),
+                           actual_type_rfield->to_string()));
+    }
+  }
+  return rtype.value();
 };
 
 TEntry TypeChecker::visit_if_exp(const parser::ast::IfExp& exp)
@@ -407,9 +444,18 @@ TEntry TypeChecker::visit_array_type(const parser::ast::ArrayType& type)
 
 TEntry TypeChecker::visit_record_type(const parser::ast::RecordType& type)
 {
-  //TODO
   std::cout << "type checking record type" << std::endl;
-  return nullptr;
+
+  std::vector<std::pair<symbol::Symbol, TEntry>> fields;
+  for(auto& field : type.fields) {
+    auto tfield = tenv.lookup(field.type);
+    if(!tfield) {
+      error_at(field.position,
+               std::format("undefined type '{}'", field.type.name()));
+    }
+    fields.push_back({field.name, tfield.value()});
+  }
+  return std::make_shared<types::Record>(fields);
 };
 
 TEntry TypeChecker::visit_simple_var(const parser::ast::SimpleVar& var)
