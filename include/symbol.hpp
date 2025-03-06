@@ -130,7 +130,7 @@ class Table {
     for(size_t i = 0; i < capacity_old; i++) {
       auto& l = table[i];
       for(auto& [s, v] : l) {
-        auto bin = s.id() & capacity;
+        auto bin = s.id() % capacity;
         new_table[bin].emplace_front(s, v);
       }
     }
