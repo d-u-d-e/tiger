@@ -90,7 +90,7 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
       error_at(exp.position, "operands must be of the same type");
     }
     else if(check_type<types::Integer>(*tl) || check_type<types::String>(*tl) ||
-            check_type<types::Array>(*tl)) {
+            check_type<types::Array>(*tl) || check_type<types::Record>(*tl)) {
       return int_type;
     }
     error_at(exp.position,
