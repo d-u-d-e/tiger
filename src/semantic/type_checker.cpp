@@ -243,8 +243,11 @@ TEntry TypeChecker::visit_if_exp(const parser::ast::IfExp& exp)
 
 TEntry TypeChecker::visit_break_exp(const parser::ast::BreakExp& exp)
 {
-  // TODO: must be inside a for or loop expression
   std::cout << "type checking break exp" << std::endl;
+
+  if (!can_break) {
+    error_at(exp.position, "break statement not within a loop");
+  } 
   return unit_type;
 };
 
@@ -257,9 +260,14 @@ TEntry TypeChecker::visit_while_exp(const parser::ast::WhileExp& exp)
 
     error_at(exp.position, "the condition must be an integer");
   } // body must not produce any value
-  else if(!check_type<types::Unit>(*exp.body->accept(*this))) {
-    error_at(exp.position,
-             "the body of the while loop must not produce any value");
+  else {
+    bool can_break_saved = can_break;
+    can_break = true;
+    if(!check_type<types::Unit>(*exp.body->accept(*this))) {
+      error_at(exp.position,
+               "the body of the while loop must not produce any value");
+    }
+    can_break = can_break_saved;
   }
   return unit_type;
 };
@@ -276,10 +284,13 @@ TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
     error_at(exp.position, "the upper bound must be an integer");
   } // body must not produce any value
   else {
+    bool can_break_saved = can_break;
+    can_break = true;
     venv.begin_scope();
     venv.enter(exp.var, VarEntry(int_type));
     auto tb = exp.body->accept(*this);
     venv.end_scope();
+    can_break = can_break_saved;
 
     if(!check_type<types::Unit>(*tb)) {
       error_at(exp.position,

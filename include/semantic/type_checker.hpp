@@ -57,6 +57,7 @@ class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
   }
   void error_at(const lexer::Position& pos, const std::string& err_msg);
 
+  bool can_break{false};
   symbol::StringTable& string_table;
   Environment<TEntry> tenv;
   Environment<VEntry> venv;
