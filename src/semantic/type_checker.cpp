@@ -403,7 +403,14 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
       error_at(decl.position,
                std::format("undefined type '{}'", decl.type.value().name()));
     }
-    if(!is_same_type(tdecl.value(), tvar)) {
+    // TODO make cleaner
+    if(check_type<types::Record>(*tdecl.value()) &&
+       check_type<types::Nil>(*tvar)) {
+      // record type var can be assigned to nil
+      venv.enter(decl.name, VarEntry(tdecl.value()));
+      return;
+    }
+    else if(!is_same_type(tdecl.value(), tvar)) {
       error_at(decl.position, "type mismatch");
     }
   }
@@ -478,7 +485,7 @@ TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
 
   auto tlhs = var.var->accept(*this);
   if(!check_type<types::Record>(*tlhs)) {
-    error_at(var.position, "dot operator applies to record types only");
+    error_at(var.position, "operator '.' applies to record types only");
   }
   auto rlhs = dynamic_cast<types::Record*>(tlhs.get());
 
@@ -497,9 +504,23 @@ TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
 
 TEntry TypeChecker::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
-  //TODO
   std::cout << "type checking subscript var" << std::endl;
-  return nullptr;
+
+  // [] applicable to arrays only
+  auto tlhs = var.var->accept(*this);
+  if(!check_type<types::Array>(*tlhs)) {
+    error_at(var.position, "operator '[]' applies to array types only");
+  }
+  auto alhs = dynamic_cast<types::Array*>(tlhs.get());
+
+  // expression must be an integer
+  auto texp = var.exp->accept(*this);
+  if(!check_type<types::Integer>(*texp)) {
+    error_at(var.position, "expression between '[]' must be an integer");
+  }
+
+  // the type of the expression is the type of each array element
+  return alhs->type;
 };
 
 } // namespace semantic
