@@ -328,12 +328,12 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
       std::vector<ast::_Field> fields;
       if(!check(lexer::TokenType::rbrace)) {
         do {
-          expect(lexer::TokenType::identifier, "expected parameter name");
+          expect(lexer::TokenType::identifier, "expected field name");
           auto param_name = symbol(previous.value);
           auto pos = previous.pos;
-          expect(lexer::TokenType::colon, "expected ':' after parameter name");
+          expect(lexer::TokenType::colon, "expected ':' after field name");
           expect(lexer::TokenType::identifier,
-                 "expected parameter type after token ':'");
+                 "expected field type after token ':'");
           auto param_type = symbol(previous.value);
           fields.emplace_back(param_name, param_type, pos);
         } while(match(lexer::TokenType::comma));
