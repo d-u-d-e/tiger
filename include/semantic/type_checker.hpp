@@ -51,6 +51,7 @@ class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
   private:
   template <typename T>
   bool check_type(const types::Type& t);
+  bool check_assignment_types(const TEntry& tlhs, const TEntry& trhs);
   bool is_same_type(const TEntry& t1, const TEntry& t2)
   {
     return t1 == t2;

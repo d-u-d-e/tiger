@@ -279,7 +279,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     depth++;
     result += indent() + "name=symbol\"" + decl.name.name() + "\",\n";
     if(decl.type) {
-      result += indent() + "type=symbol\"" + decl.type.value().name() + "\",\n";
+      result += indent() + "type=symbol\"" + decl.type.value().first.name() + "\",\n";
     }
     decl.init->field = "init=";
     result += decl.init->accept(*this) + ",\n";
@@ -368,8 +368,8 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     result += indent() + "]\n";
 
     if(decl.result) {
-      result +=
-        indent() + "result=symbol\"" + decl.result.value().name() + "\",\n";
+      result += indent() + "result=symbol\"" +
+                decl.result.value().first.name() + "\",\n";
     }
     decl.body->field = "body=";
     result += decl.body->accept(*this) + ",\n";

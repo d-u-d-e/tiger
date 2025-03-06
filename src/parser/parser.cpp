@@ -289,10 +289,10 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
     expect(lexer::TokenType::rparen, "expected ')' in function declaration");
 
     // parse return type
-    std::optional<symbol::Symbol> result;
+    std::optional<std::pair<symbol::Symbol, lexer::Position>> result;
     if(match(lexer::TokenType::colon)) {
       expect(lexer::TokenType::identifier, "expected function return type");
-      result = symbol(previous.value);
+      result = std::make_pair(symbol(previous.value), previous.pos);
     }
 
     // parse body
@@ -376,11 +376,11 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
   auto pos = previous.pos;
   expect(lexer::TokenType::identifier, "expected variable identifier");
   auto var_id = symbol(previous.value);
-  std::optional<symbol::Symbol> var_type;
+  std::optional<std::pair<symbol::Symbol, lexer::Position>> var_type;
   if(match(lexer::TokenType::colon)) {
     expect(lexer::TokenType::identifier,
            "expected variable type after ':' token");
-    var_type = symbol(previous.value);
+    var_type = std::make_pair(symbol(previous.value), previous.pos);
   }
   expect(lexer::TokenType::assign_op,
          "expected ':=' in a variable declaration");

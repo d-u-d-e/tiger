@@ -41,12 +41,8 @@ TEntry TypeChecker::visit_assign_exp(const parser::ast::AssignExp& exp)
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
 
-  if(check_type<types::Record>(*tvar) && check_type<types::Nil>(*trhs)) {
-    // can assign nil to a record variable
-    return unit_type;
-  }
-  else if(!is_same_type(tvar, trhs)) {
-    error_at(exp.position, "types do not match");
+  if(!check_assignment_types(tvar, trhs)) {
+    error_at(exp.position, "type mismatch");
   }
   return unit_type;
 };
@@ -55,6 +51,14 @@ template <typename T>
 bool TypeChecker::check_type(const types::Type& t)
 {
   return typeid(t) == typeid(T);
+}
+
+bool TypeChecker::check_assignment_types(const TEntry& tlhs, const TEntry& trhs)
+{
+  if(check_type<types::Nil>(*trhs) && check_type<types::Record>(*tlhs)) {
+    return true;
+  }
+  return is_same_type(tlhs, trhs);
 }
 
 TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
@@ -245,9 +249,9 @@ TEntry TypeChecker::visit_break_exp(const parser::ast::BreakExp& exp)
 {
   std::cout << "type checking break exp" << std::endl;
 
-  if (!can_break) {
+  if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
-  } 
+  }
   return unit_type;
 };
 
@@ -372,14 +376,18 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   // type check the return type
   TEntry tresult{};
+  lexer::Position result_pos{};
+
   if(fdecl->result) {
-    auto opt_tresult = tenv.lookup(fdecl->result.value());
+    auto fdecl_result = fdecl->result.value();
+    auto opt_tresult = tenv.lookup(fdecl_result.first);
     if(!opt_tresult) {
-      error_at(fdecl->position,
-               std::format("undefined return type '{}'",
-                           fdecl->result.value().name()));
+      error_at(
+        fdecl_result.second,
+        std::format("undefined return type '{}'", fdecl_result.first.name()));
     }
     else {
+      result_pos = fdecl_result.second;
       tresult = opt_tresult.value();
     }
   }
@@ -392,8 +400,7 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   if(tresult && !is_same_type(tresult, tbody) ||
      !tresult && !check_type<types::Unit>(*tbody)) {
-    // TODO: augment fdecl to hold the return type position
-    error_at(fdecl->position, "return type does not match the body type");
+    error_at(result_pos, "return type does not match body type");
   }
 
   venv.end_scope(); // end body scope
@@ -406,26 +413,22 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   std::cout << "type checking var decl" << std::endl;
 
-  auto tvar = decl.init->accept(*this);
+  auto tinit = decl.init->accept(*this);
   if(decl.type) {
-    auto tdecl = tenv.lookup(decl.type.value());
-    // TODO: add position to the type
+    auto decl_type = decl.type.value();
+    auto tdecl = tenv.lookup(decl_type.first);
     if(!tdecl) {
-      error_at(decl.position,
-               std::format("undefined type '{}'", decl.type.value().name()));
+      error_at(decl_type.second,
+               std::format("undefined type '{}'", decl_type.first.name()));
     }
-    // TODO make cleaner
-    if(check_type<types::Record>(*tdecl.value()) &&
-       check_type<types::Nil>(*tvar)) {
-      // record type var can be assigned to nil
-      venv.enter(decl.name, VarEntry(tdecl.value()));
-      return;
+    if(!check_assignment_types(tdecl.value(), tinit)) {
+      error_at(decl_type.second, "type mismatch");
     }
-    else if(!is_same_type(tdecl.value(), tvar)) {
-      error_at(decl.position, "type mismatch");
-    }
+    venv.enter(decl.name, VarEntry(tdecl.value()));
   }
-  venv.enter(decl.name, VarEntry(tvar));
+  else {
+    venv.enter(decl.name, VarEntry(tinit));
+  }
 };
 
 void TypeChecker::visit_type_decl(const parser::ast::TypeDecl& decl)

@@ -543,7 +543,7 @@ class ArrayExp : public Expression {
 class VarDecl : public Declaration {
   public:
   VarDecl(const symbol::Symbol& name,
-          std::optional<symbol::Symbol> type,
+          std::optional<std::pair<symbol::Symbol, lexer::Position>> type,
           std::unique_ptr<Expression> init,
           Position position)
     : name(name)
@@ -562,7 +562,7 @@ class VarDecl : public Declaration {
   }
 
   symbol::Symbol name;
-  std::optional<symbol::Symbol> type;
+  std::optional<std::pair<symbol::Symbol, lexer::Position>> type;
   std::unique_ptr<Expression> init;
   Position position;
 };
@@ -678,7 +678,7 @@ class _FuncDecl {
   public:
   _FuncDecl(const symbol::Symbol& name,
             std::vector<_Field> params,
-            std::optional<symbol::Symbol> result,
+            std::optional<std::pair<symbol::Symbol, lexer::Position>> result,
             std::unique_ptr<Expression> body,
             Position position)
     : name(name)
@@ -689,7 +689,7 @@ class _FuncDecl {
   { }
   symbol::Symbol name;
   std::vector<_Field> params;
-  std::optional<symbol::Symbol> result;
+  std::optional<std::pair<symbol::Symbol, lexer::Position>> result;
   std::unique_ptr<Expression> body;
   Position position;
 };
