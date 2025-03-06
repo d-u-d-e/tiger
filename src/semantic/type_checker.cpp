@@ -474,9 +474,25 @@ TEntry TypeChecker::visit_simple_var(const parser::ast::SimpleVar& var)
 
 TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
 {
-  //TODO
   std::cout << "type checking field var" << std::endl;
-  return nullptr;
+
+  auto tlhs = var.var->accept(*this);
+  if(!check_type<types::Record>(*tlhs)) {
+    error_at(var.position, "dot operator applies to record types only");
+  }
+  auto rlhs = dynamic_cast<types::Record*>(tlhs.get());
+
+  // check whether the field name belongs to the record fields
+  auto iter =
+    std::find_if(rlhs->fields.begin(),
+                 rlhs->fields.end(),
+                 [&var](const auto& p) { return std::get<0>(p) == var.name; });
+
+  if(iter == rlhs->fields.end()) {
+    error_at(var.position,
+             std::format("unexpected record field name '{}'", var.name.name()));
+  }
+  return std::get<1>(*iter);
 };
 
 TEntry TypeChecker::visit_subscript_var(const parser::ast::SubscriptVar& var)
