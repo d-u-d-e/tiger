@@ -197,10 +197,6 @@ Token Scanner::identifier()
 
 Token Scanner::read_token()
 {
-  if(!is_eof(current) && *current == '/' && peek(1) == '*') {
-    skip_multiline_comment();
-  }
-
   if(is_eof(current)) {
     return eof_token();
   }

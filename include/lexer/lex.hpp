@@ -39,6 +39,7 @@ class Scanner {
   Token next()
   {
     skip_whitespaces();
+    skip_comments();
     return read_token();
   }
 
@@ -89,6 +90,13 @@ class Scanner {
   bool is_eof(const char* current)
   {
     return current >= (contents.c_str() + contents.size());
+  }
+
+  void skip_comments()
+  {
+    while(!is_eof(current) && *current == '/' && peek(1) == '*') {
+      skip_multiline_comment();
+    }
   }
 
   void skip_whitespaces()
