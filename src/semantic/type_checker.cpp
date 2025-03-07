@@ -375,6 +375,14 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
   */
 
   for(auto& fdecl : decl.decls) {
+
+    if(venv.lookup(fdecl->name)) {
+      error_at(fdecl->position,
+               std::format("redeclaration of function '{}' in the same batch "
+                           "of mutually recursive functions",
+                           fdecl->name.name()));
+    }
+
     // type check the parameters
     std::vector<TEntry> formals;
     for(auto& param : fdecl->params) {
