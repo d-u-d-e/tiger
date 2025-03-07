@@ -461,6 +461,10 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
     venv.enter(decl.name, VarEntry(tdecl.value()));
   }
   else {
+    if (check_type<types::Nil>(*tinit)){
+      // Nil must be constrained by a record type
+      error_at(decl.position, "nil must be constrained by a record type");
+    }
     venv.enter(decl.name, VarEntry(tinit));
   }
 };
