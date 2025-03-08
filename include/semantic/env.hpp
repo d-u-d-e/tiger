@@ -49,6 +49,11 @@ class Environment {
     return table.lookup(s);
   }
 
+  void replace(const symbol::Symbol& s, const T& value)
+  {
+    table.replace(s, value);
+  }
+
   void begin_scope()
   {
     // push a scope_marker
@@ -83,7 +88,7 @@ class Environment {
       }
       result += "-----------------\n";
       for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + s.name() + ": " +
+        result += std::to_string(s.id()) + "-> " + "\"" + s.name() + "\": " +
                   to_string(v) + "\n";
       }
     }
