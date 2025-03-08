@@ -9,7 +9,7 @@ namespace semantic
 
 using namespace env;
 
-class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
+class SemanticAnalyzer : public parser::ast::TypeCheckerExprVisitor,
                     public parser::ast::TypeCheckerDeclVisitor,
                     public parser::ast::TypeCheckerVarVisitor,
                     public parser::ast::TypeCheckerTypeVisitor
@@ -17,8 +17,8 @@ class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
 {
 
   public:
-  TypeChecker(symbol::StringTable& string_table);
-  void check(const parser::ast::Expression& exp);
+  SemanticAnalyzer(symbol::StringTable& string_table);
+  void type_check(const parser::ast::Expression& exp);
 
   TEntry visit_string_exp(const parser::ast::StringExp& exp) override;
   TEntry visit_assign_exp(const parser::ast::AssignExp& exp) override;
@@ -50,16 +50,16 @@ class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
 
   private:
   template <typename T>
-  bool check_type(const types::Type& t);
-  bool check_assignment_types(const TEntry& tlhs, const TEntry& trhs);
-  bool is_same_type(const TEntry& t1, const TEntry& t2)
+  bool is_type(const types::Type& t);
+  bool can_assign(const TEntry& tlhs, const TEntry& trhs);
+  bool same_types(const TEntry& t1, const TEntry& t2)
   {
     return t1 == t2;
   }
   void error_at(const lexer::Position& pos, const std::string& err_msg);
 
   void detect_cycles(const parser::ast::TypeDecl& decl);
-  TEntry actual_type(TEntry t);
+  TEntry skip_name_types(TEntry t);
   bool can_break{false};
   symbol::StringTable& string_table;
   Environment<TEntry> tenv;

@@ -1,4 +1,3 @@
-#include <iostream>
 #include <semantic/type_checker.hpp>
 #include <unordered_set>
 
@@ -10,71 +9,71 @@ static auto string_type = std::make_shared<types::String>();
 static auto nil_type = std::make_shared<types::Nil>();
 static auto unit_type = std::make_shared<types::Unit>();
 
-TypeChecker::TypeChecker(symbol::StringTable& string_table)
+SemanticAnalyzer::SemanticAnalyzer(symbol::StringTable& string_table)
   : string_table(string_table)
 {
+  // predefined types
   tenv.enter(string_table.symbol("int"), int_type);
   tenv.enter(string_table.symbol("string"), string_type);
+  // nil is not really a type, but it is convenient to consider it as such
   tenv.enter(string_table.symbol("nil"), nil_type);
 }
 
-void TypeChecker::error_at(const lexer::Position& pos,
+void SemanticAnalyzer::error_at(const lexer::Position& pos,
                            const std::string& err_msg)
 {
-  std::cout << tenv.dump() << std::endl << venv.dump() << std::endl;
+  // TODO: go on and type check other stuff instead of throwing at first error
   throw std::runtime_error(
     std::format("[line {}:{}] Err: {}\n", pos.line, pos.column, err_msg));
 }
 
-void TypeChecker::check(const parser::ast::Expression& exp)
+void SemanticAnalyzer::type_check(const parser::ast::Expression& exp)
 {
   auto t = exp.accept(*this);
   // TODO: do something with t
 }
 
-TEntry TypeChecker::visit_string_exp(const parser::ast::StringExp& exp)
+TEntry SemanticAnalyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
-  std::cout << "type checking string exp" << std::endl;
   return string_type;
 };
 
-TEntry TypeChecker::visit_assign_exp(const parser::ast::AssignExp& exp)
+TEntry SemanticAnalyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
 
-  if(!check_assignment_types(tvar, trhs)) {
+  if(!can_assign(tvar, trhs)) {
     error_at(exp.position, "type mismatch");
   }
   return unit_type;
 };
 
 template <typename T>
-bool TypeChecker::check_type(const types::Type& t)
+bool SemanticAnalyzer::is_type(const types::Type& t)
 {
   return typeid(t) == typeid(T);
 }
 
-bool TypeChecker::check_assignment_types(const TEntry& tlhs, const TEntry& trhs)
+bool SemanticAnalyzer::can_assign(const TEntry& tlhs, const TEntry& trhs)
 {
-  if(check_type<types::Nil>(*trhs) && check_type<types::Record>(*tlhs)) {
+  if(is_type<types::Record>(*tlhs) && is_type<types::Nil>(*trhs)) {
     return true;
   }
-  return is_same_type(tlhs, trhs);
+  return same_types(tlhs, trhs);
 }
 
-TEntry TypeChecker::actual_type(TEntry t)
+TEntry SemanticAnalyzer::skip_name_types(TEntry t)
 {
-  while(check_type<types::Name>(*t)) {
+  // the exit guarantee follows in case there are no cycles
+  while(is_type<types::Name>(*t)) {
     t = tenv.lookup(dynamic_cast<types::Name*>(t.get())->name).value();
   }
   return t;
 }
 
-TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
+TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
-  std::cout << "type checking op exp" << std::endl;
-
   auto tl = exp.left->accept(*this);
   auto tr = exp.right->accept(*this);
 
@@ -84,7 +83,7 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::times:
   case parser::ast::Operator::divide: {
 
-    if(is_same_type(tl, tr) && check_type<types::Integer>(*tl)) {
+    if(same_types(tl, tr) && is_type<types::Integer>(*tl)) {
       return int_type;
     }
     error_at(exp.position, "operands must be integers");
@@ -94,17 +93,17 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
 
-    if(!is_same_type(tl, tr)) {
-      if(check_type<types::Nil>(*tl) && check_type<types::Record>(*tr)) {
+    if(!same_types(tl, tr)) {
+      if(is_type<types::Nil>(*tl) && is_type<types::Record>(*tr)) {
         return int_type;
       }
-      else if(check_type<types::Nil>(*tr) && check_type<types::Record>(*tl)) {
+      else if(is_type<types::Nil>(*tr) && is_type<types::Record>(*tl)) {
         return int_type;
       }
       error_at(exp.position, "operands must be of the same type");
     }
-    else if(check_type<types::Integer>(*tl) || check_type<types::String>(*tl) ||
-            check_type<types::Array>(*tl) || check_type<types::Record>(*tl)) {
+    else if(is_type<types::Integer>(*tl) || is_type<types::String>(*tl) ||
+            is_type<types::Array>(*tl) || is_type<types::Record>(*tl)) {
       return int_type;
     }
     error_at(exp.position,
@@ -118,11 +117,11 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
 
-    if(!is_same_type(tl, tr)) {
+    if(!same_types(tl, tr)) {
       error_at(exp.position, "operands must be of the same type");
       break;
     }
-    else if(check_type<types::Integer>(*tl) || check_type<types::String>(*tl)) {
+    else if(is_type<types::Integer>(*tl) || is_type<types::String>(*tl)) {
       return int_type;
     }
     error_at(exp.position, "operands must be integers or strings");
@@ -134,19 +133,17 @@ TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
   return nullptr;
 };
 
-TEntry TypeChecker::visit_int_exp(const parser::ast::IntExp& exp)
+TEntry SemanticAnalyzer::visit_int_exp(const parser::ast::IntExp& exp)
 {
-  std::cout << "type checking int exp" << std::endl;
   return int_type;
 };
 
-TEntry TypeChecker::visit_var_exp(const parser::ast::VarExp& exp)
+TEntry SemanticAnalyzer::visit_var_exp(const parser::ast::VarExp& exp)
 {
-  std::cout << "type checking var exp" << std::endl;
   return exp.var->accept(*this);
 };
 
-TEntry TypeChecker::visit_seq_exp(const parser::ast::SeqExp& exp)
+TEntry SemanticAnalyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
   TEntry tres = unit_type;
   for(auto& [e, pos] : exp.exps) {
@@ -155,42 +152,37 @@ TEntry TypeChecker::visit_seq_exp(const parser::ast::SeqExp& exp)
   return tres;
 };
 
-TEntry TypeChecker::visit_array_exp(const parser::ast::ArrayExp& exp)
+TEntry SemanticAnalyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
-  std::cout << "type checking array exp" << std::endl;
-
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
 
   auto texpr = tenv.lookup(exp.type);
-  if(!texpr || !check_type<types::Array>(*texpr.value())) {
+  if(!texpr || !is_type<types::Array>(*texpr.value())) {
     error_at(exp.position,
              std::format("undefined array type '{}'", exp.type.name()));
   }
-  else if(!check_type<types::Integer>(*tsize)) {
+  else if(!is_type<types::Integer>(*tsize)) {
     error_at(exp.position, "the size of the array must be an integer");
   }
   else {
     auto array_type = dynamic_cast<types::Array*>(texpr.value().get());
-    if(!is_same_type(actual_type(array_type->type), tinit)) {
+    if(!same_types(skip_name_types(array_type->type), tinit)) {
       error_at(exp.position, "the type of the array elements must match");
     }
   }
   return texpr.value();
 };
 
-TEntry TypeChecker::visit_nil_exp(const parser::ast::NilExp& exp)
+TEntry SemanticAnalyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
-  std::cout << "type checking nil exp" << std::endl;
   return nil_type;
 };
 
-TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
+TEntry SemanticAnalyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
-  std::cout << "type checking record exp" << std::endl;
-
   auto rtype = tenv.lookup(exp.type);
-  if(!rtype || !check_type<types::Record>(*rtype.value())) {
+  if(!rtype || !is_type<types::Record>(*rtype.value())) {
     error_at(exp.position,
              std::format("undefined record type '{}'", exp.type.name()));
   }
@@ -219,8 +211,8 @@ TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
     // note that record_type->fields[i] could be a name type
     // this can occur while type checking mutually recursive types
     auto actual_type_rfield = actual_rfield.exp->accept(*this);
-    auto actual_formal_rfield = actual_type(formal_rfield.second);
-    if(!check_assignment_types(actual_formal_rfield, actual_type_rfield)) {
+    auto actual_formal_rfield = skip_name_types(formal_rfield.second);
+    if(!can_assign(actual_formal_rfield, actual_type_rfield)) {
       error_at(actual_rfield.position,
                std::format("expected type '{}' for field '{}', got '{}'",
                            to_string(formal_rfield.second),
@@ -231,12 +223,10 @@ TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
   return rtype.value();
 };
 
-TEntry TypeChecker::visit_if_exp(const parser::ast::IfExp& exp)
+TEntry SemanticAnalyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
-  std::cout << "type checking if exp" << std::endl;
-
   auto tc = exp.cond->accept(*this);
-  if(!check_type<types::Integer>(*tc)) {
+  if(!is_type<types::Integer>(*tc)) {
     error_at(exp.position, "the condition must be an integer");
   }
 
@@ -244,42 +234,38 @@ TEntry TypeChecker::visit_if_exp(const parser::ast::IfExp& exp)
 
   if(exp.else_) {
     auto te = exp.else_->accept(*this);
-    if(!is_same_type(tt, te)) {
+    if(!same_types(tt, te)) {
       error_at(exp.position, "types of then and else branches must match");
     }
     return tt;
   }
   else {
-    if(!check_type<types::Unit>(*tt)) {
+    if(!is_type<types::Unit>(*tt)) {
       error_at(exp.position, "the then branch must not produce any value");
     }
   }
   return unit_type;
 };
 
-TEntry TypeChecker::visit_break_exp(const parser::ast::BreakExp& exp)
+TEntry SemanticAnalyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
-  std::cout << "type checking break exp" << std::endl;
-
   if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
   }
   return unit_type;
 };
 
-TEntry TypeChecker::visit_while_exp(const parser::ast::WhileExp& exp)
+TEntry SemanticAnalyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
-  std::cout << "type checking while exp" << std::endl;
-
   // condition must be an integer
-  if(!check_type<types::Integer>(*exp.cond->accept(*this))) {
+  if(!is_type<types::Integer>(*exp.cond->accept(*this))) {
 
     error_at(exp.position, "the condition must be an integer");
   } // body must not produce any value
   else {
     bool can_break_saved = can_break;
     can_break = true;
-    if(!check_type<types::Unit>(*exp.body->accept(*this))) {
+    if(!is_type<types::Unit>(*exp.body->accept(*this))) {
       error_at(exp.position,
                "the body of the while loop must not produce any value");
     }
@@ -288,15 +274,13 @@ TEntry TypeChecker::visit_while_exp(const parser::ast::WhileExp& exp)
   return unit_type;
 };
 
-TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
+TEntry SemanticAnalyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
-  std::cout << "type checking for exp" << std::endl;
-
   // high and low must be integers
-  if(!check_type<types::Integer>(*exp.low->accept(*this))) {
+  if(!is_type<types::Integer>(*exp.low->accept(*this))) {
     error_at(exp.position, "the lower bound must be an integer");
   }
-  else if(!check_type<types::Integer>(*exp.high->accept(*this))) {
+  else if(!is_type<types::Integer>(*exp.high->accept(*this))) {
     error_at(exp.position, "the upper bound must be an integer");
   } // body must not produce any value
   else {
@@ -308,7 +292,7 @@ TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
     venv.end_scope();
     can_break = can_break_saved;
 
-    if(!check_type<types::Unit>(*tb)) {
+    if(!is_type<types::Unit>(*tb)) {
       error_at(exp.position,
                "the body of the for loop must not produce any value");
     }
@@ -316,10 +300,8 @@ TEntry TypeChecker::visit_for_exp(const parser::ast::ForExp& exp)
   return unit_type;
 };
 
-TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
+TEntry SemanticAnalyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
-  std::cout << "type checking call exp" << std::endl;
-
   auto opt_fentry = venv.lookup(exp.name);
   if(!opt_fentry || !std::holds_alternative<FuncEntry>(opt_fentry.value())) {
     error_at(exp.position,
@@ -339,7 +321,7 @@ TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
   for(int i = 0; i < asize; i++) {
     auto tactual = exp.args[i]->accept(*this);
     auto expected = fentry.formals[i];
-    if(!is_same_type(actual_type(expected), tactual)) {
+    if(!same_types(skip_name_types(expected), tactual)) {
       error_at(exp.position,
                std::format("argument {} expects type '{}', got '{}'",
                            i,
@@ -347,13 +329,11 @@ TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
                            tactual->to_string()));
     }
   }
-  return actual_type(fentry.result);
+  return skip_name_types(fentry.result);
 };
 
-TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
+TEntry SemanticAnalyzer::visit_let_exp(const parser::ast::LetExp& exp)
 {
-  std::cout << "type checking let exp" << std::endl;
-  TEntry tres{};
   tenv.begin_scope();
   venv.begin_scope();
 
@@ -361,16 +341,14 @@ TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
     decl->accept(*this);
   }
 
-  tres = exp.body->accept(*this);
+  auto tres = exp.body->accept(*this);
   venv.end_scope();
   tenv.end_scope();
   return tres;
 };
 
-void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
+void SemanticAnalyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
-  std::cout << "type checking func decl" << std::endl;
-
   /*
     To handle mutually recursive functions:
 
@@ -438,7 +416,7 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
     auto func_entry = std::get<FuncEntry>(venv.lookup(fdecl->name).value());
     auto tbody = fdecl->body->accept(*this);
 
-    if(!is_same_type(actual_type(func_entry.result), tbody)) {
+    if(!same_types(skip_name_types(func_entry.result), tbody)) {
 
       auto pos = fdecl->position;
       if(fdecl->result) {
@@ -455,10 +433,8 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
   }
 };
 
-void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
+void SemanticAnalyzer::visit_var_decl(const parser::ast::VarDecl& decl)
 {
-  std::cout << "type checking var decl" << std::endl;
-
   auto tinit = decl.init->accept(*this);
   if(decl.type) {
     auto decl_type = decl.type.value();
@@ -467,13 +443,13 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
       error_at(decl_type.second,
                std::format("undefined type '{}'", decl_type.first.name()));
     }
-    if(!check_assignment_types(actual_type(tdecl.value()), tinit)) {
+    if(!can_assign(skip_name_types(tdecl.value()), tinit)) {
       error_at(decl_type.second, "type mismatch");
     }
     venv.enter(decl.name, VarEntry(tdecl.value()));
   }
   else {
-    if(check_type<types::Nil>(*tinit)) {
+    if(is_type<types::Nil>(*tinit)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
@@ -481,10 +457,8 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
   }
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
-void TypeChecker::visit_type_decl(const parser::ast::TypeDecl& decl)
+void SemanticAnalyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
-  std::cout << "type checking type decl" << std::endl;
-
   // add the headers to the type environment
   for(auto& tdecl : decl.decls) {
     // we register the symbol as a name type, to be resolved in a later pass
@@ -508,7 +482,7 @@ void TypeChecker::visit_type_decl(const parser::ast::TypeDecl& decl)
   detect_cycles(decl);
 }
 
-void TypeChecker::detect_cycles(const parser::ast::TypeDecl& decl)
+void SemanticAnalyzer::detect_cycles(const parser::ast::TypeDecl& decl)
 {
   /*
     example 1:
@@ -590,10 +564,10 @@ void TypeChecker::detect_cycles(const parser::ast::TypeDecl& decl)
         visited.insert(actual);
       }
 
-      if(check_type<types::Name>(*actual)) {
+      if(is_type<types::Name>(*actual)) {
         actual = tenv.lookup((dynamic_cast<types::Name*>(actual.get()))->name).value();
       }
-      else if(check_type<types::Array>(*actual)) {
+      else if(is_type<types::Array>(*actual)) {
         actual = dynamic_cast<types::Array*>(actual.get())->type;
       }
       else {
@@ -603,10 +577,8 @@ void TypeChecker::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-TEntry TypeChecker::visit_name_type(const parser::ast::NameType& type)
+TEntry SemanticAnalyzer::visit_name_type(const parser::ast::NameType& type)
 {
-  std::cout << "type checking name type" << std::endl;
-
   auto t = tenv.lookup(type.name);
   if(!t) {
     error_at(type.position,
@@ -615,9 +587,8 @@ TEntry TypeChecker::visit_name_type(const parser::ast::NameType& type)
   return t.value();
 };
 
-TEntry TypeChecker::visit_array_type(const parser::ast::ArrayType& type)
+TEntry SemanticAnalyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
-  std::cout << "type checking array type" << std::endl;
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
     error_at(type.position,
@@ -627,10 +598,8 @@ TEntry TypeChecker::visit_array_type(const parser::ast::ArrayType& type)
   return std::make_shared<types::Array>(elem_type.value());
 };
 
-TEntry TypeChecker::visit_record_type(const parser::ast::RecordType& type)
+TEntry SemanticAnalyzer::visit_record_type(const parser::ast::RecordType& type)
 {
-  std::cout << "type checking record type" << std::endl;
-
   std::vector<std::pair<symbol::Symbol, TEntry>> fields;
   for(auto& field : type.fields) {
     auto tfield = tenv.lookup(field.type);
@@ -643,25 +612,20 @@ TEntry TypeChecker::visit_record_type(const parser::ast::RecordType& type)
   return std::make_shared<types::Record>(fields);
 };
 
-TEntry TypeChecker::visit_simple_var(const parser::ast::SimpleVar& var)
+TEntry SemanticAnalyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 {
-  std::cout << std::format("type checking simple variable '{}'",
-                           var.name.name())
-            << std::endl;
   auto v = venv.lookup(var.name);
   if(!v || !std::holds_alternative<VarEntry>(v.value())) {
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.name()));
   }
-  return actual_type(std::get<VarEntry>(v.value()).type);
+  return skip_name_types(std::get<VarEntry>(v.value()).type);
 };
 
-TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
+TEntry SemanticAnalyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
-  std::cout << "type checking field var" << std::endl;
-
   auto tlhs = var.var->accept(*this);
-  if(!check_type<types::Record>(*tlhs)) {
+  if(!is_type<types::Record>(*tlhs)) {
     error_at(var.position, "operator '.' applies to record types only");
   }
   auto rlhs = dynamic_cast<types::Record*>(tlhs.get());
@@ -676,28 +640,26 @@ TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
     error_at(var.position,
              std::format("unexpected record field name '{}'", var.name.name()));
   }
-  return actual_type(std::get<1>(*iter));
+  return skip_name_types(std::get<1>(*iter));
 };
 
-TEntry TypeChecker::visit_subscript_var(const parser::ast::SubscriptVar& var)
+TEntry SemanticAnalyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
-  std::cout << "type checking subscript var" << std::endl;
-
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);
-  if(!check_type<types::Array>(*tlhs)) {
+  if(!is_type<types::Array>(*tlhs)) {
     error_at(var.position, "operator '[]' applies to array types only");
   }
   auto alhs = dynamic_cast<types::Array*>(tlhs.get());
 
   // expression must be an integer
   auto texp = var.exp->accept(*this);
-  if(!check_type<types::Integer>(*texp)) {
+  if(!is_type<types::Integer>(*texp)) {
     error_at(var.position, "expression between '[]' must be an integer");
   }
 
   // the type of the expression is the type of each array element
-  return actual_type(alhs->type);
+  return skip_name_types(alhs->type);
 };
 
 } // namespace semantic

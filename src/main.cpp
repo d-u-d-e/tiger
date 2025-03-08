@@ -27,6 +27,6 @@ int main(int argc, char** argv)
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
 
-  semantic::TypeChecker type_checker(string_table);
-  type_checker.check(*exp);
+  semantic::SemanticAnalyzer type_checker(string_table);
+  type_checker.type_check(*exp);
 }
