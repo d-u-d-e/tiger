@@ -173,18 +173,16 @@ TEntry Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
   return nil_type;
 };
 
-// ==>>> TODO: review code from here
-
 TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
-  auto rtype = tenv.lookup(exp.type);
-  if(!rtype || !is_type<types::Record>(*rtype.value())) {
+  auto opttrec = tenv.lookup(exp.type);
+  if(!opttrec || !is_type<types::Record>(*opttrec.value())) {
     error_at(exp.position,
              std::format("undefined record type '{}'", exp.type.name()));
   }
-  auto record_type = dynamic_cast<types::Record*>(rtype.value().get());
+  auto trec = dynamic_cast<types::Record*>(opttrec.value().get());
 
-  auto rsize = record_type->fields.size();
+  auto rsize = trec->fields.size();
   auto esize = exp.fields.size();
 
   if(rsize != esize) {
@@ -192,51 +190,50 @@ TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
              std::format("expected {} fields, got {}", rsize, esize));
   }
 
+  // typecheck record fields
   for(int i = 0; i < rsize; i++) {
-    auto& formal_rfield = record_type->fields[i];
-    auto& actual_rfield = exp.fields[i];
+    auto& formal = trec->fields[i];
+    auto& actual = exp.fields[i];
 
-    // check field name agreement
-    if(formal_rfield.first != actual_rfield.name) {
-      error_at(actual_rfield.position,
+    if(formal.first != actual.name) {
+      error_at(actual.position,
                std::format("expected field '{}', got '{}'",
-                           formal_rfield.first.name(),
-                           actual_rfield.name.name()));
+                formal.first.name(),
+                actual.name.name()));
     }
 
-    // note that record_type->fields[i] could be a name type
+    // note that trec->fields[i] could be a name type
     // this can occur while type checking mutually recursive types
-    auto actual_type_rfield = actual_rfield.exp->accept(*this);
-    auto actual_formal_rfield = skip_name_types(formal_rfield.second);
-    if(!can_assign(actual_formal_rfield, actual_type_rfield)) {
-      error_at(actual_rfield.position,
+    auto tactual = actual.exp->accept(*this);
+    auto tformal = skip_name_types(formal.second);
+    if(!can_assign(tformal, tactual)) {
+      error_at(actual.position,
                std::format("expected type '{}' for field '{}', got '{}'",
-                           to_string(formal_rfield.second),
-                           actual_rfield.name.name(),
-                           to_string(actual_type_rfield)));
+                           to_string(formal.second),
+                           actual.name.name(),
+                           to_string(tactual)));
     }
   }
-  return rtype.value();
+  return opttrec.value();
 };
 
 TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
-  auto tc = exp.cond->accept(*this);
-  if(!is_type<types::Integer>(*tc)) {
+  auto tcond = exp.cond->accept(*this);
+  if(!is_type<types::Integer>(*tcond)) {
     error_at(exp.position, "the condition must be an integer");
   }
-
-  auto tt = exp.then->accept(*this);
+  auto tthen = exp.then->accept(*this);
 
   if(exp.else_) {
-    auto te = exp.else_->accept(*this);
-    if(!same_types(tt, te)) {
+    auto telse = exp.else_->accept(*this);
+    if(!same_types(tthen, telse)) {
       error_at(exp.position, "types of then and else branches must match");
     }
-    return tt;
+    return tthen;
   }
   else {
-    if(!is_type<types::Unit>(*tt)) {
+    if(!is_type<types::Unit>(*tthen)) {
       error_at(exp.position, "the then branch must not produce any value");
     }
   }
@@ -255,7 +252,6 @@ TEntry Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
   // condition must be an integer
   if(!is_type<types::Integer>(*exp.cond->accept(*this))) {
-
     error_at(exp.position, "the condition must be an integer");
   } // body must not produce any value
   else {
@@ -284,11 +280,11 @@ TEntry Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     can_break = true;
     venv.begin_scope();
     venv.enter(exp.var, VarEntry(int_type));
-    auto tb = exp.body->accept(*this);
+    auto tbody = exp.body->accept(*this);
     venv.end_scope();
     can_break = can_break_saved;
 
-    if(!is_type<types::Unit>(*tb)) {
+    if(!is_type<types::Unit>(*tbody)) {
       error_at(exp.position,
                "the body of the for loop must not produce any value");
     }
@@ -316,12 +312,12 @@ TEntry Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 
   for(int i = 0; i < asize; i++) {
     auto tactual = exp.args[i]->accept(*this);
-    auto expected = fentry.formals[i];
-    if(!same_types(skip_name_types(expected), tactual)) {
+    auto texpected = fentry.formals[i];
+    if(!same_types(skip_name_types(texpected), tactual)) {
       error_at(exp.position,
                std::format("argument {} expects type '{}', got '{}'",
                            i,
-                           expected->to_string(),
+                           texpected->to_string(),
                            tactual->to_string()));
     }
   }
@@ -346,6 +342,8 @@ TEntry Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   tenv.end_scope();
   return tres;
 };
+
+// TODO: review from here
 
 void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
