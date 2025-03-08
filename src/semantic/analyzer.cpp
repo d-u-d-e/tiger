@@ -1,4 +1,4 @@
-#include <semantic/type_checker.hpp>
+#include <semantic/analyzer.hpp>
 #include <unordered_set>
 #include <iostream>
 

@@ -5,7 +5,7 @@
 #include <parser/pretty_printer.hpp>
 
 #include <semantic/env.hpp>
-#include <semantic/type_checker.hpp>
+#include <semantic/analyzer.hpp>
 #include <symbol.hpp>
 
 int main(int argc, char** argv)
