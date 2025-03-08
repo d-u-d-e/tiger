@@ -1,0 +1,47 @@
+let 
+  type IntArray = array of int
+  type R1 = {
+    a: IntArray,
+    b: string
+  }
+  type R2 = {
+
+  }
+
+in
+
+  /* binary exprs between integers */
+  1 + 1 + 1;
+  1 - 1 * 1;
+  1 / 1 - 1;
+  1 * 1 / 2;
+
+  /* unary exprs on integers */
+  -1;
+  --0;
+
+  /* comparision between integers and strings */
+  2 = 2;
+  2 <> 2;
+  "a" = "a";
+  "b" <> "b";
+  2 > 2;
+  2 < 2;
+  2 >= 2;
+  2 <= 2;
+  "a" > "a";
+  "a" < "a";
+  "a" >= "a";
+  "a" <= "a";
+
+  /* comparision between records, arrays */
+  R1 {a = IntArray[1] of 0, b = ""} = R1 {a = IntArray[1] of 0, b = ""};
+  R2 {} = R2 {};
+  R2 {} = nil;
+  nil = R2 {};
+  R2 {} <> R2 {};
+
+  (IntArray[1] of 0) = (IntArray[1] of 0);
+  (IntArray[1] of 0) <> (IntArray[1] of 0)
+
+end

@@ -21,7 +21,7 @@ add_executable(
     src/symbol.cpp
     src/semantic/types.cpp
     src/semantic/env.cpp
-    src/semantic/type_checker.cpp
+    src/semantic/analyzer.cpp
 )
 target_include_directories(tiger PRIVATE include)
 
@@ -44,6 +44,10 @@ if(BUILD_TEST_RUNNER)
     src/symbol.cpp
     src/semantic/types.cpp
     src/semantic/env.cpp
+
+    src/semantic/analyzer.cpp
+    tests/semantic/test_analyzer.cpp
+
     )
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)
