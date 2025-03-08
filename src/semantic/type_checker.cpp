@@ -1,5 +1,6 @@
 #include <semantic/type_checker.hpp>
 #include <unordered_set>
+#include <iostream>
 
 namespace semantic
 {
@@ -74,36 +75,34 @@ TEntry SemanticAnalyzer::skip_name_types(TEntry t)
 
 TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
-  auto tl = exp.left->accept(*this);
-  auto tr = exp.right->accept(*this);
+  auto tlhs = exp.left->accept(*this);
+  auto trhs = exp.right->accept(*this);
 
   switch(exp.op) {
   case parser::ast::Operator::plus:
   case parser::ast::Operator::minus:
   case parser::ast::Operator::times:
   case parser::ast::Operator::divide: {
-
-    if(same_types(tl, tr) && is_type<types::Integer>(*tl)) {
-      return int_type;
+    // these can be applied to integers
+    if(!same_types(tlhs, trhs) || !is_type<types::Integer>(*tlhs)) {
+      error_at(exp.position, "operands must be integers");
     }
-    error_at(exp.position, "operands must be integers");
-    break;
   }
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
-
-    if(!same_types(tl, tr)) {
-      if(is_type<types::Nil>(*tl) && is_type<types::Record>(*tr)) {
+    if(!same_types(tlhs, trhs)) {
+      // testing equality between nil and record is supported
+      if(is_type<types::Nil>(*tlhs) && is_type<types::Record>(*trhs)) {
         return int_type;
       }
-      else if(is_type<types::Nil>(*tr) && is_type<types::Record>(*tl)) {
+      else if(is_type<types::Nil>(*trhs) && is_type<types::Record>(*tlhs)) {
         return int_type;
       }
       error_at(exp.position, "operands must be of the same type");
     }
-    else if(is_type<types::Integer>(*tl) || is_type<types::String>(*tl) ||
-            is_type<types::Array>(*tl) || is_type<types::Record>(*tl)) {
+    else if(is_type<types::Integer>(*tlhs) || is_type<types::String>(*tlhs) ||
+            is_type<types::Array>(*tlhs) || is_type<types::Record>(*tlhs)) {
       return int_type;
     }
     error_at(exp.position,
@@ -116,21 +115,14 @@ TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater:
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
-
-    if(!same_types(tl, tr)) {
-      error_at(exp.position, "operands must be of the same type");
-      break;
+    if(!same_types(tlhs, trhs) || (!is_type<types::Integer>(*tlhs) && !is_type<types::String>(*tlhs))) {
+      error_at(exp.position, "operands must be integers or strings");
     }
-    else if(is_type<types::Integer>(*tl) || is_type<types::String>(*tl)) {
-      return int_type;
-    }
-    error_at(exp.position, "operands must be integers or strings");
-    break;
   }
   default:
     assert(false);
   }
-  return nullptr;
+  return int_type;
 };
 
 TEntry SemanticAnalyzer::visit_int_exp(const parser::ast::IntExp& exp)
@@ -156,8 +148,8 @@ TEntry SemanticAnalyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
-
   auto texpr = tenv.lookup(exp.type);
+
   if(!texpr || !is_type<types::Array>(*texpr.value())) {
     error_at(exp.position,
              std::format("undefined array type '{}'", exp.type.name()));
@@ -166,11 +158,12 @@ TEntry SemanticAnalyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
     error_at(exp.position, "the size of the array must be an integer");
   }
   else {
-    auto array_type = dynamic_cast<types::Array*>(texpr.value().get());
-    if(!same_types(skip_name_types(array_type->type), tinit)) {
+    auto arr = dynamic_cast<types::Array*>(texpr.value().get());
+    if(!same_types(skip_name_types(arr->type), tinit)) {
       error_at(exp.position, "the type of the array elements must match");
     }
   }
+  // this is an array type, whose elements may be name types
   return texpr.value();
 };
 
@@ -178,6 +171,8 @@ TEntry SemanticAnalyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
   return nil_type;
 };
+
+// ==>>> TODO: review code from here
 
 TEntry SemanticAnalyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
@@ -342,6 +337,10 @@ TEntry SemanticAnalyzer::visit_let_exp(const parser::ast::LetExp& exp)
   }
 
   auto tres = exp.body->accept(*this);
+
+  // TODO: remove
+  std::cout << tenv.dump() << std::endl;
+
   venv.end_scope();
   tenv.end_scope();
   return tres;
