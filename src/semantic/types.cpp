@@ -25,7 +25,8 @@ std::string Unit::to_string()
 
 std::string Record::to_string()
 {
-  std::string result = "Record{";
+
+  std::string result = "{";
   auto size = fields.size();
 
   for(auto i = 0; i < size; i++) {
@@ -38,8 +39,12 @@ std::string Record::to_string()
 
 std::string Array::to_string()
 {
-  std::string result = "Array";
-  return result;
+  return "arr of " + type->to_string();
+}
+
+std::string Name::to_string()
+{
+  return name.name();
 }
 
 } // namespace semantic::types

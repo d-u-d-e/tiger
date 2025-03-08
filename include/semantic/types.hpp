@@ -51,6 +51,7 @@ struct Name : public Type {
     , type(std::move(type))
   { }
 
+  std::string to_string() override;
   symbol::Symbol name;
   std::shared_ptr<Type> type;
 };
