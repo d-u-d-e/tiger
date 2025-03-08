@@ -9,7 +9,7 @@ namespace semantic
 
 using namespace env;
 
-class SemanticAnalyzer : public parser::ast::TypeCheckerExprVisitor,
+class Analyzer : public parser::ast::TypeCheckerExprVisitor,
                     public parser::ast::TypeCheckerDeclVisitor,
                     public parser::ast::TypeCheckerVarVisitor,
                     public parser::ast::TypeCheckerTypeVisitor
@@ -17,7 +17,7 @@ class SemanticAnalyzer : public parser::ast::TypeCheckerExprVisitor,
 {
 
   public:
-  SemanticAnalyzer(symbol::StringTable& string_table);
+  Analyzer(symbol::StringTable& string_table);
   void type_check(const parser::ast::Expression& exp);
 
   TEntry visit_string_exp(const parser::ast::StringExp& exp) override;

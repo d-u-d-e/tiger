@@ -10,7 +10,7 @@ static auto string_type = std::make_shared<types::String>();
 static auto nil_type = std::make_shared<types::Nil>();
 static auto unit_type = std::make_shared<types::Unit>();
 
-SemanticAnalyzer::SemanticAnalyzer(symbol::StringTable& string_table)
+Analyzer::Analyzer(symbol::StringTable& string_table)
   : string_table(string_table)
 {
   // predefined types
@@ -20,7 +20,7 @@ SemanticAnalyzer::SemanticAnalyzer(symbol::StringTable& string_table)
   tenv.enter(string_table.symbol("nil"), nil_type);
 }
 
-void SemanticAnalyzer::error_at(const lexer::Position& pos,
+void Analyzer::error_at(const lexer::Position& pos,
                            const std::string& err_msg)
 {
   // TODO: go on and type check other stuff instead of throwing at first error
@@ -28,18 +28,18 @@ void SemanticAnalyzer::error_at(const lexer::Position& pos,
     std::format("[line {}:{}] Err: {}\n", pos.line, pos.column, err_msg));
 }
 
-void SemanticAnalyzer::type_check(const parser::ast::Expression& exp)
+void Analyzer::type_check(const parser::ast::Expression& exp)
 {
   auto t = exp.accept(*this);
   // TODO: do something with t
 }
 
-TEntry SemanticAnalyzer::visit_string_exp(const parser::ast::StringExp& exp)
+TEntry Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
   return string_type;
 };
 
-TEntry SemanticAnalyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
+TEntry Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
@@ -51,12 +51,12 @@ TEntry SemanticAnalyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 };
 
 template <typename T>
-bool SemanticAnalyzer::is_type(const types::Type& t)
+bool Analyzer::is_type(const types::Type& t)
 {
   return typeid(t) == typeid(T);
 }
 
-bool SemanticAnalyzer::can_assign(const TEntry& tlhs, const TEntry& trhs)
+bool Analyzer::can_assign(const TEntry& tlhs, const TEntry& trhs)
 {
   if(is_type<types::Record>(*tlhs) && is_type<types::Nil>(*trhs)) {
     return true;
@@ -64,7 +64,7 @@ bool SemanticAnalyzer::can_assign(const TEntry& tlhs, const TEntry& trhs)
   return same_types(tlhs, trhs);
 }
 
-TEntry SemanticAnalyzer::skip_name_types(TEntry t)
+TEntry Analyzer::skip_name_types(TEntry t)
 {
   // the exit guarantee follows in case there are no cycles
   while(is_type<types::Name>(*t)) {
@@ -73,7 +73,7 @@ TEntry SemanticAnalyzer::skip_name_types(TEntry t)
   return t;
 }
 
-TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
+TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
   auto tlhs = exp.left->accept(*this);
   auto trhs = exp.right->accept(*this);
@@ -118,6 +118,7 @@ TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
     if(!same_types(tlhs, trhs) || (!is_type<types::Integer>(*tlhs) && !is_type<types::String>(*tlhs))) {
       error_at(exp.position, "operands must be integers or strings");
     }
+    break;
   }
   default:
     assert(false);
@@ -125,17 +126,17 @@ TEntry SemanticAnalyzer::visit_op_exp(const parser::ast::OpExp& exp)
   return int_type;
 };
 
-TEntry SemanticAnalyzer::visit_int_exp(const parser::ast::IntExp& exp)
+TEntry Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
 {
   return int_type;
 };
 
-TEntry SemanticAnalyzer::visit_var_exp(const parser::ast::VarExp& exp)
+TEntry Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 {
   return exp.var->accept(*this);
 };
 
-TEntry SemanticAnalyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
+TEntry Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
   TEntry tres = unit_type;
   for(auto& [e, pos] : exp.exps) {
@@ -144,7 +145,7 @@ TEntry SemanticAnalyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
   return tres;
 };
 
-TEntry SemanticAnalyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
+TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
@@ -167,14 +168,14 @@ TEntry SemanticAnalyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
   return texpr.value();
 };
 
-TEntry SemanticAnalyzer::visit_nil_exp(const parser::ast::NilExp& exp)
+TEntry Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
   return nil_type;
 };
 
 // ==>>> TODO: review code from here
 
-TEntry SemanticAnalyzer::visit_record_exp(const parser::ast::RecordExp& exp)
+TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
   auto rtype = tenv.lookup(exp.type);
   if(!rtype || !is_type<types::Record>(*rtype.value())) {
@@ -218,7 +219,7 @@ TEntry SemanticAnalyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   return rtype.value();
 };
 
-TEntry SemanticAnalyzer::visit_if_exp(const parser::ast::IfExp& exp)
+TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
   auto tc = exp.cond->accept(*this);
   if(!is_type<types::Integer>(*tc)) {
@@ -242,7 +243,7 @@ TEntry SemanticAnalyzer::visit_if_exp(const parser::ast::IfExp& exp)
   return unit_type;
 };
 
-TEntry SemanticAnalyzer::visit_break_exp(const parser::ast::BreakExp& exp)
+TEntry Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
   if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
@@ -250,7 +251,7 @@ TEntry SemanticAnalyzer::visit_break_exp(const parser::ast::BreakExp& exp)
   return unit_type;
 };
 
-TEntry SemanticAnalyzer::visit_while_exp(const parser::ast::WhileExp& exp)
+TEntry Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
   // condition must be an integer
   if(!is_type<types::Integer>(*exp.cond->accept(*this))) {
@@ -269,7 +270,7 @@ TEntry SemanticAnalyzer::visit_while_exp(const parser::ast::WhileExp& exp)
   return unit_type;
 };
 
-TEntry SemanticAnalyzer::visit_for_exp(const parser::ast::ForExp& exp)
+TEntry Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
   // high and low must be integers
   if(!is_type<types::Integer>(*exp.low->accept(*this))) {
@@ -295,7 +296,7 @@ TEntry SemanticAnalyzer::visit_for_exp(const parser::ast::ForExp& exp)
   return unit_type;
 };
 
-TEntry SemanticAnalyzer::visit_call_exp(const parser::ast::CallExp& exp)
+TEntry Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
   auto opt_fentry = venv.lookup(exp.name);
   if(!opt_fentry || !std::holds_alternative<FuncEntry>(opt_fentry.value())) {
@@ -327,7 +328,7 @@ TEntry SemanticAnalyzer::visit_call_exp(const parser::ast::CallExp& exp)
   return skip_name_types(fentry.result);
 };
 
-TEntry SemanticAnalyzer::visit_let_exp(const parser::ast::LetExp& exp)
+TEntry Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
 {
   tenv.begin_scope();
   venv.begin_scope();
@@ -346,7 +347,7 @@ TEntry SemanticAnalyzer::visit_let_exp(const parser::ast::LetExp& exp)
   return tres;
 };
 
-void SemanticAnalyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
+void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
   /*
     To handle mutually recursive functions:
@@ -432,7 +433,7 @@ void SemanticAnalyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
   }
 };
 
-void SemanticAnalyzer::visit_var_decl(const parser::ast::VarDecl& decl)
+void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   auto tinit = decl.init->accept(*this);
   if(decl.type) {
@@ -456,7 +457,7 @@ void SemanticAnalyzer::visit_var_decl(const parser::ast::VarDecl& decl)
   }
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
-void SemanticAnalyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
+void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
   // add the headers to the type environment
   for(auto& tdecl : decl.decls) {
@@ -481,7 +482,7 @@ void SemanticAnalyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
   detect_cycles(decl);
 }
 
-void SemanticAnalyzer::detect_cycles(const parser::ast::TypeDecl& decl)
+void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
 {
   /*
     example 1:
@@ -576,7 +577,7 @@ void SemanticAnalyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-TEntry SemanticAnalyzer::visit_name_type(const parser::ast::NameType& type)
+TEntry Analyzer::visit_name_type(const parser::ast::NameType& type)
 {
   auto t = tenv.lookup(type.name);
   if(!t) {
@@ -586,7 +587,7 @@ TEntry SemanticAnalyzer::visit_name_type(const parser::ast::NameType& type)
   return t.value();
 };
 
-TEntry SemanticAnalyzer::visit_array_type(const parser::ast::ArrayType& type)
+TEntry Analyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
@@ -597,7 +598,7 @@ TEntry SemanticAnalyzer::visit_array_type(const parser::ast::ArrayType& type)
   return std::make_shared<types::Array>(elem_type.value());
 };
 
-TEntry SemanticAnalyzer::visit_record_type(const parser::ast::RecordType& type)
+TEntry Analyzer::visit_record_type(const parser::ast::RecordType& type)
 {
   std::vector<std::pair<symbol::Symbol, TEntry>> fields;
   for(auto& field : type.fields) {
@@ -611,7 +612,7 @@ TEntry SemanticAnalyzer::visit_record_type(const parser::ast::RecordType& type)
   return std::make_shared<types::Record>(fields);
 };
 
-TEntry SemanticAnalyzer::visit_simple_var(const parser::ast::SimpleVar& var)
+TEntry Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 {
   auto v = venv.lookup(var.name);
   if(!v || !std::holds_alternative<VarEntry>(v.value())) {
@@ -621,7 +622,7 @@ TEntry SemanticAnalyzer::visit_simple_var(const parser::ast::SimpleVar& var)
   return skip_name_types(std::get<VarEntry>(v.value()).type);
 };
 
-TEntry SemanticAnalyzer::visit_field_var(const parser::ast::FieldVar& var)
+TEntry Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
   auto tlhs = var.var->accept(*this);
   if(!is_type<types::Record>(*tlhs)) {
@@ -642,7 +643,7 @@ TEntry SemanticAnalyzer::visit_field_var(const parser::ast::FieldVar& var)
   return skip_name_types(std::get<1>(*iter));
 };
 
-TEntry SemanticAnalyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
+TEntry Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);
