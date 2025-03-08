@@ -58,6 +58,8 @@ class TypeChecker : public parser::ast::TypeCheckerExprVisitor,
   }
   void error_at(const lexer::Position& pos, const std::string& err_msg);
 
+  void detect_cycles(const parser::ast::TypeDecl& decl);
+  TEntry actual_type(TEntry t);
   bool can_break{false};
   symbol::StringTable& string_table;
   Environment<TEntry> tenv;

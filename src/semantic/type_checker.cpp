@@ -1,5 +1,6 @@
 #include <iostream>
 #include <semantic/type_checker.hpp>
+#include <unordered_set>
 
 namespace semantic
 {
@@ -20,6 +21,7 @@ TypeChecker::TypeChecker(symbol::StringTable& string_table)
 void TypeChecker::error_at(const lexer::Position& pos,
                            const std::string& err_msg)
 {
+  std::cout << tenv.dump() << std::endl << venv.dump() << std::endl;
   throw std::runtime_error(
     std::format("[line {}:{}] Err: {}\n", pos.line, pos.column, err_msg));
 }
@@ -59,6 +61,14 @@ bool TypeChecker::check_assignment_types(const TEntry& tlhs, const TEntry& trhs)
     return true;
   }
   return is_same_type(tlhs, trhs);
+}
+
+TEntry TypeChecker::actual_type(TEntry t)
+{
+  while(check_type<types::Name>(*t)) {
+    t = tenv.lookup(dynamic_cast<types::Name*>(t.get())->name).value();
+  }
+  return t;
 }
 
 TEntry TypeChecker::visit_op_exp(const parser::ast::OpExp& exp)
@@ -162,7 +172,7 @@ TEntry TypeChecker::visit_array_exp(const parser::ast::ArrayExp& exp)
   }
   else {
     auto array_type = dynamic_cast<types::Array*>(texpr.value().get());
-    if(!is_same_type(array_type->type, tinit)) {
+    if(!is_same_type(actual_type(array_type->type), tinit)) {
       error_at(exp.position, "the type of the array elements must match");
     }
   }
@@ -206,14 +216,16 @@ TEntry TypeChecker::visit_record_exp(const parser::ast::RecordExp& exp)
                            actual_rfield.name.name()));
     }
 
-    // check field type agreement
+    // note that record_type->fields[i] could be a name type
+    // this can occur while type checking mutually recursive types
     auto actual_type_rfield = actual_rfield.exp->accept(*this);
-    if(!is_same_type(formal_rfield.second, actual_type_rfield)) {
+    auto actual_formal_rfield = actual_type(formal_rfield.second);
+    if(!check_assignment_types(actual_formal_rfield, actual_type_rfield)) {
       error_at(actual_rfield.position,
                std::format("expected type '{}' for field '{}', got '{}'",
-                           formal_rfield.second->to_string(),
+                           to_string(formal_rfield.second),
                            actual_rfield.name.name(),
-                           actual_type_rfield->to_string()));
+                           to_string(actual_type_rfield)));
     }
   }
   return rtype.value();
@@ -327,7 +339,7 @@ TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
   for(int i = 0; i < asize; i++) {
     auto tactual = exp.args[i]->accept(*this);
     auto expected = fentry.formals[i];
-    if(!is_same_type(expected, tactual)) {
+    if(!is_same_type(actual_type(expected), tactual)) {
       error_at(exp.position,
                std::format("argument {} expects type '{}', got '{}'",
                            i,
@@ -335,7 +347,7 @@ TEntry TypeChecker::visit_call_exp(const parser::ast::CallExp& exp)
                            tactual->to_string()));
     }
   }
-  return fentry.result;
+  return actual_type(fentry.result);
 };
 
 TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
@@ -350,8 +362,8 @@ TEntry TypeChecker::visit_let_exp(const parser::ast::LetExp& exp)
   }
 
   tres = exp.body->accept(*this);
-  tenv.end_scope();
   venv.end_scope();
+  tenv.end_scope();
   return tres;
 };
 
@@ -426,7 +438,7 @@ void TypeChecker::visit_func_decl(const parser::ast::FuncDecl& decl)
     auto func_entry = std::get<FuncEntry>(venv.lookup(fdecl->name).value());
     auto tbody = fdecl->body->accept(*this);
 
-    if(!is_same_type(func_entry.result, tbody)) {
+    if(!is_same_type(actual_type(func_entry.result), tbody)) {
 
       auto pos = fdecl->position;
       if(fdecl->result) {
@@ -455,32 +467,146 @@ void TypeChecker::visit_var_decl(const parser::ast::VarDecl& decl)
       error_at(decl_type.second,
                std::format("undefined type '{}'", decl_type.first.name()));
     }
-    if(!check_assignment_types(tdecl.value(), tinit)) {
+    if(!check_assignment_types(actual_type(tdecl.value()), tinit)) {
       error_at(decl_type.second, "type mismatch");
     }
     venv.enter(decl.name, VarEntry(tdecl.value()));
   }
   else {
-    if (check_type<types::Nil>(*tinit)){
+    if(check_type<types::Nil>(*tinit)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
     venv.enter(decl.name, VarEntry(tinit));
   }
-};
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
 void TypeChecker::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
   std::cout << "type checking type decl" << std::endl;
-  // TODO: mutually recursive types
 
-  auto& tdecl = decl.decls[0];
-  tenv.enter(tdecl->name, tdecl->type->accept(*this));
-};
+  // add the headers to the type environment
+  for(auto& tdecl : decl.decls) {
+    // we register the symbol as a name type, to be resolved in a later pass
+    // this way it exists in the environment
+    if(tenv.lookup(tdecl->name)) {
+      error_at(tdecl->position,
+               std::format("redeclaration of type '{}'", tdecl->name.name()));
+    }
+    tenv.enter(tdecl->name,
+               std::make_shared<types::Name>(tdecl->name, nullptr));
+  }
+
+  // next we replace all those fake names with the true type
+  // however we still need to detect cycles
+  for(auto& tdecl : decl.decls) {
+    auto actual = tdecl->type->accept(*this);
+    tenv.replace(tdecl->name, actual);
+  }
+
+  // check for cycles now
+  detect_cycles(decl);
+}
+
+void TypeChecker::detect_cycles(const parser::ast::TypeDecl& decl)
+{
+  /*
+    example 1:
+    type A = B
+    type B = C
+    type C = B
+
+    tenv after having parsed the "headers"
+    A -> Name("A", 0)
+    B -> Name("B", 0)
+    C -> Name("C", 0)
+
+    tenv after having parsed the "bodies"
+    A' -> Name("B", B)
+    B' -> Name("C", C)
+    C' -> Name("B", B')
+
+    example 2:
+    type A = B
+    type B = array of A
+
+    tenv after having parsed the "headers"
+    A -> Name("A", 0)
+    B -> Name("B", 0)
+
+    tenv after having parsed the "bodies"
+    A' -> Name("B", B)
+    B' -> Array(A')
+
+    example 3:
+    type A = A
+
+    tenv after having parsed the "headers"
+    A -> Name("A", 0)
+
+    tenv after having parsed the "bodies"
+    A' -> Name("A", A')
+
+    example 4:
+    type A = B
+    type B = int
+
+    tenv after having parsed the "headers"
+    A -> Name("A", 0)
+    B -> Name("B", 0)
+
+    tenv after having parsed the "bodies"
+    A' -> Name("B", B)
+    B' -> int
+
+    example 5:
+    type A = B
+    type B = C
+    type C = A
+
+    tenv after having parsed the "headers"
+    A -> Name("A", 0)
+    B -> Name("B", 0)
+    C -> Name("C", 0)
+
+    tenv after having parsed the "bodies"
+    A' -> Name("B", B)
+    B' -> Name("C", C)
+    C' -> Name("A", A')
+  */
+
+  std::unordered_set<TEntry> visited;
+  for(auto& tdecl : decl.decls) {
+    visited.clear();
+    auto actual = tenv.lookup(tdecl->name).value();
+
+    // chase the sequence
+    while(true) {
+
+      if(visited.contains(actual)) {
+        error_at(tdecl->position, "cycle");
+      }
+      else {
+        visited.insert(actual);
+      }
+
+      if(check_type<types::Name>(*actual)) {
+        actual = tenv.lookup((dynamic_cast<types::Name*>(actual.get()))->name).value();
+      }
+      else if(check_type<types::Array>(*actual)) {
+        actual = dynamic_cast<types::Array*>(actual.get())->type;
+      }
+      else {
+        break;
+      }
+    }
+  }
+}
 
 TEntry TypeChecker::visit_name_type(const parser::ast::NameType& type)
 {
   std::cout << "type checking name type" << std::endl;
+
   auto t = tenv.lookup(type.name);
   if(!t) {
     error_at(type.position,
@@ -527,8 +653,7 @@ TEntry TypeChecker::visit_simple_var(const parser::ast::SimpleVar& var)
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.name()));
   }
-  // TODO: need to get the actual type by skipping all name types
-  return std::get<VarEntry>(v.value()).type;
+  return actual_type(std::get<VarEntry>(v.value()).type);
 };
 
 TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
@@ -551,7 +676,7 @@ TEntry TypeChecker::visit_field_var(const parser::ast::FieldVar& var)
     error_at(var.position,
              std::format("unexpected record field name '{}'", var.name.name()));
   }
-  return std::get<1>(*iter);
+  return actual_type(std::get<1>(*iter));
 };
 
 TEntry TypeChecker::visit_subscript_var(const parser::ast::SubscriptVar& var)
@@ -572,7 +697,7 @@ TEntry TypeChecker::visit_subscript_var(const parser::ast::SubscriptVar& var)
   }
 
   // the type of the expression is the type of each array element
-  return alhs->type;
+  return actual_type(alhs->type);
 };
 
 } // namespace semantic
