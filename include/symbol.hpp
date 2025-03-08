@@ -119,6 +119,18 @@ class Table {
     return count;
   }
 
+  void replace(const Symbol& s, const T& value)
+  {
+    size_t index = s.id() % capacity;
+    auto iter = std::find_if(table[index].begin(),
+                             table[index].end(),
+                             [&s](const std::pair<Symbol, T>& pair) -> bool {
+                               return std::get<0>(pair).id() == s.id();
+                             });
+    assert(iter != table[index].end());
+    (*iter).second = value;
+  }
+
   private:
   void grow()
   {
@@ -131,7 +143,7 @@ class Table {
       auto& l = table[i];
       for(auto& [s, v] : l) {
         auto bin = s.id() % capacity;
-        new_table[bin].emplace_front(s, v);
+        new_table[bin].emplace_back(s, v);
       }
     }
     table = std::move(new_table);
