@@ -5,140 +5,32 @@
 
 TEST_SUITE_BEGIN("parser");
 
-TEST_CASE("sequencing.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/sequencing.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
+#define SHOULD_PASS(filename)                                                  \
+  TEST_CASE(filename)                                                          \
+  {                                                                            \
+    lexer::Scanner scanner(                                                    \
+      std::filesystem::path("../tests/parser/valid/" filename));               \
+    auto string_table = symbol::StringTable();                                 \
+    parser::Parser parser(scanner, string_table);                              \
+    CHECK_NOTHROW(parser.parse());                                             \
+  }
 
-TEST_CASE("record_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/record_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
+SHOULD_PASS("arrays.tig");
+SHOULD_PASS("assign_expr.tig");
+SHOULD_PASS("binary_expr.tig");
+SHOULD_PASS("break_expr.tig");
+SHOULD_PASS("call_expr.tig");
+SHOULD_PASS("for_expr.tig");
+SHOULD_PASS("func_decl.tig");
+SHOULD_PASS("if_expr.tig");
+SHOULD_PASS("record_expr.tig");
+SHOULD_PASS("record_field.tig");
+SHOULD_PASS("sequencing.tig");
+SHOULD_PASS("type_decl.tig");
+SHOULD_PASS("unary_expr.tig");
+SHOULD_PASS("var_decl.tig");
+SHOULD_PASS("while_expr.tig");
 
-TEST_CASE("record_field.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/record_field.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("arrays.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/arrays.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("while_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/while_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("for_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/for_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("break_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/break_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("func_decl.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/func_decl.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("type_decl.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/type_decl.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("var_decl.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/var_decl.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("if_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/if_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("binary_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/binary_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("unary_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/unary_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("assign_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/assign_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
-
-TEST_CASE("call_expr.tig")
-{
-  lexer::Scanner scanner(
-    std::filesystem::path("../tests/parser/valid/call_expr.tig"));
-  auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
-  CHECK_NOTHROW(parser.parse());
-}
 
 TEST_CASE("valid_book_examples")
 {
