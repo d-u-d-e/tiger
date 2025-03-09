@@ -1,0 +1,7 @@
+let
+  type A = array of int
+  type B = array of A
+in
+  A[0] of -1;
+  B[2] of A[2] of 0
+end

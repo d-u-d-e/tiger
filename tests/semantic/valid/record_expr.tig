@@ -1,0 +1,12 @@
+let
+  type R1 = {a: int}
+  type R2 = {}
+  type R3 = {r: R1, s: string}
+  var r := R1 {a = 2}
+in
+  R1 {a = 3};
+  R2 {};
+  R3 {r = R1 {a = 2}, s = "s"};
+  R3 {r = r, s = "s"};
+  R3 {r = nil, s = "s"}
+end
