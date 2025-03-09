@@ -1,6 +1,6 @@
+#include <iostream>
 #include <semantic/analyzer.hpp>
 #include <unordered_set>
-#include <iostream>
 
 namespace semantic
 {
@@ -20,8 +20,7 @@ Analyzer::Analyzer(symbol::StringTable& string_table)
   tenv.enter(string_table.symbol("nil"), nil_type);
 }
 
-void Analyzer::error_at(const lexer::Position& pos,
-                           const std::string& err_msg)
+void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
 {
   // TODO: go on and type check other stuff instead of throwing at first error
   throw std::runtime_error(
@@ -115,7 +114,8 @@ TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater:
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
-    if(!same_types(tlhs, trhs) || (!is_type<types::Integer>(*tlhs) && !is_type<types::String>(*tlhs))) {
+    if(!same_types(tlhs, trhs) ||
+       (!is_type<types::Integer>(*tlhs) && !is_type<types::String>(*tlhs))) {
       error_at(exp.position, "operands must be integers or strings");
     }
     break;
@@ -153,7 +153,7 @@ TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 
   if(!texpr || !is_type<types::Array>(*texpr.value())) {
     error_at(exp.position,
-             std::format("undefined array type '{}'", exp.type.name()));
+             std::format("undefined array type '{}'", exp.type.str()));
   }
   else if(!is_type<types::Integer>(*tsize)) {
     error_at(exp.position, "the size of the array must be an integer");
@@ -178,7 +178,7 @@ TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   auto opttrec = tenv.lookup(exp.type);
   if(!opttrec || !is_type<types::Record>(*opttrec.value())) {
     error_at(exp.position,
-             std::format("undefined record type '{}'", exp.type.name()));
+             std::format("undefined record type '{}'", exp.type.str()));
   }
   auto trec = dynamic_cast<types::Record*>(opttrec.value().get());
 
@@ -198,8 +198,8 @@ TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
     if(formal.first != actual.name) {
       error_at(actual.position,
                std::format("expected field '{}', got '{}'",
-                formal.first.name(),
-                actual.name.name()));
+                           formal.first.str(),
+                           actual.name.str()));
     }
 
     // note that trec->fields[i] could be a name type
@@ -210,7 +210,7 @@ TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
       error_at(actual.position,
                std::format("expected type '{}' for field '{}', got '{}'",
                            to_string(formal.second),
-                           actual.name.name(),
+                           actual.name.str(),
                            to_string(tactual)));
     }
   }
@@ -297,7 +297,7 @@ TEntry Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   auto opt_fentry = venv.lookup(exp.name);
   if(!opt_fentry || !std::holds_alternative<FuncEntry>(opt_fentry.value())) {
     error_at(exp.position,
-             std::format("undefined function '{}'", exp.name.name()));
+             std::format("undefined function '{}'", exp.name.str()));
   }
   auto& fentry = std::get<FuncEntry>(opt_fentry.value());
 
@@ -343,32 +343,28 @@ TEntry Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   return tres;
 };
 
-// TODO: review from here
-
 void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
   /*
     To handle mutually recursive functions:
 
-    function is_even(n: int) = if n = 0 then 1 else is_odd(n-1)
-    function is_odd(n: int) = if n = 0 then 0 else is_even(n-1) 
+    function is_even(n: int): int = if n = 0 then 1 else is_odd(n-1)
+    function is_odd(n: int): int = if n = 0 then 0 else is_even(n-1) 
 
     We first augment the venv with the function headers:
 
     is_even -> FuncEntry(formals=[int], result=int)
     is_odd  -> FuncEntry(formals=[int], result=int)
 
-    So that processing of each body can proceed without undefined references.
+    So that type checking the body can proceed without undefined references.
 
   */
 
   for(auto& fdecl : decl.decls) {
-
     if(venv.lookup(fdecl->name)) {
-      error_at(fdecl->position,
-               std::format("redeclaration of function '{}' in the same batch "
-                           "of mutually recursive functions",
-                           fdecl->name.name()));
+      error_at(
+        fdecl->position,
+        std::format("redeclaration of function '{}'", fdecl->name.str()));
     }
 
     // type check the parameters
@@ -378,7 +374,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       if(!tparam) {
         error_at(
           param.position,
-          std::format("undefined parameter type '{}'", param.type.name()));
+          std::format("undefined parameter type '{}'", param.type.str()));
       }
       formals.push_back(tparam.value());
     }
@@ -391,7 +387,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       if(!opt_tresult) {
         error_at(
           fdecl_result.second,
-          std::format("undefined return type '{}'", fdecl_result.first.name()));
+          std::format("undefined return type '{}'", fdecl_result.first.str()));
       }
       tresult = opt_tresult.value();
     }
@@ -402,9 +398,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   // go through the bodies
   for(auto& fdecl : decl.decls) {
-
     venv.begin_scope(); // body scope augmented with formals
-
     // add formals
     for(auto& param : fdecl->params) {
       venv.enter(param.name, VarEntry(tenv.lookup(param.type).value()));
@@ -435,14 +429,18 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   auto tinit = decl.init->accept(*this);
   if(decl.type) {
-    auto decl_type = decl.type.value();
-    auto tdecl = tenv.lookup(decl_type.first);
+    auto tpos = decl.type.value().second;
+    auto tname = decl.type.value().first;
+    auto tdecl = tenv.lookup(tname);
+
     if(!tdecl) {
-      error_at(decl_type.second,
-               std::format("undefined type '{}'", decl_type.first.name()));
+      error_at(tpos, std::format("undefined type '{}'", tname.str()));
     }
     if(!can_assign(skip_name_types(tdecl.value()), tinit)) {
-      error_at(decl_type.second, "type mismatch");
+      error_at(tpos,
+               std::format("decl type '{}' does not match expr type '{}'",
+                           to_string(tdecl.value()),
+                           to_string(tinit)));
     }
     venv.enter(decl.name, VarEntry(tdecl.value()));
   }
@@ -453,7 +451,7 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
     }
     venv.enter(decl.name, VarEntry(tinit));
   }
-};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+};
 
 void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
@@ -463,20 +461,19 @@ void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
     // this way it exists in the environment
     if(tenv.lookup(tdecl->name)) {
       error_at(tdecl->position,
-               std::format("redeclaration of type '{}'", tdecl->name.name()));
+               std::format("redeclaration of type '{}'", tdecl->name.str()));
     }
     tenv.enter(tdecl->name,
                std::make_shared<types::Name>(tdecl->name, nullptr));
   }
 
   // next we replace all those fake names with the true type
-  // however we still need to detect cycles
   for(auto& tdecl : decl.decls) {
     auto actual = tdecl->type->accept(*this);
     tenv.replace(tdecl->name, actual);
   }
 
-  // check for cycles now
+  // prevent cycles
   detect_cycles(decl);
 }
 
@@ -547,23 +544,25 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
     C' -> Name("A", A')
   */
 
+  // this can be made more efficient
   std::unordered_set<TEntry> visited;
   for(auto& tdecl : decl.decls) {
     visited.clear();
     auto actual = tenv.lookup(tdecl->name).value();
 
-    // chase the sequence
+    // chase the sequence until a record or cycle is found
     while(true) {
 
       if(visited.contains(actual)) {
-        error_at(tdecl->position, "cycle");
+        error_at(tdecl->position, "cycle in type declaration");
       }
       else {
         visited.insert(actual);
       }
 
       if(is_type<types::Name>(*actual)) {
-        actual = tenv.lookup((dynamic_cast<types::Name*>(actual.get()))->name).value();
+        actual =
+          tenv.lookup((dynamic_cast<types::Name*>(actual.get()))->name).value();
       }
       else if(is_type<types::Array>(*actual)) {
         actual = dynamic_cast<types::Array*>(actual.get())->type;
@@ -580,7 +579,7 @@ TEntry Analyzer::visit_name_type(const parser::ast::NameType& type)
   auto t = tenv.lookup(type.name);
   if(!t) {
     error_at(type.position,
-             std::format("undefined type '{}'", type.name.name()));
+             std::format("undefined type '{}'", type.name.str()));
   }
   return t.value();
 };
@@ -590,9 +589,8 @@ TEntry Analyzer::visit_array_type(const parser::ast::ArrayType& type)
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
     error_at(type.position,
-             std::format("undefined type '{}'", type.name.name()));
+             std::format("undefined type '{}'", type.name.str()));
   }
-
   return std::make_shared<types::Array>(elem_type.value());
 };
 
@@ -603,7 +601,7 @@ TEntry Analyzer::visit_record_type(const parser::ast::RecordType& type)
     auto tfield = tenv.lookup(field.type);
     if(!tfield) {
       error_at(field.position,
-               std::format("undefined type '{}'", field.type.name()));
+               std::format("undefined type '{}'", field.type.str()));
     }
     fields.push_back({field.name, tfield.value()});
   }
@@ -615,7 +613,7 @@ TEntry Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
   auto v = venv.lookup(var.name);
   if(!v || !std::holds_alternative<VarEntry>(v.value())) {
     error_at(var.position,
-             std::format("undefined variable '{}'", var.name.name()));
+             std::format("undefined variable '{}'", var.name.str()));
   }
   return skip_name_types(std::get<VarEntry>(v.value()).type);
 };
@@ -623,20 +621,22 @@ TEntry Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 TEntry Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
   auto tlhs = var.var->accept(*this);
+  // . applicable to records only
   if(!is_type<types::Record>(*tlhs)) {
-    error_at(var.position, "operator '.' applies to record types only");
+    error_at(var.position,
+             std::format("{} is not a record type", to_string(tlhs)));
   }
-  auto rlhs = dynamic_cast<types::Record*>(tlhs.get());
+  auto record = dynamic_cast<types::Record*>(tlhs.get());
 
   // check whether the field name belongs to the record fields
   auto iter =
-    std::find_if(rlhs->fields.begin(),
-                 rlhs->fields.end(),
+    std::find_if(record->fields.begin(),
+                 record->fields.end(),
                  [&var](const auto& p) { return std::get<0>(p) == var.name; });
 
-  if(iter == rlhs->fields.end()) {
+  if(iter == record->fields.end()) {
     error_at(var.position,
-             std::format("unexpected record field name '{}'", var.name.name()));
+             std::format("unexpected record field name '{}'", var.name.str()));
   }
   return skip_name_types(std::get<1>(*iter));
 };
@@ -646,9 +646,10 @@ TEntry Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);
   if(!is_type<types::Array>(*tlhs)) {
-    error_at(var.position, "operator '[]' applies to array types only");
+    error_at(var.position,
+             std::format("{} is not an array type", to_string(tlhs)));
   }
-  auto alhs = dynamic_cast<types::Array*>(tlhs.get());
+  auto array = dynamic_cast<types::Array*>(tlhs.get());
 
   // expression must be an integer
   auto texp = var.exp->accept(*this);
@@ -657,7 +658,7 @@ TEntry Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
   }
 
   // the type of the expression is the type of each array element
-  return skip_name_types(alhs->type);
+  return skip_name_types(array->type);
 };
 
 } // namespace semantic

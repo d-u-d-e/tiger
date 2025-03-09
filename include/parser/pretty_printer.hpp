@@ -16,7 +16,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     return std::format("{}{}SimpleVar{{symbol\"{}\", pos={}}}",
                        indent(),
                        var.field,
-                       var.name.name(),
+                       var.name.str(),
                        var.position);
   }
 
@@ -26,7 +26,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     depth++;
     var.var->field = "var=";
     result += var.var->accept(*this) + ",\n";
-    result += indent() + "symbol\"" + var.name.name() +
+    result += indent() + "symbol\"" + var.name.str() +
               "\", pos=" + var.position.to_string() + "\n";
     depth--;
     result += indent() + "}";
@@ -125,7 +125,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + exp.field + "ArrayExp{\n";
     depth++;
-    result += (indent() + "type=") + exp.type.name() + ",\n";
+    result += (indent() + "type=") + exp.type.str() + ",\n";
     exp.size->field = "size=";
     result += exp.size->accept(*this) + ",\n";
     exp.init->field = "init=";
@@ -145,13 +145,13 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + exp.field + "RecordExp{\n";
     depth++;
-    result += (indent() + "type=symbol\"") + exp.type.name() + "\",\n";
+    result += (indent() + "type=symbol\"") + exp.type.str() + "\",\n";
     result += indent() + "fields=[\n";
     depth++;
     auto size = exp.fields.size();
     for(int i = 0; i < size; i++) {
       auto& field = exp.fields[i];
-      field.exp->field = "(symbol\"" + field.name.name() +
+      field.exp->field = "(symbol\"" + field.name.str() +
                          "\", pos=" + field.position.to_string() + ", exp=";
       result +=
         field.exp->accept(*this) + ")" + ((i == size - 1) ? "\n" : ",\n");
@@ -207,7 +207,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + exp.field + "ForExp{\n";
     depth++;
-    result += (indent() + "var=symbol\"") + exp.var.name() + "\",\n";
+    result += (indent() + "var=symbol\"") + exp.var.str() + "\",\n";
     exp.low->field = "low=";
     result += exp.low->accept(*this) + ",\n";
     exp.high->field = "high=";
@@ -224,7 +224,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + exp.field + "CallExp{\n";
     depth++;
-    result += indent() + "func=symbol\"" + exp.name.name() + "\",\n";
+    result += indent() + "func=symbol\"" + exp.name.str() + "\",\n";
     result += indent() + "args=[\n";
     depth++;
     auto size = exp.args.size();
@@ -277,9 +277,9 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + decl.field + "VarDecl{\n";
     depth++;
-    result += indent() + "name=symbol\"" + decl.name.name() + "\",\n";
+    result += indent() + "name=symbol\"" + decl.name.str() + "\",\n";
     if(decl.type) {
-      result += indent() + "type=symbol\"" + decl.type.value().first.name() + "\",\n";
+      result += indent() + "type=symbol\"" + decl.type.value().first.str() + "\",\n";
     }
     decl.init->field = "init=";
     result += decl.init->accept(*this) + ",\n";
@@ -296,7 +296,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
       auto& tdecl = decl.decls[i];
       result += indent() + "(\n";
       depth++;
-      result += indent() + "name=symbol\"" + tdecl->name.name() + "\",\n";
+      result += indent() + "name=symbol\"" + tdecl->name.str() + "\",\n";
       tdecl->type->field = "ty=";
       result += tdecl->type->accept(*this) + ",\n";
       result += (indent() + "pos=") + tdecl->position.to_string() + "\n";
@@ -311,7 +311,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + type.field + "NameType{\n";
     depth++;
-    result += indent() + "name=symbol\"" + type.name.name() + "\",\n";
+    result += indent() + "name=symbol\"" + type.name.str() + "\",\n";
     result += (indent() + "pos=") + type.position.to_string() + "\n";
     depth--;
     result += indent() + "}";
@@ -322,7 +322,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + type.field + "ArrayType{\n";
     depth++;
-    result += indent() + "name=symbol\"" + type.name.name() + "\",\n";
+    result += indent() + "name=symbol\"" + type.name.str() + "\",\n";
     result += (indent() + "pos=") + type.position.to_string() + "\n";
     depth--;
     result += indent() + "}";
@@ -346,9 +346,9 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   private:
   std::string visit_single_field(const parser::ast::_Field& f)
   {
-    std::string result = indent() + "(symbol\"" + f.name.name() +
+    std::string result = indent() + "(symbol\"" + f.name.str() +
                          "\", pos=" + f.position.to_string() +
-                         ", type=symbol\"" + f.type.name() + "\")";
+                         ", type=symbol\"" + f.type.str() + "\")";
     return result;
   }
 
@@ -356,7 +356,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
   {
     std::string result = indent() + "(\n";
     depth++;
-    result += indent() + "name=symbol\"" + decl.name.name() + "\",\n";
+    result += indent() + "name=symbol\"" + decl.name.str() + "\",\n";
     result += indent() + "params=[\n";
     depth++;
     auto size = decl.params.size();
@@ -369,7 +369,7 @@ class PrettyPrinter : public ExprVisitor<std::string>,
 
     if(decl.result) {
       result += indent() + "result=symbol\"" +
-                decl.result.value().first.name() + "\",\n";
+                decl.result.value().first.str() + "\",\n";
     }
     decl.body->field = "body=";
     result += decl.body->accept(*this) + ",\n";

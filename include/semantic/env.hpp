@@ -88,7 +88,7 @@ class Environment {
       }
       result += "-----------------\n";
       for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + "\"" + s.name() + "\": " +
+        result += std::to_string(s.id()) + "-> " + "\"" + s.str() + "\": " +
                   to_string(v) + "\n";
       }
     }

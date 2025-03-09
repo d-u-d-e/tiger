@@ -16,12 +16,12 @@ using Identifier = uint32_t;
 class Symbol {
   public:
   Symbol(const std::string& name, Identifier id)
-    : name_(name)
+    : name(name)
     , id_(id){};
 
-  const std::string& name() const
+  const std::string& str() const
   {
-    return name_;
+    return name;
   }
   Identifier id() const
   {
@@ -34,7 +34,7 @@ class Symbol {
   }
 
   private:
-  std::string name_;
+  std::string name;
   Identifier id_;
 };
 
@@ -42,7 +42,7 @@ class StringTable {
   public:
   std::string name(const Symbol& symbol) const
   {
-    return symbol.name();
+    return symbol.str();
   }
   const Symbol& symbol(const std::string& name);
   std::string dump() const;

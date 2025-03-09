@@ -32,7 +32,7 @@ std::string Record::to_string()
   for(auto i = 0; i < size; i++) {
     auto& [name, type] = fields[i];
     result +=
-      name.name() + ": " + type->to_string() + (i == size - 1 ? "" : ", ");
+      name.str() + ": " + type->to_string() + (i == size - 1 ? "" : ", ");
   }
   return result + "}";
 }
@@ -44,7 +44,7 @@ std::string Array::to_string()
 
 std::string Name::to_string()
 {
-  return name.name();
+  return name.str();
 }
 
 } // namespace semantic::types
