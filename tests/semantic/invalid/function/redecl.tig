@@ -1,0 +1,11 @@
+/* Redeclaration in the same batch of mutually recursive funcs */
+
+let
+  function f() = ()
+  var a := 0
+  function f() : int = 2 /* OK */
+  function g(a: int) : int = a
+  function g() = ()
+in
+  g()
+end

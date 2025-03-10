@@ -1,0 +1,8 @@
+/* Return type does not match actual type */
+
+let
+  function f() : int = 2 /* OK */
+  function g(a: int) : int = "0"
+in
+  g()
+end

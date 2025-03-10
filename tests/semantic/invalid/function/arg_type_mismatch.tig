@@ -1,0 +1,8 @@
+/* Wrong arg type */
+
+let
+  function f(a: int) =
+    a := a + 1
+in
+  f("0")
+end

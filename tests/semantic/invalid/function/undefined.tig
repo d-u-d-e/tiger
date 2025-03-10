@@ -1,0 +1,7 @@
+/* Undefined function */
+
+let
+  function f(a: int) : int = a
+in
+  f(0) + g()
+end

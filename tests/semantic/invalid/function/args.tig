@@ -1,0 +1,7 @@
+/* Wrong number of arguments */
+
+let
+  function f() = ()
+in
+  f(1)
+end

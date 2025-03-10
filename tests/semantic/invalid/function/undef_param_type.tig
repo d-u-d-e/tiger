@@ -1,0 +1,9 @@
+/* Undefined param type */
+
+let
+  type T = int
+  function f(a: T) : int = 0 /* OK */
+  function g(b: U) = ()
+in
+  f()
+end

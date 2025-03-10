@@ -101,14 +101,19 @@ TEST_CASE("invalid_book_examples")
 
 SHOULD_THROW("array/elem_access.tig",
              "[line 7:4] Err: 'int' is not an array type");
-
 SHOULD_THROW("array/init_type_mismatch.tig",
              "[line 7:12] Err: array type mismatch: 'string' != 'int'");
-
 SHOULD_THROW("array/size_not_int.tig",
              "[line 7:12] Err: array size must be an integer");
-
 SHOULD_THROW("array/undefined.tig",
              "[line 6:12] Err: undefined array type 'StrArray'");
+
+SHOULD_THROW("function/arg_type_mismatch.tig", "[line 7:4] Err: argument 0 expects type 'int', got 'string'");
+SHOULD_THROW("function/args.tig", "[line 6:4] Err: expected 0 arguments, got 1");
+SHOULD_THROW("function/redecl.tig", "[line 8:3] Err: redeclaration of function 'g'");
+SHOULD_THROW("function/return_body_mismatch.tig", "[line 5:24] Err: return type 'int' does not match body type 'string'");
+SHOULD_THROW("function/undef_param_type.tig", "[line 6:14] Err: undefined parameter type 'U'");
+SHOULD_THROW("function/undef_return_type.tig", "[line 5:18] Err: undefined return type 'T'");
+SHOULD_THROW("function/undefined.tig", "[line 6:11] Err: undefined function 'g'");
 
 TEST_SUITE_END();
