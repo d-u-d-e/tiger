@@ -1,4 +1,5 @@
 #include <lexer/token.hpp>
+#include <utility>
 
 namespace lexer
 {
@@ -118,6 +119,7 @@ std::string to_string(TokenType type)
     return "assign_op";
   }
   assert(false);
+  std::unreachable();
 }
 
 std::string to_string(const Token& token)

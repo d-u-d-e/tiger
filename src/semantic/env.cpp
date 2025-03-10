@@ -1,4 +1,5 @@
 #include <semantic/env.hpp>
+#include <utility>
 
 namespace semantic::env
 {
@@ -19,6 +20,7 @@ std::string to_string(const VEntry& entry)
     return result + ") -> " + std::get<FuncEntry>(entry).result->to_string();
   }
   assert(false);
+  std::unreachable();
 }
 
 std::string to_string(const TEntry& entry)
