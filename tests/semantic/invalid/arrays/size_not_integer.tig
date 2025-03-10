@@ -1,0 +1,12 @@
+/* The size of the array is not an integer
+   expected message:
+   [line 10:12] Err: the size of the array must be an integer
+*/
+
+let
+  type IntArray = array of int
+  type StrArray = array of string
+  var a := IntArray[2] of 0 /* OK */
+  var b := StrArray["a"] of 0
+in
+end

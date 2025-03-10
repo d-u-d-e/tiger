@@ -82,4 +82,46 @@ TEST_CASE("invalid_book_examples")
   }
 }
 
+TEST_CASE("invalid/arrays/init_type.tig")
+{
+  lexer::Scanner scanner(
+    std::filesystem::path("../tests/semantic/invalid/arrays/init_type.tig"));
+  auto string_table = symbol::StringTable();
+  parser::Parser parser(scanner, string_table);
+
+  CHECK_THROWS_WITH({
+    auto exp = parser.parse();
+    semantic::Analyzer analyzer(string_table);
+    analyzer.type_check(*exp);
+  }, "[line 10:12] Err: the type of the array elements must match");
+}
+
+TEST_CASE("invalid/arrays/size_not_integer.tig")
+{
+  lexer::Scanner scanner(
+    std::filesystem::path("../tests/semantic/invalid/arrays/size_not_integer.tig"));
+  auto string_table = symbol::StringTable();
+  parser::Parser parser(scanner, string_table);
+
+  CHECK_THROWS_WITH({
+    auto exp = parser.parse();
+    semantic::Analyzer analyzer(string_table);
+    analyzer.type_check(*exp);
+  }, "[line 10:12] Err: the size of the array must be an integer");
+}
+
+TEST_CASE("invalid/arrays/unknown_type.tig")
+{
+  lexer::Scanner scanner(
+    std::filesystem::path("../tests/semantic/invalid/arrays/unknown_type.tig"));
+  auto string_table = symbol::StringTable();
+  parser::Parser parser(scanner, string_table);
+
+  CHECK_THROWS_WITH({
+    auto exp = parser.parse();
+    semantic::Analyzer analyzer(string_table);
+    analyzer.type_check(*exp);
+  }, "[line 9:12] Err: undefined array type 'StrArray'");
+}
+
 TEST_SUITE_END();

@@ -57,9 +57,8 @@ void Analyzer::add_predefined_functions()
 
 void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
 {
-  // TODO: go on and type check other stuff instead of throwing at first error
   throw std::runtime_error(
-    std::format("[line {}:{}] Err: {}\n", pos.line, pos.column, err_msg));
+    std::format("[line {}:{}] Err: {}", pos.line, pos.column, err_msg));
 }
 
 void Analyzer::type_check(const parser::ast::Expression& exp)

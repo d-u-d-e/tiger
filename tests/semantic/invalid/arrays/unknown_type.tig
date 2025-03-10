@@ -1,0 +1,11 @@
+/* Undeclared array type
+   expected message:
+   [line 9:12] Err: undefined array type 'StrArray'
+*/
+
+let
+  type IntArray = array of int
+  var a := IntArray[2] of 0 /* OK */
+  var b := StrArray[1] of 0
+in
+end

@@ -1,0 +1,12 @@
+/* The type of the init expr is wrong
+   expected message:
+   [line 10:12] Err: the type of the array elements must match
+*/
+
+let
+  type IntArray = array of int
+  type StrArray = array of string
+  var a := IntArray[2] of 0 /* OK */
+  var b := StrArray[2] of 0
+in
+end
