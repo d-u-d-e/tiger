@@ -190,17 +190,18 @@ TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
              std::format("undefined array type '{}'", exp.type.str()));
   }
   else if(!is_type<types::Integer>(*tsize)) {
-    error_at(exp.position, "the size of the array must be an integer");
+    error_at(exp.position, "array size must be an integer");
   }
   else {
     auto arr = dynamic_cast<types::Array*>(texpr.value().get());
     if(!can_assign(skip_name_types(arr->type), tinit)) {
-      error_at(exp.position, "the type of the array elements must match");
+      error_at(exp.position, std::format("array type mismatch: '{}' != '{}'", 
+        to_string(arr->type), to_string(tinit)));
     }
   }
   // this is an array type, whose elements may be name types
   return texpr.value();
-};
+}
 
 TEntry Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
@@ -693,7 +694,7 @@ TEntry Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
   auto tlhs = var.var->accept(*this);
   if(!is_type<types::Array>(*tlhs)) {
     error_at(var.position,
-             std::format("{} is not an array type", to_string(tlhs)));
+             std::format("'{}' is not an array type", to_string(tlhs)));
   }
   auto array = dynamic_cast<types::Array*>(tlhs.get());
 

@@ -1,7 +1,4 @@
-/* The type of the init expr is wrong
-   expected message:
-   [line 10:12] Err: the type of the array elements must match
-*/
+/* The type of the init expr is wrong */
 
 let
   type IntArray = array of int

@@ -1,0 +1,8 @@
+/* Cannot apply [] to a type which is not an array */
+
+let
+  type T = int
+  var a: T := 0
+in
+  a[0] := 0
+end

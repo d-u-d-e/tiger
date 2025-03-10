@@ -1,0 +1,7 @@
+let
+  type T = array of int
+  var a := T[1] of 0
+in
+  a = nil
+end
+  

@@ -1,7 +1,4 @@
-/* Undeclared array type
-   expected message:
-   [line 9:12] Err: undefined array type 'StrArray'
-*/
+/* Undefined array type */
 
 let
   type IntArray = array of int
