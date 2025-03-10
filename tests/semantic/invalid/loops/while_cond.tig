@@ -1,0 +1,4 @@
+/* While condition must be an integer */
+
+while "0" do
+  ()

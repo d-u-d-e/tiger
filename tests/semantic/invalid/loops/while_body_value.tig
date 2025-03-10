@@ -1,0 +1,4 @@
+/* While body must not produce any value */
+
+while 1 do
+  0

@@ -1,0 +1,4 @@
+/* For high bound must be an integer */
+
+for a := 0 to "2" do
+  ()

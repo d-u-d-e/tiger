@@ -1,0 +1,7 @@
+/* Both branches must return same type */
+
+(
+  if 0 = 0 then 1 else 0; /* OK */
+  if 0 then () else (); /* OK */
+  if 0 then 1 else "0"
+)

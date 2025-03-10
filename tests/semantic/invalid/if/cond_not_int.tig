@@ -1,0 +1,3 @@
+/* If condition must evaluate to int */
+
+if "a" then 0

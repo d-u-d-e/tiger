@@ -99,14 +99,12 @@ TEST_CASE("invalid_book_examples")
       msg);                                                                    \
   }
 
-SHOULD_THROW("array/elem_access.tig",
-             "[line 7:4] Err: 'int' is not an array type");
-SHOULD_THROW("array/init_type_mismatch.tig",
-             "[line 7:12] Err: array type mismatch: 'string' != 'int'");
-SHOULD_THROW("array/size_not_int.tig",
-             "[line 7:12] Err: array size must be an integer");
-SHOULD_THROW("array/undefined.tig",
-             "[line 6:12] Err: undefined array type 'StrArray'");
+// clang-format off
+
+SHOULD_THROW("array/elem_access.tig", "[line 7:4] Err: 'int' is not an array type");
+SHOULD_THROW("array/init_type_mismatch.tig", "[line 7:12] Err: array type mismatch: 'string' != 'int'");
+SHOULD_THROW("array/size_not_int.tig", "[line 7:12] Err: array size must be an integer");
+SHOULD_THROW("array/undefined.tig", "[line 6:12] Err: undefined array type 'StrArray'");
 
 SHOULD_THROW("function/arg_type_mismatch.tig", "[line 7:4] Err: argument 0 expects type 'int', got 'string'");
 SHOULD_THROW("function/args.tig", "[line 6:4] Err: expected 0 arguments, got 1");
@@ -116,4 +114,16 @@ SHOULD_THROW("function/undef_param_type.tig", "[line 6:14] Err: undefined parame
 SHOULD_THROW("function/undef_return_type.tig", "[line 5:18] Err: undefined return type 'T'");
 SHOULD_THROW("function/undefined.tig", "[line 6:11] Err: undefined function 'g'");
 
+SHOULD_THROW("if/cond_not_int.tig", "[line 3:1] Err: the condition must be an integer");
+SHOULD_THROW("if/then_else_mismatch.tig", "[line 6:3] Err: types of then and else branches must match");
+SHOULD_THROW("if/then_value.tig", "[line 3:1] Err: the then branch must not produce any value");
+
+SHOULD_THROW("loops/break_outside.tig", "[line 20:3] Err: break statement not within a loop");
+SHOULD_THROW("loops/for_body_value.tig", "[line 3:1] Err: the body of the for loop must not produce any value");
+SHOULD_THROW("loops/for_high.tig", "[line 3:1] Err: the upper bound must be an integer");
+SHOULD_THROW("loops/for_low.tig", "[line 3:1] Err: the lower bound must be an integer");
+SHOULD_THROW("loops/while_body_value.tig", "[line 3:1] Err: the body of the while loop must not produce any value");
+SHOULD_THROW("loops/while_cond.tig", "[line 3:1] Err: the condition must be an integer");
+
+// clang-format on
 TEST_SUITE_END();

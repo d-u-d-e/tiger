@@ -1,0 +1,3 @@
+/* If branch must not return any value */
+
+if 0 then "s"

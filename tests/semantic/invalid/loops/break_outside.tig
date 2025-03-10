@@ -1,0 +1,21 @@
+/* Break outside is invalid */
+
+let
+  var a := 2
+in
+
+  while 1 do
+  (
+    break; 
+    while 1 do
+    ( 
+      break;
+      a := 0
+    )
+  );
+
+  while a do
+    a := a - 1
+  ;
+  break
+end
