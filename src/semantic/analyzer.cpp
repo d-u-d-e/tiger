@@ -13,11 +13,46 @@ static auto unit_type = std::make_shared<types::Unit>();
 Analyzer::Analyzer(symbol::StringTable& string_table)
   : string_table(string_table)
 {
+
+  add_predefined_types();
+  add_predefined_functions();
+}
+
+void Analyzer::add_predefined_types()
+{
   // predefined types
   tenv.enter(string_table.symbol("int"), int_type);
   tenv.enter(string_table.symbol("string"), string_type);
   // nil is not really a type, but it is convenient to consider it as such
   tenv.enter(string_table.symbol("nil"), nil_type);
+}
+
+template <typename... Args>
+void Analyzer::add_predef_func(const symbol::Symbol& s,
+                               const TEntry& ret,
+                               Args&&... formals)
+{
+  venv.enter(
+    s, FuncEntry(std::vector<TEntry>{std::forward<Args>(formals)...}, ret));
+}
+
+void Analyzer::add_predefined_functions()
+{
+  add_predef_func(string_table.symbol("print"), unit_type, string_type);
+  add_predef_func(string_table.symbol("flush"), unit_type);
+  add_predef_func(string_table.symbol("getchar"), string_type);
+  add_predef_func(string_table.symbol("ord"), int_type, string_type);
+  add_predef_func(string_table.symbol("chr"), string_type, int_type);
+  add_predef_func(string_table.symbol("size"), int_type, string_type);
+  add_predef_func(string_table.symbol("substring"),
+                  string_type,
+                  string_type,
+                  int_type,
+                  int_type);
+  add_predef_func(
+    string_table.symbol("concat"), string_type, string_type, string_type);
+  add_predef_func(string_table.symbol("not"), int_type, int_type);
+  add_predef_func(string_table.symbol("exit"), unit_type, int_type);
 }
 
 void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
@@ -228,7 +263,15 @@ TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
   if(exp.else_) {
     auto telse = exp.else_->accept(*this);
     if(!same_types(tthen, telse)) {
-      error_at(exp.position, "types of then and else branches must match");
+      if(is_type<types::Record>(*tthen) && is_type<types::Nil>(*telse)) {
+        return tthen;
+      }
+      else if(is_type<types::Record>(*telse) && is_type<types::Nil>(*tthen)) {
+        return telse;
+      }
+      else {
+        error_at(exp.position, "types of then and else branches must match");
+      }
     }
     return tthen;
   }
@@ -359,13 +402,14 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     So that type checking the body can proceed without undefined references.
 
   */
-
+  std::unordered_set<symbol::Identifier> batch;
   for(auto& fdecl : decl.decls) {
-    if(venv.lookup(fdecl->name)) {
+    if(batch.contains(fdecl->name.id())) {
       error_at(
         fdecl->position,
         std::format("redeclaration of function '{}'", fdecl->name.str()));
     }
+    batch.insert(fdecl->name.id());
 
     // type check the parameters
     std::vector<TEntry> formals;
@@ -455,16 +499,19 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
 
 void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
+  std::unordered_set<symbol::Identifier> batch;
+
   // add the headers to the type environment
   for(auto& tdecl : decl.decls) {
     // we register the symbol as a name type, to be resolved in a later pass
     // this way it exists in the environment
-    if(tenv.lookup(tdecl->name)) {
+    if(batch.contains(tdecl->name.id())) {
       error_at(tdecl->position,
                std::format("redeclaration of type '{}'", tdecl->name.str()));
     }
     tenv.enter(tdecl->name,
                std::make_shared<types::Name>(tdecl->name, nullptr));
+    batch.insert(tdecl->name.id());
   }
 
   // next we replace all those fake names with the true type

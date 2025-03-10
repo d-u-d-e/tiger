@@ -10,9 +10,9 @@ namespace semantic
 using namespace env;
 
 class Analyzer : public parser::ast::TypeCheckerExprVisitor,
-                    public parser::ast::TypeCheckerDeclVisitor,
-                    public parser::ast::TypeCheckerVarVisitor,
-                    public parser::ast::TypeCheckerTypeVisitor
+                 public parser::ast::TypeCheckerDeclVisitor,
+                 public parser::ast::TypeCheckerVarVisitor,
+                 public parser::ast::TypeCheckerTypeVisitor
 
 {
 
@@ -49,6 +49,11 @@ class Analyzer : public parser::ast::TypeCheckerExprVisitor,
   TEntry visit_subscript_var(const parser::ast::SubscriptVar& var) override;
 
   private:
+  void add_predefined_types();
+  void add_predefined_functions();
+  template <typename... Args>
+  void add_predef_func(const symbol::Symbol& s, const TEntry& ret, Args&&... formals);
+
   template <typename T>
   bool is_type(const types::Type& t);
   bool can_assign(const TEntry& tlhs, const TEntry& trhs);
