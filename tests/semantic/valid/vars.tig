@@ -1,0 +1,18 @@
+let
+  type A = array of int
+  type B = {f: int, g: A}
+  type C = {b: B}
+  type D = array of B
+  
+  var x := 0
+  var y := x
+  var a : A := A[1] of 0
+  var b : B := B {f = 0, g = a}
+  var c := C {b = b}
+  var d := D[1] of nil
+    
+in
+  x := y;
+  c.b.f = 2;
+  d[0].g[0] = 3
+end

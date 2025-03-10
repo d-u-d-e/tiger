@@ -1,0 +1,28 @@
+let
+  function is_even(n: int): int = if n = 0 then 1 else is_odd(n-1)
+  function is_odd(n: int): int = if n = 0 then 0 else is_even(n-1)
+
+  function f() = 
+    let
+      var a := 0
+    in
+      while a < 10 do
+        a := a + 1
+    end
+
+  type A = array of int
+  type B = {a: A}
+
+  function g(a: A, b: B) : int = 
+    a[0] + b.a[1]
+in
+  0 = 
+  let
+    var a := A[1] of 0
+    var b := B {a = a}
+  in
+    is_even(2) + is_odd(3);
+    f();
+    g(a, b)
+  end
+end

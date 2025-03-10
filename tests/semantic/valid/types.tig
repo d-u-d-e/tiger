@@ -1,0 +1,22 @@
+let
+  type IntArray = array of int
+  type IntMatrix = array of IntArray
+
+  type A = IntMatrix
+  type B = C
+  type C = A
+
+  type D = array of E
+  type E = F
+  type F = A
+
+  /* a 4 X 3 matrix */
+  var a := IntMatrix[3] of IntArray[4] of 0
+  var e : E := a
+  var d := D[1] of a
+
+in
+  a[0][0] = 2;
+  d[0][1][2] = 3
+
+end

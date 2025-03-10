@@ -27,5 +27,9 @@ SHOULD_PASS("op_expr.tig");
 SHOULD_PASS("record_expr.tig");
 SHOULD_PASS("seq_expr.tig");
 SHOULD_PASS("while_expr.tig");
+SHOULD_PASS("for_expr.tig");
+SHOULD_PASS("vars.tig");
+SHOULD_PASS("funcs.tig");
+SHOULD_PASS("types.tig");
 
 TEST_SUITE_END();
