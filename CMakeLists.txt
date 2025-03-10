@@ -7,9 +7,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # add dependencies
 include(cmake/CPM.cmake)
-
-set(CMAKE_BUILD_TYPE Debug)
-
 add_executable(
     tiger
     src/main.cpp
@@ -24,11 +21,11 @@ add_executable(
     src/semantic/analyzer.cpp
 )
 target_include_directories(tiger PRIVATE include)
+target_compile_options(tiger PRIVATE -g -O0)
 
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
 if(BUILD_TEST_RUNNER)
-
     CPMAddPackage("https://github.com/doctest/doctest.git@2.4.11")
     add_executable(test-runner
     tests/main.cpp
@@ -51,4 +48,5 @@ if(BUILD_TEST_RUNNER)
     )
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)
+    target_compile_options(test-runner PRIVATE -O2)
 endif(BUILD_TEST_RUNNER)
