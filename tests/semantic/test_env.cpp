@@ -29,13 +29,13 @@ TEST_CASE("nested_scopes_types.tig")
 
   /*
     let
-      type T := int
+      type T = int
       let 
-        type T := string
+        type T = string
        in
       end
-      type R := {x: int, y: string, z: string}
-      type A := array of string
+      type R = {x: int, y: string, z: string}
+      type A = array of string
     in
     end
   */
@@ -85,7 +85,7 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
     let
       var a := 2
       let 
-        var b : string = "hello"
+        var b : string := "hello"
         function f(x: int, y: string): string = x
        in
       end
