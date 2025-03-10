@@ -160,7 +160,7 @@ TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
   }
   else {
     auto arr = dynamic_cast<types::Array*>(texpr.value().get());
-    if(!same_types(skip_name_types(arr->type), tinit)) {
+    if(!can_assign(skip_name_types(arr->type), tinit)) {
       error_at(exp.position, "the type of the array elements must match");
     }
   }
