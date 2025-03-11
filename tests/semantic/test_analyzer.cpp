@@ -137,6 +137,14 @@ SHOULD_THROW("record/undefined.tig", "[line 6:3] Err: undefined record type 'S'"
 SHOULD_THROW("record/unexpected_field_name.tig", "[line 6:13] Err: expected field 'b', got 'c'");
 SHOULD_THROW("record/unexpected_field_type.tig", "[line 6:13] Err: expected type 'string' for field 'b', got 'int'");
 
+SHOULD_THROW("type/cycle1.tig", "[line 4:3] Err: cycle in type declaration");
+SHOULD_THROW("type/cycle2.tig", "[line 4:3] Err: cycle in type declaration");
+SHOULD_THROW("type/cycle3.tig", "[line 4:3] Err: cycle in type declaration");
+SHOULD_THROW("type/redecl.tig", "[line 8:3] Err: redeclaration of type 'A'");
+SHOULD_THROW("type/undef_array.tig", "[line 6:21] Err: undefined type 'T'");
+SHOULD_THROW("type/undef_name.tig", "[line 5:12] Err: undefined type 'T'");
+SHOULD_THROW("type/undef_record.tig", "[line 4:21] Err: undefined type 'T'");
+
 SHOULD_THROW("var/init_nil.tig", "[line 6:3] Err: nil must be constrained by a record type");
 SHOULD_THROW("var/init_type_mismatch.tig", "[line 5:11] Err: decl type 'R' does not match expr type 'int'");
 SHOULD_THROW("var/undef_type.tig", "[line 5:11] Err: undefined type 'R'");

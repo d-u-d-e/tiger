@@ -1,8 +1,6 @@
 /* type decl contains a cycle */
 
 let
-  type A = B
-  type B = C
-  type C = B
+  type A = A
 in
 end

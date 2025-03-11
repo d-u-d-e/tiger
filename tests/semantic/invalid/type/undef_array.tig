@@ -1,0 +1,8 @@
+/* Undefined type for array elements */
+
+let
+  type A = array of int
+  var a : A := A[1] of 0
+  type B = array of T
+in
+end

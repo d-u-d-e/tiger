@@ -1,0 +1,10 @@
+/* type redecl in the same batch of mutually recursive types */
+
+let
+  type A = int
+  type B = string
+  var s := "s"
+  type A = string /* OK */
+  type A = int /* NOK */
+in
+end

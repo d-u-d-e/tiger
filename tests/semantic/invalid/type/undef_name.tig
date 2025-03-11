@@ -1,0 +1,7 @@
+/* Undefined type name */
+
+let
+  type A = int
+  type B = T
+in
+end

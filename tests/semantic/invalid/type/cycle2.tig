@@ -1,0 +1,7 @@
+/* type decl contains a cycle */
+
+let
+  type A = array of B
+  type B = array of A
+in
+end

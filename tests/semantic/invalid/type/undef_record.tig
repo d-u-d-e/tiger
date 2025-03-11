@@ -1,0 +1,6 @@
+/* Undefined record field type */
+
+let
+  type R = {a: int, b: T}
+in
+end
