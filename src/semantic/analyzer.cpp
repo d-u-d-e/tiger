@@ -195,8 +195,10 @@ TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
   else {
     auto arr = dynamic_cast<types::Array*>(texpr.value().get());
     if(!can_assign(skip_name_types(arr->type), tinit)) {
-      error_at(exp.position, std::format("array type mismatch: '{}' != '{}'", 
-        to_string(arr->type), to_string(tinit)));
+      error_at(exp.position,
+               std::format("array type mismatch: '{}' != '{}'",
+                           to_string(arr->type),
+                           to_string(tinit)));
     }
   }
   // this is an array type, whose elements may be name types
@@ -483,7 +485,7 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
     if(!can_assign(skip_name_types(tdecl.value()), tinit)) {
       error_at(tpos,
                std::format("decl type '{}' does not match expr type '{}'",
-                           to_string(tdecl.value()),
+                           tname.str(),
                            to_string(tinit)));
     }
     venv.enter(decl.name, VarEntry(tdecl.value()));

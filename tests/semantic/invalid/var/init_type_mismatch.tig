@@ -1,0 +1,7 @@
+/* Init expression type does not match declared type */
+
+let
+  type R = {a: int, b: string}
+  var a : R := 2
+in
+end

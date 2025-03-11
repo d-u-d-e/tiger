@@ -1,0 +1,9 @@
+/* Assignment to nil allowed only if variable is constrained to record type */
+
+let
+  type R = {a: int, b: string}
+  var a : R := nil /* OK */
+  var b := nil /* NOK */
+in
+  
+end

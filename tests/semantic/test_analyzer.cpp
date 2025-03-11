@@ -137,5 +137,10 @@ SHOULD_THROW("record/undefined.tig", "[line 6:3] Err: undefined record type 'S'"
 SHOULD_THROW("record/unexpected_field_name.tig", "[line 6:13] Err: expected field 'b', got 'c'");
 SHOULD_THROW("record/unexpected_field_type.tig", "[line 6:13] Err: expected type 'string' for field 'b', got 'int'");
 
+SHOULD_THROW("var/init_nil.tig", "[line 6:3] Err: nil must be constrained by a record type");
+SHOULD_THROW("var/init_type_mismatch.tig", "[line 5:11] Err: decl type 'R' does not match expr type 'int'");
+SHOULD_THROW("var/undef_type.tig", "[line 5:11] Err: undefined type 'R'");
+SHOULD_THROW("var/undefined.tig", "[line 3:5] Err: undefined variable 'a'");
+
 // clang-format on
 TEST_SUITE_END();

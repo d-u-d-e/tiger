@@ -1,0 +1,7 @@
+/* Undefined type */
+
+let
+  type T = int
+  var a : R := 0
+in
+end
