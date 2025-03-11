@@ -1,0 +1,7 @@
+/* Wrong number of fields */
+
+let
+  type R = {a: int, b: string}
+in
+  R {a = 2}
+end

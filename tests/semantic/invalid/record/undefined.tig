@@ -1,0 +1,7 @@
+/* Undefined record type */
+
+let
+  type R = {a: int, b: string}
+in
+  S {a = 2}
+end

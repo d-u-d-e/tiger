@@ -1,0 +1,7 @@
+/* Unexpected field name */
+
+let
+  type R = {a: int, b: string}
+in
+  R {a = 2, c = 2}
+end
