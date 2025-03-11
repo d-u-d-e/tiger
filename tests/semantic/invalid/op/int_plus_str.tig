@@ -1,3 +1,5 @@
+/* Adding int to string */
+
 (
   1 + "a"
 )

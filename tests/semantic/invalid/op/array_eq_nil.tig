@@ -1,3 +1,5 @@
+/* Comparing array to nil */
+
 let
   type T = array of int
   var a := T[1] of 0

@@ -671,7 +671,7 @@ TEntry Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   // . applicable to records only
   if(!is_type<types::Record>(*tlhs)) {
     error_at(var.position,
-             std::format("{} is not a record type", to_string(tlhs)));
+             std::format("'{}' is not a record type", to_string(tlhs)));
   }
   auto record = dynamic_cast<types::Record*>(tlhs.get());
 

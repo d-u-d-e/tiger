@@ -1,3 +1,5 @@
+/* Comparing array to record */
+
 let
   type T = array of int
   type R = {}

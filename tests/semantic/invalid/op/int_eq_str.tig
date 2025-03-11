@@ -1,3 +1,5 @@
+/* Comparing int to string */
+
 (
   3 = "a"
 )

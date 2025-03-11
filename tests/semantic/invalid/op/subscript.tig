@@ -1,0 +1,11 @@
+/* Subscript operator can be applied to arrays only */
+
+let
+  type A = array of int
+  type S = string
+  var a := A[1] of 0
+  var s : S := "s"
+in
+  a[0] := 1; /* OK */
+  s[0] := 0
+end

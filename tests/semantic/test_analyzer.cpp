@@ -125,5 +125,14 @@ SHOULD_THROW("loops/for_low.tig", "[line 3:1] Err: the lower bound must be an in
 SHOULD_THROW("loops/while_body_value.tig", "[line 3:1] Err: the body of the while loop must not produce any value");
 SHOULD_THROW("loops/while_cond.tig", "[line 3:1] Err: the condition must be an integer");
 
+SHOULD_THROW("op/array_eq_nil.tig", "[line 7:5] Err: operands must be of the same type");
+SHOULD_THROW("op/dot.tig", "[line 10:5] Err: 'string' is not a record type");
+SHOULD_THROW("op/int_eq_str.tig", "[line 4:5] Err: operands must be of the same type");
+SHOULD_THROW("op/int_plus_str.tig", "[line 4:5] Err: operands must be integers");
+SHOULD_THROW("op/record_eq_array.tig", "[line 9:5] Err: operands must be of the same type");
+SHOULD_THROW("op/subscript.tig", "[line 10:4] Err: 'string' is not an array type");
+
+
+
 // clang-format on
 TEST_SUITE_END();

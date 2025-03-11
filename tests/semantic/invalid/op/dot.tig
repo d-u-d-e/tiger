@@ -1,0 +1,11 @@
+/* Dot operator can be applied to records only */
+
+let
+  type R = {a: int}
+  type S = string
+  var r := R {a = 0}
+  var s : S := "s"
+in
+  r.a := 1; /* OK */
+  s.t := 0
+end
