@@ -379,10 +379,6 @@ TEntry Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   }
 
   auto tres = exp.body->accept(*this);
-
-  // TODO: remove
-  std::cout << tenv.dump() << std::endl;
-
   venv.end_scope();
   tenv.end_scope();
   return tres;
