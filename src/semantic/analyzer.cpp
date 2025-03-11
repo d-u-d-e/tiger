@@ -76,9 +76,11 @@ TEntry Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
-
+  
   if(!can_assign(tvar, trhs)) {
-    error_at(exp.position, "type mismatch");
+    error_at(exp.position,
+             std::format(
+               "cannot assign '{}' to '{}'", to_string(trhs), to_string(tvar)));
   }
   return unit_type;
 };

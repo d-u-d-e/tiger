@@ -1,0 +1,8 @@
+let
+  var a := 2
+  var b := "s"
+  type T = string
+  var c : T := "s"
+in
+  a := c
+end
