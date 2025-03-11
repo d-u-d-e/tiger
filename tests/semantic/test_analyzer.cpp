@@ -101,7 +101,7 @@ TEST_CASE("invalid_book_examples")
 
 // clang-format off
 
-SHOULD_THROW("array/elem_access.tig", "[line 7:4] Err: 'int' is not an array type");
+SHOULD_THROW("array/elem_access.tig", "[line 7:4] Err: expression between '[]' must be an integer");
 SHOULD_THROW("array/init_type_mismatch.tig", "[line 7:12] Err: array type mismatch: 'string' != 'int'");
 SHOULD_THROW("array/size_not_int.tig", "[line 7:12] Err: array size must be an integer");
 SHOULD_THROW("array/undefined.tig", "[line 6:12] Err: undefined array type 'StrArray'");
@@ -132,6 +132,7 @@ SHOULD_THROW("op/int_plus_str.tig", "[line 4:5] Err: operands must be integers")
 SHOULD_THROW("op/record_eq_array.tig", "[line 9:5] Err: operands must be of the same type");
 SHOULD_THROW("op/subscript.tig", "[line 10:4] Err: 'string' is not an array type");
 
+SHOULD_THROW("record/dot_unexpected_field_name.tig", "[line 7:5] Err: unexpected record field name 'c'");
 SHOULD_THROW("record/fields.tig", "[line 6:3] Err: expected 2 fields, got 1");
 SHOULD_THROW("record/undefined.tig", "[line 6:3] Err: undefined record type 'S'");
 SHOULD_THROW("record/unexpected_field_name.tig", "[line 6:13] Err: expected field 'b', got 'c'");

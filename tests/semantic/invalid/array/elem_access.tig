@@ -1,8 +1,8 @@
-/* Cannot apply [] to a type which is not an array */
+/* Cannot index using strings */
 
 let
-  type T = int
-  var a: T := 0
+  type T = array of int
+  var a: T := T[1] of 0
 in
-  a[0] := 0
+  a["2"] := 0
 end
