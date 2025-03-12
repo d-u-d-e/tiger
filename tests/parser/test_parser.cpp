@@ -151,6 +151,12 @@ SHOULD_FAIL(
   "[line 6:1] Err at ')': expected expression\n"
   "[line 6:2] Err at '$': expected ')' closing a sequence expression\n");
 
-SHOULD_FAIL("while.tig", "[line 1:8] Err at '$': expected 'do' after while condition\n");
+SHOULD_FAIL("while.tig",
+            "[line 1:8] Err at '$': expected 'do' after while condition\n");
+
+SHOULD_FAIL("var.tig",
+            "[line 3:3] Err at 'var': expected variable identifier\n"
+            "[line 3:7] Err at ':': expected variable identifier\n"
+            "[line 4:9] Err at '=': expected ':=' in a variable declaration\n");
 
 TEST_SUITE_END();
