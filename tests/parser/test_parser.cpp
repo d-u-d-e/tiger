@@ -144,4 +144,11 @@ SHOULD_FAIL(
   "[line 7:2] Err at '$': expected 'end' after let expression\n"
   "[line 7:2] Err at '$': expected ')' closing a sequence expression\n");
 
+SHOULD_FAIL(
+  "if.tig",
+  "[line 2:7] Err at ';': expected 'then' after if condition\n"
+  "[line 3:12] Err at ';': expected expression\n"
+  "[line 6:1] Err at ')': expected expression\n"
+  "[line 6:2] Err at '$': expected ')' closing a sequence expression\n");
+
 TEST_SUITE_END();
