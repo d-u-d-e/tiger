@@ -250,7 +250,12 @@ std::unique_ptr<ast::LetExp> Parser::let_expr()
 
     do {
       auto exp_pos = current.pos;
-      exps.emplace_back(expression(Precedence::None), exp_pos);
+      try {
+        exps.emplace_back(expression(Precedence::None), exp_pos);
+      }
+      catch(std::runtime_error& e) {
+        skip({lexer::TokenType::semicolon, lexer::TokenType::end_keyword});
+      }
     } while(match(lexer::TokenType::semicolon));
 
     expect(lexer::TokenType::end_keyword,

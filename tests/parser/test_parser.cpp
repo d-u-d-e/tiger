@@ -83,6 +83,18 @@ TEST_CASE("invalid_book_examples")
         "[line 5:21] Err at 'nil': expected 'in' after let decls\n");
 }
 
-SHOULD_FAIL("empty.tig", "[line 1:0] Err at '$': expected expression\n");
+SHOULD_FAIL("empty.tig", "[line 1:1] Err at '$': expected expression\n");
+
+SHOULD_FAIL("junk.tig",
+            "[line 7:1] Err at 'junk': unexpected token after expression\n");
+
+SHOULD_FAIL(
+  "seq.tig",
+  "[line 4:4] Err at '$': expected ')' closing a sequence expression\n");
+
+SHOULD_FAIL(
+  "record.tig",
+  "[line 5:4] Err at '.': expected variable before token '.'\n"
+  "[line 7:1] Err at 'end': expected record field name after token '.'\n");
 
 TEST_SUITE_END();
