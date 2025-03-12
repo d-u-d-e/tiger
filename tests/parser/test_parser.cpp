@@ -172,4 +172,16 @@ SHOULD_FAIL(
   "[line 12:1] Err at 'in': expected expression\n"
   "[line 13:4] Err at '$': expected 'in' after let decls\n");
 
+SHOULD_FAIL(
+  "type.tig",
+  "[line 4:3] Err at 'type': expected type name after token 'type'\n"
+  "[line 5:3] Err at 'type': expected '=' after type identifier\n"
+  "[line 6:3] Err at 'type': expected type identifier after '=' token\n"
+  "[line 8:3] Err at 'type': expected field name\n"
+  "[line 8:14] Err at '}': expected ':' after field name\n"
+  "[line 9:16] Err at '}': expected field type after token ':'\n"
+  "[line 11:1] Err at 'in': expected '}' after type fields\n"
+  "[line 16:3] Err at 'type': expected 'of' after 'array' token\n"
+  "[line 17:3] Err at 'type': expected type identifier after 'of' token\n");
+
 TEST_SUITE_END();
