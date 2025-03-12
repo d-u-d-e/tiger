@@ -110,4 +110,9 @@ SHOULD_FAIL(
   "[line 7:6] Err at ';': expected ']' closing subscript expression\n"
   "[line 8:4] Err at '[': expected variable before token '['\n");
 
+SHOULD_FAIL("assign.tig",
+            "[line 4:5] Err at ':=': invalid assignment target\n"
+            "[line 6:7] Err at ':=': invalid assignment target\n"
+            "[line 7:7] Err at ':=': invalid assignment target\n");
+
 TEST_SUITE_END();
