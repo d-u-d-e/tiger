@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <sysexits.h>
 
 namespace lexer
 {
@@ -79,7 +80,8 @@ class Scanner {
 
   void error(const std::string& err_msg)
   {
-    throw std::runtime_error(std::format("[line {}] Err: {}\n", line, err_msg));
+    std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
+    exit(EX_DATAERR);
   }
 
   Token eof_token()

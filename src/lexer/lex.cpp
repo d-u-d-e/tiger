@@ -125,7 +125,7 @@ Token Scanner::punctuation()
     break;
   }
 
-  error(std::format("Invalid character {}!\n", *current));
+  error(std::format("Invalid character '{}'", *current));
   std::unreachable();
 }
 
