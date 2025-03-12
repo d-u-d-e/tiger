@@ -1,7 +1,12 @@
 let
   type R = {a: int}
-  var r := R {a = 0}
+  var r1 := R {
+  var r2 := R {a
+  var r3 := R {a = 2, b = 2
+  var r4 := R {a = 2, b = 
+  var r5 := 2
+  var r6 := 2 {a = 0}
 in
   2.a;
-  r.
+  r2.
 end

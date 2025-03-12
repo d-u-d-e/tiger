@@ -94,17 +94,20 @@ SHOULD_FAIL(
 
 SHOULD_FAIL(
   "record.tig",
-  "[line 5:4] Err at '.': expected variable before token '.'\n"
-  "[line 7:1] Err at 'end': expected record field name after token '.'\n");
+  "[line 4:3] Err at 'var': expected record field name\n"
+  "[line 5:3] Err at 'var': expected '=' after record field name\n"
+  "[line 6:3] Err at 'var': expected '}' after record fields\n"
+  "[line 7:3] Err at 'var': expected expression\n"
+  "[line 8:15] Err at '{': expected identifier as record type\n"
+  "[line 10:4] Err at '.': expected variable before token '.'\n"
+  "[line 12:1] Err at 'end': expected record field name after token '.'\n");
 
 SHOULD_FAIL(
-  "subscript.tig",
+  "array.tig",
   "[line 4:13] Err at '[': expected variable before token '['\n"
   "[line 5:15] Err at '[': expected type identifier before token '[' of array "
   "expression\n"
   "[line 7:6] Err at ';': expected ']' closing subscript expression\n"
   "[line 8:4] Err at '[': expected variable before token '['\n");
 
-
-  
 TEST_SUITE_END();
