@@ -159,4 +159,17 @@ SHOULD_FAIL("var.tig",
             "[line 3:7] Err at ':': expected variable identifier\n"
             "[line 4:9] Err at '=': expected ':=' in a variable declaration\n");
 
+SHOULD_FAIL(
+  "func.tig",
+  "[line 3:3] Err at 'function': expected function name\n"
+  "[line 4:3] Err at 'function': expected '(' in function declaration\n"
+  "[line 5:3] Err at 'function': expected parameter name\n"
+  "[line 6:3] Err at 'function': expected ':' after parameter name\n"
+  "[line 7:3] Err at 'function': expected parameter type\n"
+  "[line 8:3] Err at 'function': expected ')' in function declaration\n"
+  "[line 9:3] Err at 'function': expected function return type\n"
+  "[line 10:3] Err at 'function': expected '=' before function body\n"
+  "[line 12:1] Err at 'in': expected expression\n"
+  "[line 13:4] Err at '$': expected 'in' after let decls\n");
+
 TEST_SUITE_END();
