@@ -12,9 +12,10 @@ TEST_SUITE_BEGIN("semantic_analyzer");
       std::filesystem::path("../tests/semantic/valid/" filename));             \
     auto string_table = symbol::StringTable();                                 \
     parser::Parser parser(scanner, string_table);                              \
+    auto exp = parser.parse();                                                 \
+    CHECK_FALSE(parser.had_error());                                           \
                                                                                \
     CHECK_NOTHROW({                                                            \
-      auto exp = parser.parse();                                               \
       semantic::Analyzer analyzer(string_table);                               \
       analyzer.type_check(*exp);                                               \
     });                                                                        \
@@ -43,42 +44,48 @@ TEST_CASE("valid_book_examples")
 
   for(auto& fname : filenames) {
     auto f = std::filesystem::path("../tests/book/" + fname);
+    lexer::Scanner scanner(f);
+    auto string_table = symbol::StringTable();
+    parser::Parser parser(scanner, string_table);
+    auto exp = parser.parse();
+    CHECK_FALSE_MESSAGE(parser.had_error(), fname);
+
     CHECK_NOTHROW_MESSAGE(
       {
-        lexer::Scanner scanner(f);
-        auto string_table = symbol::StringTable();
-        parser::Parser parser(scanner, string_table);
-        auto exp = parser.parse();
         semantic::Analyzer analyzer(string_table);
         analyzer.type_check(*exp);
       },
-      (std::string("file ") + f.generic_string()));
+      fname);
   }
 }
 
 TEST_CASE("invalid_book_examples")
 {
-  std::array<std::string, 31> filenames = {
+  std::array<std::string, 30> filenames = {
     "test9.tig",  "test10.tig", "test11.tig", "test13.tig", "test14.tig",
     "test15.tig", "test16.tig", "test17.tig", "test18.tig", "test19.tig",
     "test20.tig", "test21.tig", "test22.tig", "test23.tig", "test24.tig",
     "test25.tig", "test26.tig", "test28.tig", "test29.tig", "test31.tig",
     "test32.tig", "test33.tig", "test34.tig", "test35.tig", "test36.tig",
-    "test38.tig", "test39.tig", "test40.tig", "test43.tig", "test45.tig",
-    "test49.tig"};
+    "test38.tig", "test39.tig", "test40.tig", "test43.tig", "test45.tig"};
+
+  // test49.tig has a syntax error
 
   for(auto& fname : filenames) {
     auto f = std::filesystem::path("../tests/book/" + fname);
+
+    lexer::Scanner scanner(f);
+    auto string_table = symbol::StringTable();
+    parser::Parser parser(scanner, string_table);
+    auto exp = parser.parse();
+    CHECK_FALSE_MESSAGE(parser.had_error(), fname);
+
     CHECK_THROWS_MESSAGE(
       {
-        lexer::Scanner scanner(f);
-        auto string_table = symbol::StringTable();
-        parser::Parser parser(scanner, string_table);
-        auto exp = parser.parse();
         semantic::Analyzer analyzer(string_table);
         analyzer.type_check(*exp);
       },
-      (std::string("file ") + f.generic_string()));
+      fname);
   }
 }
 
@@ -89,10 +96,10 @@ TEST_CASE("invalid_book_examples")
       std::filesystem::path("../tests/semantic/invalid/" filename));           \
     auto string_table = symbol::StringTable();                                 \
     parser::Parser parser(scanner, string_table);                              \
-                                                                               \
+    auto exp = parser.parse();                                                 \
+    CHECK_FALSE(parser.had_error());                                           \
     CHECK_THROWS_WITH(                                                         \
       {                                                                        \
-        auto exp = parser.parse();                                             \
         semantic::Analyzer analyzer(string_table);                             \
         analyzer.type_check(*exp);                                             \
       },                                                                       \

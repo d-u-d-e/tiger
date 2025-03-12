@@ -61,7 +61,8 @@ TEST_CASE("invalid_book_examples")
   lexer::Scanner scanner(path);
   auto string_table = symbol::StringTable();
   parser::Parser parser(scanner, string_table);
-  CHECK_THROWS_MESSAGE(parser.parse(), path.filename());
+  parser.parse();
+  CHECK(parser.had_error());
 }
 
 TEST_SUITE_END();
