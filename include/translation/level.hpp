@@ -1,0 +1,35 @@
+#pragma once
+#include <arch/frame.hpp>
+
+namespace translation
+{
+
+struct Level {
+
+  struct Access {
+    const Level * l;
+    arch::Frame::access_t access;
+  };
+
+  Level(const Level* parent, const arch::Frame& f)
+    : parent(parent)
+    , f(f)
+  { 
+    for(auto& f : f.formals()) {
+      formals_.emplace_back(this, f);
+    }
+  }
+
+  const std::vector<Access> & formals()
+  {
+    return formals_;
+  }
+
+  std::vector<Access> formals_; 
+  const Level* parent{nullptr};
+  arch::Frame f;
+};
+
+
+
+} // namespace translation

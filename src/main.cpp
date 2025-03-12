@@ -4,10 +4,13 @@
 #include <parser/parser.hpp>
 #include <parser/pretty_printer.hpp>
 
-#include <semantic/env.hpp>
 #include <semantic/analyzer.hpp>
+#include <semantic/env.hpp>
 #include <symbol.hpp>
 #include <sysexits.h>
+
+// TODO
+#include <translation/ir.hpp>
 
 int main(int argc, char** argv)
 {
@@ -21,7 +24,7 @@ int main(int argc, char** argv)
 
   std::cerr << "\033[1;31m";
   auto exp = parser.parse();
-  if (parser.had_error()){
+  if(parser.had_error()) {
     return EX_DATAERR;
   }
   std::cerr << "\033[0m";
@@ -36,4 +39,6 @@ int main(int argc, char** argv)
 
   semantic::Analyzer type_checker(string_table);
   type_checker.type_check(*exp);
+
+  translation::ir::Translator translator;
 }
