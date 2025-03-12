@@ -137,4 +137,11 @@ SHOULD_FAIL("for.tig",
             "[line 6:13] Err at ';': expected 'to'\n"
             "[line 7:18] Err at ';': expected 'do'\n");
 
+SHOULD_FAIL(
+  "let.tig",
+  "[line 3:13] Err at ';': expected 'in' after let decls\n"
+  "[line 7:1] Err at ')': expected expression\n"
+  "[line 7:2] Err at '$': expected 'end' after let expression\n"
+  "[line 7:2] Err at '$': expected ')' closing a sequence expression\n");
+
 TEST_SUITE_END();

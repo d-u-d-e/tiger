@@ -1,0 +1,7 @@
+(
+let
+  var a := 2;
+let
+  var a := 2
+in
+)
