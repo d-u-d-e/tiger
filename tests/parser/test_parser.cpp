@@ -12,7 +12,8 @@ TEST_SUITE_BEGIN("parser");
       std::filesystem::path("../tests/parser/valid/" filename));               \
     auto string_table = symbol::StringTable();                                 \
     parser::Parser parser(scanner, string_table);                              \
-    CHECK_NOTHROW(parser.parse());                                             \
+    parser.parse();                                                            \
+    CHECK_FALSE(parser.had_error());                                           \
   }
 
 SHOULD_PASS("arrays.tig");
@@ -30,7 +31,6 @@ SHOULD_PASS("type_decl.tig");
 SHOULD_PASS("unary_expr.tig");
 SHOULD_PASS("var_decl.tig");
 SHOULD_PASS("while_expr.tig");
-
 
 TEST_CASE("valid_book_examples")
 {
