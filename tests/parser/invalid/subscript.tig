@@ -1,0 +1,9 @@
+let
+  type A = array of int
+  var a := A[1] of 0
+  var b := 0[0] of 0
+  var c := a.b[0] of 0
+in
+  a[0;
+  2[0]
+end

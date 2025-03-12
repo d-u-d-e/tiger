@@ -97,4 +97,14 @@ SHOULD_FAIL(
   "[line 5:4] Err at '.': expected variable before token '.'\n"
   "[line 7:1] Err at 'end': expected record field name after token '.'\n");
 
+SHOULD_FAIL(
+  "subscript.tig",
+  "[line 4:13] Err at '[': expected variable before token '['\n"
+  "[line 5:15] Err at '[': expected type identifier before token '[' of array "
+  "expression\n"
+  "[line 7:6] Err at ';': expected ']' closing subscript expression\n"
+  "[line 8:4] Err at '[': expected variable before token '['\n");
+
+
+  
 TEST_SUITE_END();
