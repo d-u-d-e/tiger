@@ -481,7 +481,7 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 
   return std::make_unique<ast::OpExp>(
     std::move(lhs), ast_op, std::move(rhs), op.pos);
-} 
+}
 
 std::unique_ptr<ast::OpExp> Parser::unary_expr()
 {
@@ -638,11 +638,6 @@ void Parser::skip(const std::unordered_set<lexer::TokenType>& list)
   while(current.type != lexer::TokenType::eof && !list.contains(current.type)) {
     advance();
   };
-
-  /*do {
-    advance();
-  } while(current.type != lexer::TokenType::eof &&
-          !list.contains(current.type));*/
 }
 
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
