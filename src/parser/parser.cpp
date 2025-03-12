@@ -107,7 +107,7 @@ std::unique_ptr<ast::SeqExp> Parser::sequencing()
       exps.emplace_back(expression(Precedence::None), pos);
     }
     catch(std::runtime_error& e) {
-      skip({lexer::TokenType::semicolon});
+      skip({lexer::TokenType::semicolon, lexer::TokenType::rparen});
     }
   } while(match(lexer::TokenType::semicolon));
 
@@ -481,7 +481,7 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
 
   return std::make_unique<ast::OpExp>(
     std::move(lhs), ast_op, std::move(rhs), op.pos);
-}
+} 
 
 std::unique_ptr<ast::OpExp> Parser::unary_expr()
 {

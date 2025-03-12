@@ -115,4 +115,14 @@ SHOULD_FAIL("assign.tig",
             "[line 6:7] Err at ':=': invalid assignment target\n"
             "[line 7:7] Err at ':=': invalid assignment target\n");
 
+SHOULD_FAIL("assign.tig",
+            "[line 4:5] Err at ':=': invalid assignment target\n"
+            "[line 6:7] Err at ':=': invalid assignment target\n"
+            "[line 7:7] Err at ':=': invalid assignment target\n");
+
+SHOULD_FAIL("binary.tig",
+            "[line 2:9] Err at '>': cannot chain comparison operators\n"
+            "[line 3:9] Err at '=': cannot chain comparison operators\n"
+            "[line 4:10] Err at '<=': cannot chain comparison operators\n");
+
 TEST_SUITE_END();
