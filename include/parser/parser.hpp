@@ -42,8 +42,11 @@ class PrecedenceRule {
 
 class Parser {
   public:
-  Parser(lexer::Scanner& scanner, symbol::StringTable& symbol_table)
-    : scanner(scanner)
+  Parser(std::ostream& ostream,
+         lexer::Scanner& scanner,
+         symbol::StringTable& symbol_table)
+    : ostream(ostream)
+    , scanner(scanner)
     , symbol_table(symbol_table){};
   std::unique_ptr<ast::Expression> parse();
 
@@ -53,6 +56,7 @@ class Parser {
   }
 
   private:
+  std::ostream& ostream;
   lexer::Scanner& scanner;
   symbol::StringTable& symbol_table;
   lexer::Token current;

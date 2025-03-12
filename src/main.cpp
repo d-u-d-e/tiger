@@ -17,12 +17,14 @@ int main(int argc, char** argv)
   lexer::TokenType type;
 
   symbol::StringTable string_table;
-  parser::Parser parser(scanner, string_table);
-  auto exp = parser.parse();
+  parser::Parser parser(std::cerr, scanner, string_table);
 
+  std::cerr << "\033[1;31m";
+  auto exp = parser.parse();
   if (parser.had_error()){
     return EX_DATAERR;
   }
+  std::cerr << "\033[0m";
 
   // pretty print the ast
   parser::ast::PrettyPrinter pretty_printer;

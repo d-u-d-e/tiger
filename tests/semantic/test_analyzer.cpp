@@ -11,7 +11,8 @@ TEST_SUITE_BEGIN("semantic_analyzer");
     lexer::Scanner scanner(                                                    \
       std::filesystem::path("../tests/semantic/valid/" filename));             \
     auto string_table = symbol::StringTable();                                 \
-    parser::Parser parser(scanner, string_table);                              \
+    std::ostringstream serr;                                                   \
+    parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
                                                                                \
@@ -46,7 +47,8 @@ TEST_CASE("valid_book_examples")
     auto f = std::filesystem::path("../tests/book/" + fname);
     lexer::Scanner scanner(f);
     auto string_table = symbol::StringTable();
-    parser::Parser parser(scanner, string_table);
+    std::ostringstream serr;
+    parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
 
@@ -76,7 +78,8 @@ TEST_CASE("invalid_book_examples")
 
     lexer::Scanner scanner(f);
     auto string_table = symbol::StringTable();
-    parser::Parser parser(scanner, string_table);
+    std::ostringstream serr;
+    parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
 
@@ -95,7 +98,8 @@ TEST_CASE("invalid_book_examples")
     lexer::Scanner scanner(                                                    \
       std::filesystem::path("../tests/semantic/invalid/" filename));           \
     auto string_table = symbol::StringTable();                                 \
-    parser::Parser parser(scanner, string_table);                              \
+    std::ostringstream serr;                                                   \
+    parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
     CHECK_THROWS_WITH(                                                         \

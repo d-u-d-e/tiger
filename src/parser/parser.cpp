@@ -646,7 +646,7 @@ void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
   auto str = std::format(
     "[line {}:{}] Err at {}: {}", tok.pos.line, tok.pos.column, tok, err_msg);
 
-  std::cout << str << std::endl;
+  ostream << str << std::endl;
   throw std::runtime_error(str);
 }
 

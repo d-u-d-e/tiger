@@ -11,9 +11,23 @@ TEST_SUITE_BEGIN("parser");
     lexer::Scanner scanner(                                                    \
       std::filesystem::path("../tests/parser/valid/" filename));               \
     auto string_table = symbol::StringTable();                                 \
-    parser::Parser parser(scanner, string_table);                              \
+    std::ostringstream serr;                                                   \
+    parser::Parser parser(serr, scanner, string_table);                        \
     parser.parse();                                                            \
     CHECK_FALSE(parser.had_error());                                           \
+  }
+
+#define SHOULD_FAIL(filename, msgs)                                            \
+  TEST_CASE(filename)                                                          \
+  {                                                                            \
+    lexer::Scanner scanner(                                                    \
+      std::filesystem::path("../tests/parser/invalid/" filename));             \
+    auto string_table = symbol::StringTable();                                 \
+    std::ostringstream serr;                                                   \
+    parser::Parser parser(serr, scanner, string_table);                        \
+    parser.parse();                                                            \
+    CHECK(parser.had_error());                                                 \
+    CHECK(serr.str() == msgs);                                                 \
   }
 
 SHOULD_PASS("arrays.tig");
@@ -48,7 +62,8 @@ TEST_CASE("valid_book_examples")
       {
         lexer::Scanner scanner(file.path());
         auto string_table = symbol::StringTable();
-        parser::Parser parser(scanner, string_table);
+        std::ostringstream serr;
+        parser::Parser parser(serr, scanner, string_table);
         parser.parse();
       },
       (std::string("file: ") + file_path.generic_string()));
@@ -60,9 +75,14 @@ TEST_CASE("invalid_book_examples")
   auto path = std::filesystem::path("../tests/book/test49.tig");
   lexer::Scanner scanner(path);
   auto string_table = symbol::StringTable();
-  parser::Parser parser(scanner, string_table);
+  std::ostringstream serr;
+  parser::Parser parser(serr, scanner, string_table);
   parser.parse();
   CHECK(parser.had_error());
+  CHECK(serr.str() ==
+        "[line 5:21] Err at 'nil': expected 'in' after let decls\n");
 }
+
+SHOULD_FAIL("empty.tig", "[line 1:0] Err at '$': expected expression\n");
 
 TEST_SUITE_END();
