@@ -1,0 +1,8 @@
+let
+  function f() = 3
+in
+  3();
+  a.b();
+  f();
+  g(1
+end

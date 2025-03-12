@@ -125,4 +125,10 @@ SHOULD_FAIL("binary.tig",
             "[line 3:9] Err at '=': cannot chain comparison operators\n"
             "[line 4:10] Err at '<=': cannot chain comparison operators\n");
 
+SHOULD_FAIL(
+  "call.tig",
+  "[line 4:4] Err at '(': expected identifier as function name\n"
+  "[line 5:6] Err at '(': expected identifier as function name\n"
+  "[line 8:1] Err at 'end': expected ')' after function arguments\n");
+
 TEST_SUITE_END();
