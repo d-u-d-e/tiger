@@ -7,6 +7,7 @@
 #include <semantic/env.hpp>
 #include <semantic/analyzer.hpp>
 #include <symbol.hpp>
+#include <sysexits.h>
 
 int main(int argc, char** argv)
 {
@@ -18,6 +19,10 @@ int main(int argc, char** argv)
   symbol::StringTable string_table;
   parser::Parser parser(scanner, string_table);
   auto exp = parser.parse();
+
+  if (parser.had_error()){
+    return EX_DATAERR;
+  }
 
   // pretty print the ast
   parser::ast::PrettyPrinter pretty_printer;

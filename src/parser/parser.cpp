@@ -58,9 +58,14 @@ std::unique_ptr<ast::Expression> Parser::parse()
     // clang-format on
   });
 
-  auto exp = expression(Precedence::None);
-  expect(lexer::TokenType::eof, "unexpected token after expression");
-  return exp;
+  try {
+    auto exp = expression(Precedence::None);
+    expect(lexer::TokenType::eof, "unexpected token after expression");
+    return exp;
+  }
+  catch(std::runtime_error& e) {
+    return nullptr;
+  }
 }
 
 std::unique_ptr<ast::Expression> Parser::expression(int precedence)
@@ -70,16 +75,13 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
   auto rule = pratt_table.at(previous.type);
   if(rule.prefix_rule == nullptr) {
     error_at(previous, "expected expression");
-    return nullptr;
   }
   // when the prefix rule gets called, the prefix token has already been consumed
   lhs = rule.prefix_rule();
   rule = pratt_table.at(current.type);
-
   while(rule.precedence_value > precedence) {
     if(rule.infix_rule == nullptr) {
       error_at(current, "unexpected token");
-      return nullptr;
     }
     advance(); // skip infix operator
     lhs = rule.infix_rule(std::move(lhs));
@@ -101,7 +103,12 @@ std::unique_ptr<ast::SeqExp> Parser::sequencing()
 
   do {
     auto pos = current.pos;
-    exps.emplace_back(expression(Precedence::None), pos);
+    try {
+      exps.emplace_back(expression(Precedence::None), pos);
+    }
+    catch(std::runtime_error& e) {
+      skip({lexer::TokenType::semicolon});
+    }
   } while(match(lexer::TokenType::semicolon));
 
   expect(lexer::TokenType::rparen,
@@ -125,7 +132,6 @@ Parser::record_field(std::unique_ptr<ast::Expression> lhs)
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
   if(!lhs_var) {
     error_at(previous, "expected variable before token '.'");
-    return nullptr;
   }
 
   expect(lexer::TokenType::identifier,
@@ -153,7 +159,6 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
 
   if(!lhs_var) {
     error_at(subscript_tok, "expected variable before token '['");
-    return nullptr;
   }
 
   if(match(lexer::TokenType::of_keyword)) {
@@ -163,7 +168,6 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
     if(!simple_var) {
       error_at(subscript_tok,
                "expected type identifier before token '[' of array expression");
-      return nullptr;
     }
 
     auto ty_symbol = simple_var->name;
@@ -392,17 +396,26 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
 
 std::unique_ptr<ast::Declaration> Parser::decl()
 {
-  if(match(lexer::TokenType::var_keyword)) {
-    return var_decl();
+  try {
+    if(match(lexer::TokenType::var_keyword)) {
+      return var_decl();
+    }
+    else if(match(lexer::TokenType::type_keyword)) {
+      return type_decl();
+    }
+    else if(match(lexer::TokenType::function_keyword)) {
+      return func_decl();
+    }
+    else {
+      error_at(current, "expected declaration");
+      std::unreachable();
+    }
   }
-  else if(match(lexer::TokenType::type_keyword)) {
-    return type_decl();
-  }
-  else if(match(lexer::TokenType::function_keyword)) {
-    return func_decl();
-  }
-  else {
-    error_at(current, "expected declaration");
+  catch(std::runtime_error& e) {
+    skip({lexer::TokenType::var_keyword,
+          lexer::TokenType::function_keyword,
+          lexer::TokenType::type_keyword,
+          lexer::TokenType::in_keyword});
     return nullptr;
   }
 }
@@ -431,7 +444,7 @@ std::unique_ptr<ast::IfExp> Parser::if_expr()
   expect(lexer::TokenType::then_keyword, "expected 'then' after if condition");
   auto then = expression(Precedence::None);
 
-  std::unique_ptr<ast::Expression> else_ = nullptr;
+  std::unique_ptr<ast::Expression> else_{};
   if(match(lexer::TokenType::else_keyword)) {
     // else belongs to closest if
     else_ = expression(Precedence::None);
@@ -459,7 +472,6 @@ Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
      is_comparison_operator(lhs_op->op)) {
     // comparison is not associative
     error_at(op, "cannot chain comparison operators");
-    return nullptr;
   }
 
   return std::make_unique<ast::OpExp>(
@@ -516,7 +528,6 @@ Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
   if(!var) {
     // asserting that lhs is an lvalue
     error_at(op, "invalid assignment target");
-    return nullptr;
   }
 
   return std::make_unique<ast::AssignExp>(
@@ -532,13 +543,11 @@ Parser::call_expr(std::unique_ptr<ast::Expression> lhs)
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
   if(!lhs_var) {
     error_at(previous, "expected identifier as function name");
-    return nullptr;
   }
 
   auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
   if(!lhs_simple) {
     error_at(previous, "expected identifier as function name");
-    return nullptr;
   }
 
   auto func_id = lhs_simple->name;
@@ -563,13 +572,11 @@ Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
   auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
   if(!lhs_var) {
     error_at(previous, "expected identifier as record type");
-    return nullptr;
   }
 
   auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
   if(!lhs_simple) {
     error_at(previous, "expected identifier as record type");
-    return nullptr;
   }
 
   auto type_sym = lhs_simple->name;
@@ -621,13 +628,26 @@ void Parser::expect(lexer::TokenType type, const std::string& err_msg)
   error_at(current, err_msg);
 }
 
+void Parser::skip(const std::unordered_set<lexer::TokenType>& list)
+{
+  while(current.type != lexer::TokenType::eof && !list.contains(current.type)) {
+    advance();
+  };
+
+  /*do {
+    advance();
+  } while(current.type != lexer::TokenType::eof &&
+          !list.contains(current.type));*/
+}
+
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
-  throw std::runtime_error(std::format("[line {}:{}] Err at {}: {}\n",
-                                       tok.pos.line,
-                                       tok.pos.column,
-                                       tok,
-                                       err_msg));
+  had_error_ = true;
+  auto str = std::format(
+    "[line {}:{}] Err at {}: {}", tok.pos.line, tok.pos.column, tok, err_msg);
+
+  std::cout << str << std::endl;
+  throw std::runtime_error(str);
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)

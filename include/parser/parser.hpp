@@ -4,6 +4,8 @@
 #include <parser/ast.hpp>
 #include <symbol.hpp>
 
+#include <unordered_set>
+
 namespace parser
 {
 
@@ -45,6 +47,11 @@ class Parser {
     , symbol_table(symbol_table){};
   std::unique_ptr<ast::Expression> parse();
 
+  bool had_error()
+  {
+    return had_error_;
+  }
+
   private:
   lexer::Scanner& scanner;
   symbol::StringTable& symbol_table;
@@ -56,6 +63,8 @@ class Parser {
   {
     return symbol_table.symbol(name);
   }
+
+  void skip(const std::unordered_set<lexer::TokenType>& list);
 
   ast::Operator map_operator(lexer::TokenType type);
   bool is_comparison_operator(ast::Operator type);
@@ -98,6 +107,8 @@ class Parser {
   std::unique_ptr<ast::FuncDecl> func_decl();
   std::unique_ptr<ast::TypeDecl> type_decl();
   std::unique_ptr<ast::VarDecl> var_decl();
+
+  bool had_error_{false};
 };
 
 } // namespace parser
