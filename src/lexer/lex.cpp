@@ -1,5 +1,4 @@
 #include <lexer/lex.hpp>
-#include <utility>
 
 namespace lexer
 {
@@ -125,7 +124,7 @@ Token Scanner::punctuation()
     break;
   }
 
-  error(std::format("Invalid character '{}'", *current));
+  error(std::format("invalid character '{}'", *current));
   std::unreachable();
 }
 
@@ -164,7 +163,7 @@ Token Scanner::string_literal()
       }
     }
     else if(*current == '\n' || *current == '\r') {
-      error("Unterminated string literal");
+      error("unterminated string literal");
     }
     else if(*current != '"') {
       value += *current;
@@ -176,7 +175,7 @@ Token Scanner::string_literal()
     }
   }
 
-  error("Unterminated string literal");
+  error("unterminated string literal");
   std::unreachable();
 }
 
@@ -226,7 +225,7 @@ void Scanner::skip_multiline_comment()
     }
     current++;
   }
-  error("Unterminated multiline comment");
+  error("unterminated multiline comment");
 }
 
 } // namespace lexer

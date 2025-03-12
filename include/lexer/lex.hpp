@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <sysexits.h>
+#include <utility>
 
 namespace lexer
 {
@@ -19,8 +20,8 @@ class Scanner {
     auto f = std::ifstream(filename);
 
     if(!f.is_open()) {
-      std::cerr << "Could not open file: " << filename << std::endl;
-      exit(1);
+      std::cerr << std::format("could not open file '{}'\n", filename.generic_string());
+      exit(EX_IOERR);
     }
 
     std::stringstream buffer;
@@ -78,10 +79,10 @@ class Scanner {
     return false;
   }
 
-  void error(const std::string& err_msg)
+  void error(const std::string& err_msg, int exit_code = EX_DATAERR)
   {
     std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
-    exit(EX_DATAERR);
+    exit(exit_code);
   }
 
   Token eof_token()
