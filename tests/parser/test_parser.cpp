@@ -151,4 +151,6 @@ SHOULD_FAIL(
   "[line 6:1] Err at ')': expected expression\n"
   "[line 6:2] Err at '$': expected ')' closing a sequence expression\n");
 
+SHOULD_FAIL("while.tig", "[line 1:8] Err at '$': expected 'do' after while condition\n");
+
 TEST_SUITE_END();
