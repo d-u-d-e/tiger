@@ -38,9 +38,11 @@ class Environment {
   public:
   Environment() = default;
 
-  void enter(const symbol::Symbol& s, const T& value)
+  template <typename U>
+  requires std::is_convertible_v<U, T>
+  void enter(const symbol::Symbol& s, U&& value)
   {
-    table.enter(s, value);
+    table.enter(s, std::forward<U>(value));
     stack.push(s);
   };
 

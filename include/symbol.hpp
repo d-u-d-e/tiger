@@ -66,13 +66,15 @@ class Table {
     table = std::make_unique<std::list<std::pair<Symbol, T>>[]>(capacity);
   }
 
-  void enter(const Symbol& s, const T& value)
+  template <typename U>
+  requires std::is_convertible_v<U, T>
+  void enter(const Symbol& s, U&& value)
   {
     if(count + 1 > capacity * load_factor) {
       grow();
     }
     size_t index = s.id() % capacity;
-    table[index].emplace_front(s, value);
+    table[index].emplace_front(s, std::forward<U>(value));
     count++;
   }
 
