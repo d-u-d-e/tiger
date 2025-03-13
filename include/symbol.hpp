@@ -121,7 +121,9 @@ class Table {
     return count;
   }
 
-  void replace(const Symbol& s, const T& value)
+  template <typename U>
+  requires std::is_convertible_v<U, T>
+  void replace(const Symbol& s, U&& value)
   {
     size_t index = s.id() % capacity;
     auto iter = std::find_if(table[index].begin(),
@@ -130,7 +132,7 @@ class Table {
                                return std::get<0>(pair).id() == s.id();
                              });
     assert(iter != table[index].end());
-    (*iter).second = value;
+    (*iter).second = std::forward<U>(value);
   }
 
   private:

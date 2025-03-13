@@ -51,9 +51,11 @@ class Environment {
     return table.lookup(s);
   }
 
-  void replace(const symbol::Symbol& s, const T& value)
+  template <typename U>
+  requires std::is_convertible_v<U, T>
+  void replace(const symbol::Symbol& s, U&& value)
   {
-    table.replace(s, value);
+    table.replace(s, std::forward<U>(value));
   }
 
   void begin_scope()
