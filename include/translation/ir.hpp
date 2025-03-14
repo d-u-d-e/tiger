@@ -10,22 +10,23 @@ namespace translation::ir
 class Translator {
   public:
   Translator()
-    : lvl_outermost(
-        nullptr,
-        arch::Frame(translation::Temp::getInstance().named_label("outermost"),
-                    {}))
-  { }
+  {
+    lvl_outermost = std::make_shared<Level>(
+      nullptr,
+      arch::Frame(translation::Temp::getInstance().named_label("outermost"),
+                  {}));
+  }
 
-  Level& outermost_level()
+  std::shared_ptr<Level> outermost_level()
   {
     return lvl_outermost;
   }
 
-  static Level new_level(const Level& parent,
-                         Temp::label_t label,
-                         const std::vector<bool>& formals)
+  static std::unique_ptr<Level> new_level(const Level& parent,
+                                          Temp::label_t label,
+                                          const std::vector<bool>& formals)
   {
-    return Level(&parent, arch::Frame(label, formals));
+    return std::make_unique<Level>(&parent, arch::Frame(label, formals));
   }
 
   static const std::vector<Level::Access>& formals(const Level& level)
@@ -39,7 +40,7 @@ class Translator {
   }
 
   private:
-  Level lvl_outermost;
+  std::shared_ptr<Level> lvl_outermost;
 };
 
 } // namespace translation::ir

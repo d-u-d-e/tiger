@@ -3,6 +3,7 @@
 #include <parser/visitor.hpp>
 #include <semantic/env.hpp>
 #include <symbol.hpp>
+#include <translation/ir.hpp>
 
 namespace semantic
 {
@@ -17,7 +18,8 @@ class Analyzer : public parser::ast::TypeCheckerExprVisitor,
 {
 
   public:
-  Analyzer(symbol::StringTable& string_table);
+  Analyzer(symbol::StringTable& string_table,
+           translation::ir::Translator& translator);
   void type_check(const parser::ast::Expression& exp);
 
   shared_type_t visit_string_exp(const parser::ast::StringExp& exp) override;
@@ -70,6 +72,8 @@ class Analyzer : public parser::ast::TypeCheckerExprVisitor,
   shared_type_t skip_name_types(const shared_type_t& t);
   bool can_break{false};
   symbol::StringTable& string_table;
+  translation::ir::Translator& translator;
+  std::shared_ptr<translation::Level> prev_level{}, current_level{};
   Environment<TEntry> tenv;
   Environment<VEntry> venv;
 };

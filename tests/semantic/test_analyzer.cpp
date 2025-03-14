@@ -2,6 +2,7 @@
 #include <lexer/lex.hpp>
 #include <parser/parser.hpp>
 #include <semantic/analyzer.hpp>
+#include <translation/ir.hpp>
 
 TEST_SUITE_BEGIN("semantic_analyzer");
 
@@ -15,9 +16,10 @@ TEST_SUITE_BEGIN("semantic_analyzer");
     parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
+    translation::ir::Translator translator;                                    \
                                                                                \
     CHECK_NOTHROW({                                                            \
-      semantic::Analyzer analyzer(string_table);                               \
+      semantic::Analyzer analyzer(string_table, translator);                   \
       analyzer.type_check(*exp);                                               \
     });                                                                        \
   }
@@ -51,10 +53,11 @@ TEST_CASE("valid_book_examples")
     parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
+    translation::ir::Translator translator;
 
     CHECK_NOTHROW_MESSAGE(
       {
-        semantic::Analyzer analyzer(string_table);
+        semantic::Analyzer analyzer(string_table, translator);
         analyzer.type_check(*exp);
       },
       fname);
@@ -82,10 +85,11 @@ TEST_CASE("invalid_book_examples")
     parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
+    translation::ir::Translator translator;
 
     CHECK_THROWS_MESSAGE(
       {
-        semantic::Analyzer analyzer(string_table);
+        semantic::Analyzer analyzer(string_table, translator);
         analyzer.type_check(*exp);
       },
       fname);
@@ -102,9 +106,10 @@ TEST_CASE("invalid_book_examples")
     parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
+    translation::ir::Translator translator;                                    \
     CHECK_THROWS_WITH(                                                         \
       {                                                                        \
-        semantic::Analyzer analyzer(string_table);                             \
+        semantic::Analyzer analyzer(string_table, translator);                 \
         analyzer.type_check(*exp);                                             \
       },                                                                       \
       msg);                                                                    \

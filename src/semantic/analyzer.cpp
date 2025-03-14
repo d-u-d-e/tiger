@@ -10,12 +10,19 @@ static auto string_type = std::make_shared<String>();
 static auto nil_type = std::make_shared<Nil>();
 static auto unit_type = std::make_shared<Unit>();
 
-Analyzer::Analyzer(symbol::StringTable& string_table)
+Analyzer::Analyzer(symbol::StringTable& string_table,
+                   translation::ir::Translator& translator)
   : string_table(string_table)
+  , translator(translator)
+  , prev_level(translator.outermost_level())
 {
-
   add_predefined_types();
   add_predefined_functions();
+
+  // create the current level, e.g. where the main program lives
+  // TODO: formal arguments?
+  current_level = translator.new_level(
+    *prev_level, translation::Temp::named_label("main"), {});
 }
 
 void Analyzer::add_predefined_types()
@@ -32,9 +39,15 @@ void Analyzer::add_predef_func(const symbol::Symbol& s,
                                const shared_type_t& ret,
                                Args&&... formals)
 {
+  constexpr auto fsize = sizeof...(Args);
+  auto l = translator.new_level(*translator.outermost_level(),
+                                translation::Temp::new_label(),
+                                std::vector<bool>(fsize, false));
   venv.enter(
     s,
-    FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...}, ret));
+    FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...},
+              ret,
+              std::move(l)));
 }
 
 void Analyzer::add_predefined_functions()
@@ -328,7 +341,9 @@ shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     bool can_break_saved = can_break;
     can_break = true;
     venv.begin_scope();
-    venv.enter(exp.var, VarEntry(int_type));
+    auto access =
+      translator.alloc_local(*current_level, true); // TODO: find escape
+    venv.enter(exp.var, VarEntry(int_type, access));
     auto tbody = exp.body->accept(*this);
     venv.end_scope();
     can_break = can_break_saved;
@@ -348,6 +363,10 @@ shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
     error_at(exp.position,
              std::format("undefined function '{}'", exp.name.str()));
   }
+
+  // Note: be careful with auto&: calling enter on the env after having
+  // obtained a reference to an entry can make it dangling!
+  // This is because the env can grow
   auto& fentry = std::get<FuncEntry>(*maybe_fentry);
 
   // check the arguments
@@ -405,6 +424,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   */
   std::unordered_set<symbol::Identifier> batch;
+
   for(auto& fdecl : decl.decls) {
     if(batch.contains(fdecl->name.id())) {
       error_at(
@@ -438,20 +458,31 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       tresult = opt_tresult->t;
     }
 
+    // TODO: find escape
+    std::vector<bool> escapes(formals.size(), true);
     // add the function header
-    venv.enter(fdecl->name, FuncEntry(formals, tresult));
+    venv.enter(fdecl->name,
+               FuncEntry(formals,
+                         tresult,
+                         translator.new_level(*current_level,
+                                              translation::Temp::new_label(),
+                                              escapes)));
   }
 
   // go through the bodies
   for(auto& fdecl : decl.decls) {
+    auto func_entry = std::get<FuncEntry>(*venv.lookup(fdecl->name));
+
     venv.begin_scope(); // body scope augmented with formals
+
     // add formals
-    for(auto& param : fdecl->params) {
-      venv.enter(param.name, VarEntry(tenv.lookup(param.type)->t));
+    auto ax = translator.formals(*func_entry.level);
+    for(auto i = 0; i < fdecl->params.size(); i++) {
+      auto& param = fdecl->params[i];
+      venv.enter(param.name, VarEntry(tenv.lookup(param.type)->t, ax[i]));
     }
 
     // type check return type
-    auto& func_entry = std::get<FuncEntry>(*venv.lookup(fdecl->name));
     auto tbody = fdecl->body->accept(*this);
 
     if(!same_types(skip_name_types(func_entry.result), tbody)) {
@@ -488,14 +519,19 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
                            tname.str(),
                            to_string(tinit)));
     }
-    venv.enter(decl.name, VarEntry(tdecl->t));
+    // TODO: find escape
+    venv.enter(
+      decl.name,
+      VarEntry(tdecl->t, translator.alloc_local(*current_level, true)));
   }
   else {
     if(is_type<Nil>(tinit)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
-    venv.enter(decl.name, VarEntry(tinit));
+    // TODO: find escape
+    venv.enter(decl.name,
+               VarEntry(tinit, translator.alloc_local(*current_level, true)));
   }
 };
 
@@ -610,8 +646,7 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
       }
 
       if(is_type<Name>(actual)) {
-        actual =
-          tenv.lookup((dynamic_cast<Name*>(actual.get()))->name)->t;
+        actual = tenv.lookup((dynamic_cast<Name*>(actual.get()))->name)->t;
       }
       else if(is_type<Array>(actual)) {
         actual = dynamic_cast<Array*>(actual.get())->type;
@@ -664,6 +699,7 @@ shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.str()));
   }
+  // TODO: here std::get<VarEntry>(*v).access can be handed back to the translator to generate machine code
   return skip_name_types(std::get<VarEntry>(*v).type);
 };
 

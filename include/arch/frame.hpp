@@ -35,7 +35,14 @@ class Frame {
     : label(label)
   {
     for(auto escape : formals) {
-      formals_.push_back(alloc_local(escape));
+      uint16_t off = 0;
+      if(escape) {
+        formals_.push_back(InFrame(off));
+        off += word_size; // incoming params
+      }
+      else {
+        formals_.push_back(InReg(translation::Temp::getInstance().new_temp()));
+      }
     }
   }
 

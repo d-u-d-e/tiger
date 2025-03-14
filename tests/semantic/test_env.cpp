@@ -102,18 +102,22 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   auto x = symbol::Symbol("x", 5);
   auto y = symbol::Symbol("y", 6);
 
+  translation::Level::Access ax; // dummy
+  std::shared_ptr<translation::Level> l; // dummy
+
   venv.begin_scope();
-  venv.enter(a, VarEntry(std::make_shared<semantic::types::Integer>()));
+  venv.enter(a, VarEntry(std::make_shared<semantic::types::Integer>(), ax));
   lookup_ventry<VarEntry>(venv, a);
 
   venv.begin_scope();
-  venv.enter(b, VarEntry(std::make_shared<semantic::types::String>()));
+  venv.enter(b, VarEntry(std::make_shared<semantic::types::String>(), ax));
   lookup_ventry<VarEntry>(venv, b);
 
   std::vector<std::shared_ptr<semantic::types::Type>> formals;
   formals.push_back(std::make_shared<semantic::types::Integer>());
   formals.push_back(std::make_shared<semantic::types::String>());
-  venv.enter(f, FuncEntry(formals, std::make_shared<semantic::types::String>()));
+  venv.enter(f,
+             FuncEntry(formals, std::make_shared<semantic::types::String>(), l));
   lookup_ventry<FuncEntry>(venv, f);
 
   venv.end_scope();
@@ -122,7 +126,8 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
 
   formals.clear();
   formals.push_back(std::make_shared<semantic::types::String>());
-  venv.enter(g, FuncEntry(formals, std::make_shared<semantic::types::String>()));
+  venv.enter(
+    g, FuncEntry(formals, std::make_shared<semantic::types::String>(), l));
   lookup_ventry<FuncEntry>(venv, g);
 
   venv.end_scope();

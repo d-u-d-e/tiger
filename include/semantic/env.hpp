@@ -13,8 +13,9 @@ using namespace types;
 
 class VarEntry {
   public:
-  explicit VarEntry(shared_type_t type)
+  explicit VarEntry(shared_type_t type, translation::Level::Access access)
     : type(std::move(type))
+    , access(std::move(access))
   { }
 
   translation::Level::Access
@@ -25,16 +26,18 @@ class VarEntry {
 class FuncEntry {
   public:
   explicit FuncEntry(std::vector<shared_type_t> formals,
-            shared_type_t result)
-    : formals(std::move(formals))
+                     shared_type_t result,
+                     std::shared_ptr<translation::Level> level)
+    : label(translation::Temp::new_label())
+    , formals(std::move(formals))
     , result(std::move(result))
-    , label(translation::Temp::new_label())
+    , level(std::move(level))
   { }
 
   translation::Temp::label_t label;
-  std::unique_ptr<translation::Level> level{};
   std::vector<shared_type_t> formals;
   shared_type_t result;
+  std::shared_ptr<translation::Level> level{};
 };
 
 using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;

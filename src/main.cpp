@@ -37,8 +37,7 @@ int main(int argc, char** argv)
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
 
-  semantic::Analyzer type_checker(string_table);
-  type_checker.type_check(*exp);
-
   translation::ir::Translator translator;
+  semantic::Analyzer type_checker(string_table, translator);
+  type_checker.type_check(*exp);
 }
