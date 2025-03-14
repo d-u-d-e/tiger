@@ -52,7 +52,9 @@ class Analyzer : public parser::ast::TypeCheckerExprVisitor,
   void add_predefined_types();
   void add_predefined_functions();
   template <typename... Args>
-  void add_predef_func(const symbol::Symbol& s, const TEntry& ret, Args&&... formals);
+  void add_predef_func(const symbol::Symbol& s,
+                       const TEntry& ret,
+                       Args&&... formals);
 
   template <typename T>
   bool is_type(const types::Type& t);

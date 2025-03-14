@@ -67,7 +67,7 @@ class Table {
   }
 
   template <typename U>
-  requires std::is_convertible_v<U, T>
+    requires std::is_convertible_v<U, T>
   void enter(const Symbol& s, U&& value)
   {
     if(count + 1 > capacity * load_factor) {
@@ -122,7 +122,7 @@ class Table {
   }
 
   template <typename U>
-  requires std::is_convertible_v<U, T>
+    requires std::is_convertible_v<U, T>
   void replace(const Symbol& s, U&& value)
   {
     size_t index = s.id() % capacity;

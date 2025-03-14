@@ -9,12 +9,11 @@ namespace translation::ir
 
 class Translator {
   public:
-
   Translator()
     : lvl_outermost(
         nullptr,
-        arch::Frame(
-          translation::Temp::getInstance().named_label("outermost"), {}))
+        arch::Frame(translation::Temp::getInstance().named_label("outermost"),
+                    {}))
   { }
 
   Level& outermost_level()
@@ -23,8 +22,8 @@ class Translator {
   }
 
   static Level new_level(const Level& parent,
-                  Temp::label_t label,
-                  const std::vector<bool>& formals)
+                         Temp::label_t label,
+                         const std::vector<bool>& formals)
   {
     return Level(&parent, arch::Frame(label, formals));
   }
