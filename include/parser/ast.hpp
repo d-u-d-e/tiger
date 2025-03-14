@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <parser/visitor.hpp>
+#include <semantic/env.hpp>
 #include <semantic/types.hpp>
 #include <semantic/visitor.hpp>
 #include <symbol.hpp>
@@ -16,12 +17,9 @@ namespace ast
 {
 
 using Position = lexer::Position;
-using TypeCheckerExprVisitor =
-  semantic::ExprVisitor<std::shared_ptr<semantic::types::Type>>;
-using TypeCheckerVarVisitor =
-  semantic::VarVisitor<std::shared_ptr<semantic::types::Type>>;
-using TypeCheckerTypeVisitor =
-  semantic::TypeVisitor<std::shared_ptr<semantic::types::Type>>;
+using TypeCheckerExprVisitor = semantic::ExprVisitor<semantic::env::shared_type_t>;
+using TypeCheckerVarVisitor = semantic::VarVisitor<semantic::env::shared_type_t>;
+using TypeCheckerTypeVisitor = semantic::TypeVisitor<semantic::env::shared_type_t>;
 using TypeCheckerDeclVisitor = semantic::DeclVisitor<void>;
 
 using PrettyPrinterExprVisitor = ExprVisitor<std::string>;
@@ -32,7 +30,7 @@ using PrettyPrinterTypeVisitor = TypeVisitor<std::string>;
 class Expression {
   public:
   virtual std::string accept(PrettyPrinterExprVisitor& visitor) const = 0;
-  virtual std::shared_ptr<semantic::types::Type>
+  virtual semantic::env::shared_type_t
   accept(TypeCheckerExprVisitor& visitor) const = 0;
   virtual ~Expression() = default;
   std::string field;
@@ -49,7 +47,7 @@ class Declaration {
 class Type {
   public:
   virtual std::string accept(PrettyPrinterTypeVisitor& visitor) const = 0;
-  virtual std::shared_ptr<semantic::types::Type>
+  virtual semantic::env::shared_type_t
   accept(TypeCheckerTypeVisitor& visitor) const = 0;
   virtual ~Type() = default;
   std::string field;
@@ -58,7 +56,7 @@ class Type {
 class Variable {
   public:
   virtual std::string accept(PrettyPrinterVarVisitor& visitor) const = 0;
-  virtual std::shared_ptr<semantic::types::Type>
+  virtual semantic::env::shared_type_t
   accept(TypeCheckerVarVisitor& visitor) const = 0;
   virtual ~Variable() = default;
   std::string field;
@@ -117,8 +115,7 @@ class SimpleVar : public Variable {
     return visitor.visit_simple_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerVarVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_simple_var(*this);
   }
@@ -141,8 +138,7 @@ class FieldVar : public Variable {
     return visitor.visit_field_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerVarVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_field_var(*this);
   }
@@ -166,8 +162,7 @@ class SubscriptVar : public Variable {
     return visitor.visit_subscript_var(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerVarVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerVarVisitor& visitor) const override
   {
     return visitor.visit_subscript_var(*this);
   }
@@ -187,8 +182,7 @@ class VarExp : public Expression {
     return visitor.visit_var_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_var_exp(*this);
   }
@@ -202,8 +196,7 @@ class NilExp : public Expression {
     return visitor.visit_nil_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_nil_exp(*this);
   }
@@ -219,8 +212,7 @@ class IntExp : public Expression {
     return visitor.visit_int_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_int_exp(*this);
   }
@@ -239,8 +231,7 @@ class StringExp : public Expression {
     return visitor.visit_string_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_string_exp(*this);
   }
@@ -263,8 +254,7 @@ class CallExp : public Expression {
     return visitor.visit_call_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_call_exp(*this);
   }
@@ -290,8 +280,7 @@ class OpExp : public Expression {
     return visitor.visit_op_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_op_exp(*this);
   }
@@ -330,8 +319,7 @@ class RecordExp : public Expression {
     return visitor.visit_record_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_record_exp(*this);
   }
@@ -352,8 +340,7 @@ class SeqExp : public Expression {
     return visitor.visit_seq_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_seq_exp(*this);
   }
@@ -373,8 +360,7 @@ class AssignExp : public Expression {
     return visitor.visit_assign_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_assign_exp(*this);
   }
@@ -400,8 +386,7 @@ class IfExp : public Expression {
     return visitor.visit_if_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_if_exp(*this);
   }
@@ -426,8 +411,7 @@ class WhileExp : public Expression {
     return visitor.visit_while_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_while_exp(*this);
   }
@@ -455,8 +439,7 @@ class ForExp : public Expression {
     return visitor.visit_for_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_for_exp(*this);
   }
@@ -478,8 +461,7 @@ class BreakExp : public Expression {
     return visitor.visit_break_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_break_exp(*this);
   }
@@ -501,8 +483,7 @@ class LetExp : public Expression {
     return visitor.visit_let_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_let_exp(*this);
   }
@@ -528,8 +509,7 @@ class ArrayExp : public Expression {
     return visitor.visit_array_exp(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerExprVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerExprVisitor& visitor) const override
   {
     return visitor.visit_array_exp(*this);
   }
@@ -623,8 +603,7 @@ class RecordType : public Type {
     return visitor.visit_record_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerTypeVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_record_type(*this);
   }
@@ -643,8 +622,7 @@ class ArrayType : public Type {
     return visitor.visit_array_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerTypeVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_array_type(*this);
   }
@@ -664,8 +642,7 @@ class NameType : public Type {
     return visitor.visit_name_type(*this);
   }
 
-  std::shared_ptr<semantic::types::Type>
-  accept(TypeCheckerTypeVisitor& visitor) const override
+  semantic::env::shared_type_t accept(TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_name_type(*this);
   }

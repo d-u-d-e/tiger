@@ -5,10 +5,10 @@
 namespace semantic
 {
 
-static auto int_type = std::make_shared<types::Integer>();
-static auto string_type = std::make_shared<types::String>();
-static auto nil_type = std::make_shared<types::Nil>();
-static auto unit_type = std::make_shared<types::Unit>();
+static auto int_type = std::make_shared<Integer>();
+static auto string_type = std::make_shared<String>();
+static auto nil_type = std::make_shared<Nil>();
+static auto unit_type = std::make_shared<Unit>();
 
 Analyzer::Analyzer(symbol::StringTable& string_table)
   : string_table(string_table)
@@ -21,19 +21,20 @@ Analyzer::Analyzer(symbol::StringTable& string_table)
 void Analyzer::add_predefined_types()
 {
   // predefined types
-  tenv.enter(string_table.symbol("int"), int_type);
-  tenv.enter(string_table.symbol("string"), string_type);
+  tenv.enter(string_table.symbol("int"), TEntry{int_type});
+  tenv.enter(string_table.symbol("string"), TEntry{string_type});
   // nil is not really a type, but it is convenient to consider it as such
-  tenv.enter(string_table.symbol("nil"), nil_type);
+  tenv.enter(string_table.symbol("nil"), TEntry{nil_type});
 }
 
 template <typename... Args>
 void Analyzer::add_predef_func(const symbol::Symbol& s,
-                               const TEntry& ret,
+                               const shared_type_t& ret,
                                Args&&... formals)
 {
   venv.enter(
-    s, FuncEntry(std::vector<TEntry>{std::forward<Args>(formals)...}, ret));
+    s,
+    FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...}, ret));
 }
 
 void Analyzer::add_predefined_functions()
@@ -67,16 +68,16 @@ void Analyzer::type_check(const parser::ast::Expression& exp)
   // TODO: do something with t
 }
 
-TEntry Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
+shared_type_t Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
   return string_type;
 };
 
-TEntry Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
+shared_type_t Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
-  
+
   if(!can_assign(tvar, trhs)) {
     error_at(exp.position,
              std::format(
@@ -86,29 +87,30 @@ TEntry Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 };
 
 template <typename T>
-bool Analyzer::is_type(const types::Type& t)
+bool Analyzer::is_type(const shared_type_t& t)
 {
-  return typeid(t) == typeid(T);
+  return typeid(*t) == typeid(T);
 }
 
-bool Analyzer::can_assign(const TEntry& tlhs, const TEntry& trhs)
+bool Analyzer::can_assign(const shared_type_t& tlhs, const shared_type_t& trhs)
 {
-  if(is_type<types::Record>(*tlhs) && is_type<types::Nil>(*trhs)) {
+  if(is_type<Record>(tlhs) && is_type<Nil>(trhs)) {
     return true;
   }
   return same_types(tlhs, trhs);
 }
 
-TEntry Analyzer::skip_name_types(TEntry t)
+shared_type_t Analyzer::skip_name_types(const shared_type_t& t)
 {
   // the exit guarantee follows in case there are no cycles
-  while(is_type<types::Name>(*t)) {
-    t = tenv.lookup(dynamic_cast<types::Name*>(t.get())->name).value();
+  shared_type_t r = t;
+  while(is_type<Name>(r)) {
+    r = (*tenv.lookup(dynamic_cast<const Name*>(r.get())->name)).t;
   }
-  return t;
+  return r;
 }
 
-TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
+shared_type_t Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
   auto tlhs = exp.left->accept(*this);
   auto trhs = exp.right->accept(*this);
@@ -119,7 +121,7 @@ TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::times:
   case parser::ast::Operator::divide: {
     // these can be applied to integers
-    if(!same_types(tlhs, trhs) || !is_type<types::Integer>(*tlhs)) {
+    if(!same_types(tlhs, trhs) || !is_type<Integer>(tlhs)) {
       error_at(exp.position, "operands must be integers");
     }
   }
@@ -128,16 +130,16 @@ TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
     // these can be applied to integers, strings, records and arrays
     if(!same_types(tlhs, trhs)) {
       // testing equality between nil and record is supported
-      if(is_type<types::Nil>(*tlhs) && is_type<types::Record>(*trhs)) {
+      if(is_type<Nil>(tlhs) && is_type<Record>(trhs)) {
         return int_type;
       }
-      else if(is_type<types::Nil>(*trhs) && is_type<types::Record>(*tlhs)) {
+      else if(is_type<Nil>(trhs) && is_type<Record>(tlhs)) {
         return int_type;
       }
       error_at(exp.position, "operands must be of the same type");
     }
-    else if(is_type<types::Integer>(*tlhs) || is_type<types::String>(*tlhs) ||
-            is_type<types::Array>(*tlhs) || is_type<types::Record>(*tlhs)) {
+    else if(is_type<Integer>(tlhs) || is_type<String>(tlhs) ||
+            is_type<Array>(tlhs) || is_type<Record>(tlhs)) {
       return int_type;
     }
     error_at(exp.position,
@@ -151,7 +153,7 @@ TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
     if(!same_types(tlhs, trhs) ||
-       (!is_type<types::Integer>(*tlhs) && !is_type<types::String>(*tlhs))) {
+       (!is_type<Integer>(tlhs) && !is_type<String>(tlhs))) {
       error_at(exp.position, "operands must be integers or strings");
     }
     break;
@@ -162,40 +164,40 @@ TEntry Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   return int_type;
 };
 
-TEntry Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
+shared_type_t Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
 {
   return int_type;
 };
 
-TEntry Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
+shared_type_t Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 {
   return exp.var->accept(*this);
 };
 
-TEntry Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
+shared_type_t Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
-  TEntry tres = unit_type;
+  shared_type_t tres = unit_type;
   for(auto& [e, pos] : exp.exps) {
     tres = e->accept(*this);
   }
   return tres;
 };
 
-TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
+shared_type_t Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
   auto texpr = tenv.lookup(exp.type);
 
-  if(!texpr || !is_type<types::Array>(*texpr.value())) {
+  if(!texpr || !is_type<Array>(texpr->t)) {
     error_at(exp.position,
              std::format("undefined array type '{}'", exp.type.str()));
   }
-  else if(!is_type<types::Integer>(*tsize)) {
+  else if(!is_type<Integer>(tsize)) {
     error_at(exp.position, "array size must be an integer");
   }
   else {
-    auto arr = dynamic_cast<types::Array*>(texpr.value().get());
+    auto arr = dynamic_cast<Array*>(texpr->t.get());
     if(!can_assign(skip_name_types(arr->type), tinit)) {
       error_at(exp.position,
                std::format("array type mismatch: '{}' != '{}'",
@@ -204,22 +206,22 @@ TEntry Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
     }
   }
   // this is an array type, whose elements may be name types
-  return texpr.value();
+  return texpr->t;
 }
 
-TEntry Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
+shared_type_t Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
   return nil_type;
 };
 
-TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
+shared_type_t Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
-  auto opttrec = tenv.lookup(exp.type);
-  if(!opttrec || !is_type<types::Record>(*opttrec.value())) {
+  auto maybe_rec = tenv.lookup(exp.type);
+  if(!maybe_rec || !is_type<Record>(maybe_rec->t)) {
     error_at(exp.position,
              std::format("undefined record type '{}'", exp.type.str()));
   }
-  auto trec = dynamic_cast<types::Record*>(opttrec.value().get());
+  auto trec = dynamic_cast<Record*>(maybe_rec->t.get());
 
   auto rsize = trec->fields.size();
   auto esize = exp.fields.size();
@@ -253,13 +255,13 @@ TEntry Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
                            to_string(tactual)));
     }
   }
-  return opttrec.value();
+  return maybe_rec->t;
 };
 
-TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
+shared_type_t Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
   auto tcond = exp.cond->accept(*this);
-  if(!is_type<types::Integer>(*tcond)) {
+  if(!is_type<Integer>(tcond)) {
     error_at(exp.position, "the condition must be an integer");
   }
   auto tthen = exp.then->accept(*this);
@@ -267,10 +269,10 @@ TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
   if(exp.else_) {
     auto telse = exp.else_->accept(*this);
     if(!same_types(tthen, telse)) {
-      if(is_type<types::Record>(*tthen) && is_type<types::Nil>(*telse)) {
+      if(is_type<Record>(tthen) && is_type<Nil>(telse)) {
         return tthen;
       }
-      else if(is_type<types::Record>(*telse) && is_type<types::Nil>(*tthen)) {
+      else if(is_type<Record>(telse) && is_type<Nil>(tthen)) {
         return telse;
       }
       else {
@@ -280,14 +282,14 @@ TEntry Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
     return tthen;
   }
   else {
-    if(!is_type<types::Unit>(*tthen)) {
+    if(!is_type<Unit>(tthen)) {
       error_at(exp.position, "the then branch must not produce any value");
     }
   }
   return unit_type;
 };
 
-TEntry Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
+shared_type_t Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
   if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
@@ -295,16 +297,16 @@ TEntry Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
   return unit_type;
 };
 
-TEntry Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
+shared_type_t Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
   // condition must be an integer
-  if(!is_type<types::Integer>(*exp.cond->accept(*this))) {
+  if(!is_type<Integer>(exp.cond->accept(*this))) {
     error_at(exp.position, "the condition must be an integer");
   } // body must not produce any value
   else {
     bool can_break_saved = can_break;
     can_break = true;
-    if(!is_type<types::Unit>(*exp.body->accept(*this))) {
+    if(!is_type<Unit>(exp.body->accept(*this))) {
       error_at(exp.position,
                "the body of the while loop must not produce any value");
     }
@@ -313,13 +315,13 @@ TEntry Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
   return unit_type;
 };
 
-TEntry Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
+shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
   // high and low must be integers
-  if(!is_type<types::Integer>(*exp.low->accept(*this))) {
+  if(!is_type<Integer>(exp.low->accept(*this))) {
     error_at(exp.position, "the lower bound must be an integer");
   }
-  else if(!is_type<types::Integer>(*exp.high->accept(*this))) {
+  else if(!is_type<Integer>(exp.high->accept(*this))) {
     error_at(exp.position, "the upper bound must be an integer");
   } // body must not produce any value
   else {
@@ -331,7 +333,7 @@ TEntry Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     venv.end_scope();
     can_break = can_break_saved;
 
-    if(!is_type<types::Unit>(*tbody)) {
+    if(!is_type<Unit>(tbody)) {
       error_at(exp.position,
                "the body of the for loop must not produce any value");
     }
@@ -339,14 +341,14 @@ TEntry Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
   return unit_type;
 };
 
-TEntry Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
+shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
-  auto opt_fentry = venv.lookup(exp.name);
-  if(!opt_fentry || !std::holds_alternative<FuncEntry>(opt_fentry.value())) {
+  auto maybe_fentry = venv.lookup(exp.name);
+  if(!maybe_fentry || !std::holds_alternative<FuncEntry>(*maybe_fentry)) {
     error_at(exp.position,
              std::format("undefined function '{}'", exp.name.str()));
   }
-  auto& fentry = std::get<FuncEntry>(opt_fentry.value());
+  auto& fentry = std::get<FuncEntry>(*maybe_fentry);
 
   // check the arguments
   auto fsize = fentry.formals.size();
@@ -371,7 +373,7 @@ TEntry Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   return skip_name_types(fentry.result);
 };
 
-TEntry Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
+shared_type_t Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
 {
   tenv.begin_scope();
   venv.begin_scope();
@@ -412,7 +414,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     batch.insert(fdecl->name.id());
 
     // type check the parameters
-    std::vector<TEntry> formals;
+    std::vector<shared_type_t> formals;
     for(auto& param : fdecl->params) {
       auto tparam = tenv.lookup(param.type);
       if(!tparam) {
@@ -420,11 +422,11 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
           param.position,
           std::format("undefined parameter type '{}'", param.type.str()));
       }
-      formals.push_back(tparam.value());
+      formals.push_back(tparam->t);
     }
 
     // typecheck return type (not against expression)
-    TEntry tresult = unit_type;
+    shared_type_t tresult = unit_type;
     if(fdecl->result) {
       auto fdecl_result = fdecl->result.value();
       auto opt_tresult = tenv.lookup(fdecl_result.first);
@@ -433,7 +435,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
           fdecl_result.second,
           std::format("undefined return type '{}'", fdecl_result.first.str()));
       }
-      tresult = opt_tresult.value();
+      tresult = opt_tresult->t;
     }
 
     // add the function header
@@ -445,11 +447,11 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     venv.begin_scope(); // body scope augmented with formals
     // add formals
     for(auto& param : fdecl->params) {
-      venv.enter(param.name, VarEntry(tenv.lookup(param.type).value()));
+      venv.enter(param.name, VarEntry(tenv.lookup(param.type)->t));
     }
 
     // type check return type
-    auto func_entry = std::get<FuncEntry>(venv.lookup(fdecl->name).value());
+    auto& func_entry = std::get<FuncEntry>(*venv.lookup(fdecl->name));
     auto tbody = fdecl->body->accept(*this);
 
     if(!same_types(skip_name_types(func_entry.result), tbody)) {
@@ -480,16 +482,16 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
     if(!tdecl) {
       error_at(tpos, std::format("undefined type '{}'", tname.str()));
     }
-    if(!can_assign(skip_name_types(tdecl.value()), tinit)) {
+    if(!can_assign(skip_name_types(tdecl->t), tinit)) {
       error_at(tpos,
                std::format("decl type '{}' does not match expr type '{}'",
                            tname.str(),
                            to_string(tinit)));
     }
-    venv.enter(decl.name, VarEntry(tdecl.value()));
+    venv.enter(decl.name, VarEntry(tdecl->t));
   }
   else {
-    if(is_type<types::Nil>(*tinit)) {
+    if(is_type<Nil>(tinit)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
@@ -510,14 +512,14 @@ void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
                std::format("redeclaration of type '{}'", tdecl->name.str()));
     }
     tenv.enter(tdecl->name,
-               std::make_shared<types::Name>(tdecl->name, nullptr));
+               TEntry{std::make_shared<Name>(tdecl->name, nullptr)});
     batch.insert(tdecl->name.id());
   }
 
   // next we replace all those fake names with the true type
   for(auto& tdecl : decl.decls) {
     auto actual = tdecl->type->accept(*this);
-    tenv.replace(tdecl->name, actual);
+    tenv.replace(tdecl->name, TEntry{actual});
   }
 
   // prevent cycles
@@ -592,10 +594,10 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   */
 
   // this can be made more efficient
-  std::unordered_set<TEntry> visited;
+  std::unordered_set<shared_type_t> visited;
   for(auto& tdecl : decl.decls) {
     visited.clear();
-    auto actual = tenv.lookup(tdecl->name).value();
+    auto actual = tenv.lookup(tdecl->name)->t;
 
     // chase the sequence until a record or cycle is found
     while(true) {
@@ -607,12 +609,12 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
         visited.insert(actual);
       }
 
-      if(is_type<types::Name>(*actual)) {
+      if(is_type<Name>(actual)) {
         actual =
-          tenv.lookup((dynamic_cast<types::Name*>(actual.get()))->name).value();
+          tenv.lookup((dynamic_cast<Name*>(actual.get()))->name)->t;
       }
-      else if(is_type<types::Array>(*actual)) {
-        actual = dynamic_cast<types::Array*>(actual.get())->type;
+      else if(is_type<Array>(actual)) {
+        actual = dynamic_cast<Array*>(actual.get())->type;
       }
       else {
         break;
@@ -621,59 +623,59 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-TEntry Analyzer::visit_name_type(const parser::ast::NameType& type)
+shared_type_t Analyzer::visit_name_type(const parser::ast::NameType& type)
 {
-  auto t = tenv.lookup(type.name);
-  if(!t) {
+  auto ty = tenv.lookup(type.name);
+  if(!ty) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return t.value();
+  return ty->t;
 };
 
-TEntry Analyzer::visit_array_type(const parser::ast::ArrayType& type)
+shared_type_t Analyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return std::make_shared<types::Array>(elem_type.value());
+  return std::make_shared<Array>(elem_type->t);
 };
 
-TEntry Analyzer::visit_record_type(const parser::ast::RecordType& type)
+shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
 {
-  std::vector<std::pair<symbol::Symbol, TEntry>> fields;
+  std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
   for(auto& field : type.fields) {
     auto tfield = tenv.lookup(field.type);
     if(!tfield) {
       error_at(field.position,
                std::format("undefined type '{}'", field.type.str()));
     }
-    fields.push_back({field.name, tfield.value()});
+    fields.push_back({field.name, tfield->t});
   }
-  return std::make_shared<types::Record>(fields);
+  return std::make_shared<Record>(fields);
 };
 
-TEntry Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
+shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 {
   auto v = venv.lookup(var.name);
-  if(!v || !std::holds_alternative<VarEntry>(v.value())) {
+  if(!v || !std::holds_alternative<VarEntry>(*v)) {
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.str()));
   }
-  return skip_name_types(std::get<VarEntry>(v.value()).type);
+  return skip_name_types(std::get<VarEntry>(*v).type);
 };
 
-TEntry Analyzer::visit_field_var(const parser::ast::FieldVar& var)
+shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
   auto tlhs = var.var->accept(*this);
   // . applicable to records only
-  if(!is_type<types::Record>(*tlhs)) {
+  if(!is_type<Record>(tlhs)) {
     error_at(var.position,
              std::format("'{}' is not a record type", to_string(tlhs)));
   }
-  auto record = dynamic_cast<types::Record*>(tlhs.get());
+  auto record = dynamic_cast<Record*>(tlhs.get());
 
   // check whether the field name belongs to the record fields
   auto iter =
@@ -688,19 +690,20 @@ TEntry Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   return skip_name_types(std::get<1>(*iter));
 };
 
-TEntry Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
+shared_type_t
+Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);
-  if(!is_type<types::Array>(*tlhs)) {
+  if(!is_type<Array>(tlhs)) {
     error_at(var.position,
              std::format("'{}' is not an array type", to_string(tlhs)));
   }
-  auto array = dynamic_cast<types::Array*>(tlhs.get());
+  auto array = dynamic_cast<Array*>(tlhs.get());
 
   // expression must be an integer
   auto texp = var.exp->accept(*this);
-  if(!is_type<types::Integer>(*texp)) {
+  if(!is_type<Integer>(texp)) {
     error_at(var.position, "expression between '[]' must be an integer");
   }
 

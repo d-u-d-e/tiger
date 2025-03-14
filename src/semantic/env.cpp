@@ -25,7 +25,7 @@ std::string to_string(const VEntry& entry)
 
 std::string to_string(const TEntry& entry)
 {
-  return entry->to_string();
+  return entry.t->to_string();
 }
 
 } // namespace semantic::env

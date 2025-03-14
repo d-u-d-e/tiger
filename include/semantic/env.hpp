@@ -4,32 +4,45 @@
 #include <optional>
 #include <semantic/types.hpp>
 #include <stack>
+#include <translation/level.hpp>
 #include <variant>
 
 namespace semantic::env
 {
+using namespace types;
 
 class VarEntry {
   public:
-  VarEntry(std::shared_ptr<types::Type> type)
+  explicit VarEntry(shared_type_t type)
     : type(std::move(type))
   { }
-  std::shared_ptr<types::Type> type;
+
+  translation::Level::Access
+    access; // tells where the variable resides in memory
+  shared_type_t type;
 };
 
 class FuncEntry {
   public:
-  FuncEntry(std::vector<std::shared_ptr<types::Type>> formals,
-            std::shared_ptr<types::Type> result)
+  explicit FuncEntry(std::vector<shared_type_t> formals,
+            shared_type_t result)
     : formals(std::move(formals))
     , result(std::move(result))
+    , label(translation::Temp::new_label())
   { }
-  std::vector<std::shared_ptr<types::Type>> formals;
-  std::shared_ptr<types::Type> result;
+
+  translation::Temp::label_t label;
+  std::unique_ptr<translation::Level> level{};
+  std::vector<shared_type_t> formals;
+  shared_type_t result;
 };
 
 using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;
-using TEntry = std::shared_ptr<types::Type>;
+
+struct TEntry {
+  shared_type_t t;
+};
+
 std::string to_string(const VEntry& entry);
 std::string to_string(const TEntry& entry);
 
@@ -39,20 +52,18 @@ class Environment {
   Environment() = default;
 
   template <typename U>
-  requires std::is_convertible_v<U, T>
   void enter(const symbol::Symbol& s, U&& value)
   {
     table.enter(s, std::forward<U>(value));
     stack.push(s);
   };
 
-  std::optional<T> lookup(const symbol::Symbol& s) const
+  const T* lookup(const symbol::Symbol& s) const
   {
     return table.lookup(s);
   }
 
   template <typename U>
-  requires std::is_convertible_v<U, T>
   void replace(const symbol::Symbol& s, U&& value)
   {
     table.replace(s, std::forward<U>(value));
@@ -92,8 +103,8 @@ class Environment {
       }
       result += "-----------------\n";
       for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + "\"" + s.str() + "\": " +
-                  to_string(v) + "\n";
+        result += std::to_string(s.id()) + "-> " + "\"" + s.str() +
+                  "\": " + to_string(v) + "\n";
       }
     }
     return result;

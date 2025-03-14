@@ -7,9 +7,9 @@ using namespace semantic::env;
 template <typename T, bool expected = true>
 auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
   auto lookup = tenv.lookup(s);
-  CHECK(lookup.has_value() == expected);
+  CHECK((lookup != nullptr) == expected);
   if constexpr(expected) {
-    auto t = dynamic_cast<T*>(lookup.value().get());
+    auto t = dynamic_cast<T*>(lookup->t.get());
     CHECK(t != nullptr);
   }
 };
@@ -17,9 +17,9 @@ auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
 template <typename T, bool expected = true>
 auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
   auto lookup = venv.lookup(s);
-  CHECK(lookup.has_value() == expected);
+  CHECK((lookup != nullptr) == expected);
   if constexpr(expected) {
-    CHECK(std::holds_alternative<T>(lookup.value()));
+    CHECK(std::holds_alternative<T>(*lookup));
   }
 };
 
@@ -49,11 +49,11 @@ TEST_CASE("nested_scopes_types.tig")
   auto A = symbol::Symbol("A", 6);
 
   tenv.begin_scope();
-  tenv.enter(T, std::make_shared<semantic::types::Integer>());
+  tenv.enter(T, TEntry{std::make_shared<semantic::types::Integer>()});
   lookup_tentry<semantic::types::Integer>(tenv, T);
 
   tenv.begin_scope();
-  tenv.enter(T, std::make_shared<semantic::types::String>());
+  tenv.enter(T, TEntry{std::make_shared<semantic::types::String>()});
   lookup_tentry<semantic::types::String>(tenv, T);
 
   tenv.end_scope();
@@ -64,11 +64,11 @@ TEST_CASE("nested_scopes_types.tig")
   fields.emplace_back(x, std::make_shared<semantic::types::Integer>());
   fields.emplace_back(y, std::make_shared<semantic::types::String>());
   fields.emplace_back(z, std::make_shared<semantic::types::String>());
-  tenv.enter(R, std::make_shared<semantic::types::Record>(fields));
+  tenv.enter(R, TEntry{std::make_shared<semantic::types::Record>(fields)});
 
   tenv.enter(A,
-             std::make_shared<semantic::types::Array>(
-               std::make_shared<semantic::types::String>()));
+             TEntry{std::make_shared<semantic::types::Array>(
+               std::make_shared<semantic::types::String>())});
 
   lookup_tentry<semantic::types::Record>(tenv, R);
   lookup_tentry<semantic::types::Array>(tenv, A);
@@ -103,20 +103,17 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   auto y = symbol::Symbol("y", 6);
 
   venv.begin_scope();
-  VEntry ventry = VarEntry(std::make_shared<semantic::types::Integer>());
-  venv.enter(a, ventry);
+  venv.enter(a, VarEntry(std::make_shared<semantic::types::Integer>()));
   lookup_ventry<VarEntry>(venv, a);
 
   venv.begin_scope();
-  ventry = VarEntry(std::make_shared<semantic::types::String>());
-  venv.enter(b, ventry);
+  venv.enter(b, VarEntry(std::make_shared<semantic::types::String>()));
   lookup_ventry<VarEntry>(venv, b);
 
   std::vector<std::shared_ptr<semantic::types::Type>> formals;
   formals.push_back(std::make_shared<semantic::types::Integer>());
   formals.push_back(std::make_shared<semantic::types::String>());
-  ventry = FuncEntry(formals, std::make_shared<semantic::types::String>());
-  venv.enter(f, ventry);
+  venv.enter(f, FuncEntry(formals, std::make_shared<semantic::types::String>()));
   lookup_ventry<FuncEntry>(venv, f);
 
   venv.end_scope();
@@ -125,8 +122,7 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
 
   formals.clear();
   formals.push_back(std::make_shared<semantic::types::String>());
-  ventry = FuncEntry(formals, std::make_shared<semantic::types::String>());
-  venv.enter(g, ventry);
+  venv.enter(g, FuncEntry(formals, std::make_shared<semantic::types::String>()));
   lookup_ventry<FuncEntry>(venv, g);
 
   venv.end_scope();

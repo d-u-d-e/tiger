@@ -67,7 +67,6 @@ class Table {
   }
 
   template <typename U>
-    requires std::is_convertible_v<U, T>
   void enter(const Symbol& s, U&& value)
   {
     if(count + 1 > capacity * load_factor) {
@@ -78,7 +77,7 @@ class Table {
     count++;
   }
 
-  std::optional<T> lookup(const Symbol& s) const
+  const T* lookup(const Symbol& s) const
   {
     size_t index = s.id() % capacity;
     auto iter = std::find_if(table[index].begin(),
@@ -88,9 +87,9 @@ class Table {
                              });
 
     if(iter == table[index].end()) {
-      return std::nullopt;
+      return nullptr;
     }
-    return std::get<1>(*iter);
+    return &std::get<1>(*iter);
   }
 
   void pop(const Symbol& s)
@@ -122,7 +121,6 @@ class Table {
   }
 
   template <typename U>
-    requires std::is_convertible_v<U, T>
   void replace(const Symbol& s, U&& value)
   {
     size_t index = s.id() % capacity;
@@ -147,7 +145,7 @@ class Table {
       auto& l = table[i];
       for(auto& [s, v] : l) {
         auto bin = s.id() % capacity;
-        new_table[bin].emplace_back(s, v);
+        new_table[bin].emplace_back(s, std::move(v));
       }
     }
     table = std::move(new_table);

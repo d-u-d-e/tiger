@@ -3,6 +3,11 @@
 namespace semantic::types
 {
 
+std::string to_string(const shared_type_t& t)
+{
+  return t->to_string();
+}
+
 std::string Integer::to_string()
 {
   return "int";

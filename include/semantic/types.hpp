@@ -11,6 +11,7 @@ class Type {
   virtual ~Type() = default;
   virtual std::string to_string() = 0;
 };
+using shared_type_t = std::shared_ptr<Type>;
 
 struct Integer : public Type {
   std::string to_string() override;
@@ -28,31 +29,34 @@ struct Unit : public Type {
 };
 
 struct Record : public Type {
-  Record(std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields)
+  explicit Record(std::vector<std::pair<symbol::Symbol, shared_type_t>> fields)
     : fields(std::move(fields))
   { }
 
   std::string to_string() override;
-  std::vector<std::pair<symbol::Symbol, std::shared_ptr<Type>>> fields;
+  std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
 };
 
 struct Array : public Type {
-  Array(std::shared_ptr<Type> type)
+  explicit Array(shared_type_t type)
     : type(std::move(type))
   { }
 
   std::string to_string() override;
-  std::shared_ptr<Type> type;
+  shared_type_t type;
 };
 
 struct Name : public Type {
-  Name(const symbol::Symbol& name, std::shared_ptr<Type> type)
+  explicit Name(const symbol::Symbol& name, shared_type_t type)
     : name(name)
     , type(std::move(type))
   { }
 
   std::string to_string() override;
   symbol::Symbol name;
-  std::shared_ptr<Type> type;
+  shared_type_t type;
 };
+
+std::string to_string(const shared_type_t& t);
+
 } // namespace semantic::types
