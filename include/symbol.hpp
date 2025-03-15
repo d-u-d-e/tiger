@@ -133,6 +133,27 @@ class Table {
     (*iter).second = std::forward<U>(value);
   }
 
+  template <typename U = T,
+            bool has_to_string =
+              std::is_same_v<decltype(std::declval<U>().to_string()),
+                             std::string>>
+  std::string dump() const
+  {
+    std::string result;
+    for(size_t i = 0; i < capacity; i++) {
+      auto& l = table[i];
+      if(l.size() == 0) {
+        continue;
+      }
+      result += "-----------------\n";
+      for(const auto& [s, v] : l) {
+        result += std::to_string(s.id()) + "-> " + "\"" + s.str() +
+                  "\": " + v.to_string() + "\n";
+      }
+    }
+    return result;
+  }
+
   private:
   void grow()
   {

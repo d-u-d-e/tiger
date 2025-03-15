@@ -46,8 +46,8 @@ void Analyzer::add_predef_func(const symbol::Symbol& s,
   venv.enter(
     s,
     env::FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...},
-              ret,
-              std::move(l)));
+                   ret,
+                   std::move(l)));
 }
 
 void Analyzer::add_predefined_functions()
@@ -359,7 +359,8 @@ shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
   auto maybe_fentry = venv.lookup(exp.name);
-  if(!maybe_fentry || !std::holds_alternative<env::FuncEntry>(*maybe_fentry)) {
+  if(!maybe_fentry ||
+     !std::holds_alternative<env::FuncEntry>(maybe_fentry->v)) {
     error_at(exp.position,
              std::format("undefined function '{}'", exp.name.str()));
   }
@@ -367,7 +368,7 @@ shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   // Note: be careful with auto&: calling enter on the env after having
   // obtained a reference to an entry can make it dangling!
   // This is because the env can grow
-  auto& fentry = std::get<env::FuncEntry>(*maybe_fentry);
+  auto& fentry = std::get<env::FuncEntry>(maybe_fentry->v);
 
   // check the arguments
   auto fsize = fentry.formals.size();
@@ -471,7 +472,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 
   // go through the bodies
   for(auto& fdecl : decl.decls) {
-    auto func_entry = std::get<env::FuncEntry>(*venv.lookup(fdecl->name));
+    auto func_entry = std::get<env::FuncEntry>(venv.lookup(fdecl->name)->v);
 
     venv.begin_scope(); // body scope augmented with formals
 
@@ -695,13 +696,13 @@ shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
 
 shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 {
-  auto v = venv.lookup(var.name);
-  if(!v || !std::holds_alternative<env::VarEntry>(*v)) {
+  auto maybe_var = venv.lookup(var.name);
+  if(!maybe_var || !std::holds_alternative<env::VarEntry>(maybe_var->v)) {
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.str()));
   }
   // TODO: here std::get<VarEntry>(*v).access can be handed back to the translator to generate machine code
-  return skip_name_types(std::get<env::VarEntry>(*v).type);
+  return skip_name_types(std::get<env::VarEntry>(maybe_var->v).type);
 };
 
 shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)

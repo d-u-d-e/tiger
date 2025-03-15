@@ -19,7 +19,7 @@ auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
   auto lookup = venv.lookup(s);
   CHECK((lookup != nullptr) == expected);
   if constexpr(expected) {
-    CHECK(std::holds_alternative<T>(*lookup));
+    CHECK(std::holds_alternative<T>(lookup->v));
   }
 };
 

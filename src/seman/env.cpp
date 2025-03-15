@@ -4,28 +4,28 @@
 namespace seman::env
 {
 
-std::string to_string(const VEntry& entry)
+std::string VEntry::to_string() const
 {
-  if(std::holds_alternative<VarEntry>(entry)) {
+  if(std::holds_alternative<VarEntry>(this->v)) {
     return "VarEntry" +
-           std::format("({})", std::get<VarEntry>(entry).type->to_string());
+           std::format("({})", std::get<VarEntry>(this->v).type->to_string());
   }
-  else if(std::holds_alternative<FuncEntry>(entry)) {
+  else if(std::holds_alternative<FuncEntry>(this->v)) {
     std::string result = "FuncEntry(";
-    auto& formals = std::get<FuncEntry>(entry).formals;
+    auto& formals = std::get<FuncEntry>(this->v).formals;
     size_t size = formals.size();
     for(size_t i = 0; i < size; i++) {
       result += formals[i]->to_string() + (i == size - 1 ? "" : ", ");
     }
-    return result + ") -> " + std::get<FuncEntry>(entry).result->to_string();
+    return result + ") -> " + std::get<FuncEntry>(this->v).result->to_string();
   }
   assert(false);
   std::unreachable();
 }
 
-std::string to_string(const TEntry& entry)
+std::string TEntry::to_string() const
 {
-  return entry.t->to_string();
+  return this->t->to_string();
 }
 
-} // namespace semantic::env
+} // namespace seman::env

@@ -39,14 +39,15 @@ class FuncEntry {
   std::shared_ptr<ir::Level> level{};
 };
 
-using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;
-
-struct TEntry {
-  shared_type_t t;
+struct VEntry {
+  std::string to_string() const;
+  std::variant<std::monostate, VarEntry, FuncEntry> v;
 };
 
-std::string to_string(const VEntry& entry);
-std::string to_string(const TEntry& entry);
+struct TEntry {
+  std::string to_string() const;
+  shared_type_t t;
+};
 
 template <typename T>
 class Environment {
@@ -98,18 +99,7 @@ class Environment {
 
   std::string dump() const
   {
-    std::string result;
-    for(const auto& l : table) {
-      if(l.size() == 0) {
-        continue;
-      }
-      result += "-----------------\n";
-      for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + "\"" + s.str() +
-                  "\": " + to_string(v) + "\n";
-      }
-    }
-    return result;
+    return table.dump();
   }
 
   private:

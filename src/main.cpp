@@ -10,6 +10,7 @@
 #include <sysexits.h>
 
 #include <ir/translator.hpp>
+#include <seman/escape.hpp>
 
 int main(int argc, char** argv)
 {
@@ -35,6 +36,13 @@ int main(int argc, char** argv)
   // dump the string table
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
+
+  // find escape variables
+  symbol::Table<seman::Escape> escapes;
+  seman::EscapeFinder esc_finder(escapes);
+  exp->accept(esc_finder);
+  std::cout << "escape table:" << std::endl;
+  std::cout << escapes.dump() << std::endl;
 
   ir::Translator translator;
   seman::Analyzer type_checker(string_table, translator);
