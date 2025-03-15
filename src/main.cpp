@@ -4,13 +4,12 @@
 #include <parser/parser.hpp>
 #include <parser/pretty_printer.hpp>
 
-#include <semantic/analyzer.hpp>
-#include <semantic/env.hpp>
+#include <seman/analyzer.hpp>
+#include <seman/env.hpp>
 #include <symbol.hpp>
 #include <sysexits.h>
 
-// TODO
-#include <translation/ir.hpp>
+#include <ir/translator.hpp>
 
 int main(int argc, char** argv)
 {
@@ -37,7 +36,7 @@ int main(int argc, char** argv)
   std::cout << "string table:" << std::endl;
   std::cout << string_table.dump() << std::endl;
 
-  translation::ir::Translator translator;
-  semantic::Analyzer type_checker(string_table, translator);
+  ir::Translator translator;
+  seman::Analyzer type_checker(string_table, translator);
   type_checker.type_check(*exp);
 }

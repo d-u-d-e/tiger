@@ -1,6 +1,6 @@
 #pragma once
+#include <ir/temp.hpp>
 #include <memory>
-#include <translation/temp.hpp>
 #include <vector>
 
 namespace arch
@@ -8,8 +8,8 @@ namespace arch
 
 class Frame {
   public:
-  using temp_t = translation::Temp::temp_t;
-  using label_t = translation::Temp::label_t;
+  using temp_t = ir::Temp::temp_t;
+  using label_t = ir::Temp::label_t;
 
   private:
   struct InReg {
@@ -41,7 +41,7 @@ class Frame {
         off += word_size; // incoming params
       }
       else {
-        formals_.push_back(InReg(translation::Temp::getInstance().new_temp()));
+        formals_.push_back(InReg(ir::Temp::getInstance().new_temp()));
       }
     }
   }
@@ -65,7 +65,7 @@ class Frame {
       return InFrame(off);
     }
     else {
-      return InReg(translation::Temp::getInstance().new_temp());
+      return InReg(ir::Temp::getInstance().new_temp());
     }
   }
 

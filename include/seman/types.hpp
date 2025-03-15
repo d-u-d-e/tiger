@@ -3,7 +3,7 @@
 #include <symbol.hpp>
 #include <vector>
 
-namespace semantic::types
+namespace seman::types
 {
 
 class Type {
@@ -59,4 +59,4 @@ struct Name : public Type {
 
 std::string to_string(const shared_type_t& t);
 
-} // namespace semantic::types
+} // namespace seman::types

@@ -1,25 +1,25 @@
 #include <doctest/doctest.h>
+#include <ir/translator.hpp>
 #include <lexer/lex.hpp>
 #include <parser/parser.hpp>
-#include <semantic/analyzer.hpp>
-#include <translation/ir.hpp>
+#include <seman/analyzer.hpp>
 
-TEST_SUITE_BEGIN("semantic_analyzer");
+TEST_SUITE_BEGIN("seman_analyzer");
 
 #define SHOULD_PASS(filename)                                                  \
   TEST_CASE(filename)                                                          \
   {                                                                            \
     lexer::Scanner scanner(                                                    \
-      std::filesystem::path("../tests/semantic/valid/" filename));             \
+      std::filesystem::path("../tests/seman/valid/" filename));                \
     auto string_table = symbol::StringTable();                                 \
     std::ostringstream serr;                                                   \
     parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
-    translation::ir::Translator translator;                                    \
+    ir::Translator translator;                                                 \
                                                                                \
     CHECK_NOTHROW({                                                            \
-      semantic::Analyzer analyzer(string_table, translator);                   \
+      seman::Analyzer analyzer(string_table, translator);                      \
       analyzer.type_check(*exp);                                               \
     });                                                                        \
   }
@@ -53,11 +53,11 @@ TEST_CASE("valid_book_examples")
     parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
-    translation::ir::Translator translator;
+    ir::Translator translator;
 
     CHECK_NOTHROW_MESSAGE(
       {
-        semantic::Analyzer analyzer(string_table, translator);
+        seman::Analyzer analyzer(string_table, translator);
         analyzer.type_check(*exp);
       },
       fname);
@@ -85,11 +85,11 @@ TEST_CASE("invalid_book_examples")
     parser::Parser parser(serr, scanner, string_table);
     auto exp = parser.parse();
     CHECK_FALSE_MESSAGE(parser.had_error(), fname);
-    translation::ir::Translator translator;
+    ir::Translator translator;
 
     CHECK_THROWS_MESSAGE(
       {
-        semantic::Analyzer analyzer(string_table, translator);
+        seman::Analyzer analyzer(string_table, translator);
         analyzer.type_check(*exp);
       },
       fname);
@@ -100,16 +100,16 @@ TEST_CASE("invalid_book_examples")
   TEST_CASE(filename)                                                          \
   {                                                                            \
     lexer::Scanner scanner(                                                    \
-      std::filesystem::path("../tests/semantic/invalid/" filename));           \
+      std::filesystem::path("../tests/seman/invalid/" filename));              \
     auto string_table = symbol::StringTable();                                 \
     std::ostringstream serr;                                                   \
     parser::Parser parser(serr, scanner, string_table);                        \
     auto exp = parser.parse();                                                 \
     CHECK_FALSE(parser.had_error());                                           \
-    translation::ir::Translator translator;                                    \
+    ir::Translator translator;                                                 \
     CHECK_THROWS_WITH(                                                         \
       {                                                                        \
-        semantic::Analyzer analyzer(string_table, translator);                 \
+        seman::Analyzer analyzer(string_table, translator);                    \
         analyzer.type_check(*exp);                                             \
       },                                                                       \
       msg);                                                                    \

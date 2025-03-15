@@ -1,6 +1,6 @@
-#include <semantic/types.hpp>
+#include <seman/types.hpp>
 
-namespace semantic::types
+namespace seman::types
 {
 
 std::string to_string(const shared_type_t& t)

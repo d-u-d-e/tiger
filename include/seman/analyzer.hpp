@@ -1,25 +1,23 @@
 #pragma once
+#include <ir/translator.hpp>
 #include <parser/ast.hpp>
-#include <parser/visitor.hpp>
-#include <semantic/env.hpp>
+#include <seman/visitor.hpp>
 #include <symbol.hpp>
-#include <translation/ir.hpp>
 
-namespace semantic
+namespace seman
 {
 
-using namespace env;
+using namespace types;
 
-class Analyzer : public parser::ast::TypeCheckerExprVisitor,
-                 public parser::ast::TypeCheckerDeclVisitor,
-                 public parser::ast::TypeCheckerVarVisitor,
-                 public parser::ast::TypeCheckerTypeVisitor
+class Analyzer : public TypeCheckerExprVisitor,
+                 public TypeCheckerDeclVisitor,
+                 public TypeCheckerVarVisitor,
+                 public TypeCheckerTypeVisitor
 
 {
 
   public:
-  Analyzer(symbol::StringTable& string_table,
-           translation::ir::Translator& translator);
+  Analyzer(symbol::StringTable& string_table, ir::Translator& translator);
   void type_check(const parser::ast::Expression& exp);
 
   shared_type_t visit_string_exp(const parser::ast::StringExp& exp) override;
@@ -72,9 +70,9 @@ class Analyzer : public parser::ast::TypeCheckerExprVisitor,
   shared_type_t skip_name_types(const shared_type_t& t);
   bool can_break{false};
   symbol::StringTable& string_table;
-  translation::ir::Translator& translator;
-  std::shared_ptr<translation::Level> prev_level{}, current_level{};
-  Environment<TEntry> tenv;
-  Environment<VEntry> venv;
+  ir::Translator& translator;
+  std::shared_ptr<ir::Level> prev_level{}, current_level{};
+  env::Environment<env::TEntry> tenv;
+  env::Environment<env::VEntry> venv;
 };
-} // namespace semantic
+} // namespace seman

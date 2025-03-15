@@ -1,10 +1,10 @@
 #pragma once
 #include <arch/frame.hpp>
+#include <ir/level.hpp>
+#include <ir/temp.hpp>
 #include <memory>
-#include <translation/level.hpp>
-#include <translation/temp.hpp>
 
-namespace translation::ir
+namespace ir
 {
 
 class Translator {
@@ -12,9 +12,7 @@ class Translator {
   Translator()
   {
     lvl_outermost = std::make_shared<Level>(
-      nullptr,
-      arch::Frame(translation::Temp::getInstance().named_label("outermost"),
-                  {}));
+      nullptr, arch::Frame(Temp::getInstance().named_label("outermost"), {}));
   }
 
   std::shared_ptr<Level> outermost_level()
@@ -43,4 +41,4 @@ class Translator {
   std::shared_ptr<Level> lvl_outermost;
 };
 
-} // namespace translation::ir
+} // namespace ir

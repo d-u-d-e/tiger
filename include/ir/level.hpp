@@ -1,7 +1,7 @@
 #pragma once
 #include <arch/frame.hpp>
 
-namespace translation
+namespace ir
 {
 
 struct Level {
@@ -30,4 +30,4 @@ struct Level {
   arch::Frame f;
 };
 
-} // namespace translation
+} // namespace ir

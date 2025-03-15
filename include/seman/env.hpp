@@ -1,25 +1,24 @@
 #pragma once
 #include <format>
+#include <ir/level.hpp>
 #include <memory>
 #include <optional>
-#include <semantic/types.hpp>
+#include <seman/types.hpp>
 #include <stack>
-#include <translation/level.hpp>
 #include <variant>
 
-namespace semantic::env
+namespace seman::env
 {
 using namespace types;
 
 class VarEntry {
   public:
-  explicit VarEntry(shared_type_t type, translation::Level::Access access)
+  explicit VarEntry(shared_type_t type, ir::Level::Access access)
     : type(std::move(type))
     , access(std::move(access))
   { }
 
-  translation::Level::Access
-    access; // tells where the variable resides in memory
+  ir::Level::Access access; // tells where the variable resides in memory
   shared_type_t type;
 };
 
@@ -27,17 +26,17 @@ class FuncEntry {
   public:
   explicit FuncEntry(std::vector<shared_type_t> formals,
                      shared_type_t result,
-                     std::shared_ptr<translation::Level> level)
-    : label(translation::Temp::new_label())
+                     std::shared_ptr<ir::Level> level)
+    : label(ir::Temp::new_label())
     , formals(std::move(formals))
     , result(std::move(result))
     , level(std::move(level))
   { }
 
-  translation::Temp::label_t label;
+  ir::Temp::label_t label;
   std::vector<shared_type_t> formals;
   shared_type_t result;
-  std::shared_ptr<translation::Level> level{};
+  std::shared_ptr<ir::Level> level{};
 };
 
 using VEntry = std::variant<std::monostate, VarEntry, FuncEntry>;
@@ -118,4 +117,4 @@ class Environment {
   symbol::Table<T> table;
 };
 
-} // namespace semantic::env
+} // namespace seman::env

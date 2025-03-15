@@ -2,7 +2,7 @@
 #include <format>
 #include <symbol.hpp>
 
-namespace translation
+namespace ir
 {
 
 class Temp {
@@ -44,4 +44,4 @@ class Temp {
   uint32_t tid{0};
 };
 
-} // namespace translation
+} // namespace ir

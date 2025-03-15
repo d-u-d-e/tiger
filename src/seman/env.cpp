@@ -1,7 +1,7 @@
-#include <semantic/env.hpp>
+#include <seman/env.hpp>
 #include <utility>
 
-namespace semantic::env
+namespace seman::env
 {
 
 std::string to_string(const VEntry& entry)

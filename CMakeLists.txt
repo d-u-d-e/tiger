@@ -7,18 +7,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # add dependencies
 include(cmake/CPM.cmake)
+
+set(sources_common
+
+    src/lexer/lex.cpp
+    src/lexer/token.cpp
+    src/parser/parser.cpp
+    src/symbol.cpp
+    src/seman/types.cpp
+    src/seman/env.cpp
+    src/seman/analyzer.cpp
+)
+
 add_executable(
     tiger
     src/main.cpp
-    src/lexer/lex.cpp
-    src/lexer/token.cpp
-
-    src/parser/parser.cpp
-
-    src/symbol.cpp
-    src/semantic/types.cpp
-    src/semantic/env.cpp
-    src/semantic/analyzer.cpp
+    ${sources_common}
 )
 target_include_directories(tiger PRIVATE include)
 target_compile_options(tiger PRIVATE -g -O0)
@@ -28,25 +32,16 @@ set(BUILD_TEST_RUNNER ON)
 if(BUILD_TEST_RUNNER)
     CPMAddPackage("https://github.com/doctest/doctest.git@2.4.11")
     add_executable(test-runner
-    tests/main.cpp
-
-    tests/lexer/test_lexer.cpp
-    src/lexer/lex.cpp
-    src/lexer/token.cpp
-
-    tests/parser/test_parser.cpp
-    src/parser/parser.cpp
-
-    tests/semantic/test_env.cpp
-    src/symbol.cpp
-    src/semantic/types.cpp
-    src/semantic/env.cpp
-
-    src/semantic/analyzer.cpp
-    tests/semantic/test_analyzer.cpp
-
+        tests/main.cpp
+        tests/lexer/test_lexer.cpp
+        tests/parser/test_parser.cpp
+        tests/seman/test_env.cpp
+        tests/seman/test_analyzer.cpp
+        ${sources_common}
     )
+
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)
     target_compile_options(test-runner PRIVATE -O2)
+    
 endif(BUILD_TEST_RUNNER)

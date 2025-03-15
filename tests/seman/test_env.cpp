@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
-#include <semantic/env.hpp>
+#include <seman/env.hpp>
 
 TEST_SUITE_BEGIN("environment");
-using namespace semantic::env;
+using namespace seman::env;
 
 template <typename T, bool expected = true>
 auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
@@ -49,29 +49,29 @@ TEST_CASE("nested_scopes_types.tig")
   auto A = symbol::Symbol("A", 6);
 
   tenv.begin_scope();
-  tenv.enter(T, TEntry{std::make_shared<semantic::types::Integer>()});
-  lookup_tentry<semantic::types::Integer>(tenv, T);
+  tenv.enter(T, TEntry{std::make_shared<seman::types::Integer>()});
+  lookup_tentry<seman::types::Integer>(tenv, T);
 
   tenv.begin_scope();
-  tenv.enter(T, TEntry{std::make_shared<semantic::types::String>()});
-  lookup_tentry<semantic::types::String>(tenv, T);
+  tenv.enter(T, TEntry{std::make_shared<seman::types::String>()});
+  lookup_tentry<seman::types::String>(tenv, T);
 
   tenv.end_scope();
-  lookup_tentry<semantic::types::Integer>(tenv, T);
+  lookup_tentry<seman::types::Integer>(tenv, T);
 
-  std::vector<std::pair<symbol::Symbol, std::shared_ptr<semantic::types::Type>>>
+  std::vector<std::pair<symbol::Symbol, std::shared_ptr<seman::types::Type>>>
     fields;
-  fields.emplace_back(x, std::make_shared<semantic::types::Integer>());
-  fields.emplace_back(y, std::make_shared<semantic::types::String>());
-  fields.emplace_back(z, std::make_shared<semantic::types::String>());
-  tenv.enter(R, TEntry{std::make_shared<semantic::types::Record>(fields)});
+  fields.emplace_back(x, std::make_shared<seman::types::Integer>());
+  fields.emplace_back(y, std::make_shared<seman::types::String>());
+  fields.emplace_back(z, std::make_shared<seman::types::String>());
+  tenv.enter(R, TEntry{std::make_shared<seman::types::Record>(fields)});
 
   tenv.enter(A,
-             TEntry{std::make_shared<semantic::types::Array>(
-               std::make_shared<semantic::types::String>())});
+             TEntry{std::make_shared<seman::types::Array>(
+               std::make_shared<seman::types::String>())});
 
-  lookup_tentry<semantic::types::Record>(tenv, R);
-  lookup_tentry<semantic::types::Array>(tenv, A);
+  lookup_tentry<seman::types::Record>(tenv, R);
+  lookup_tentry<seman::types::Array>(tenv, A);
 
   tenv.end_scope();
   CHECK(tenv.size() == 0);
@@ -102,22 +102,22 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   auto x = symbol::Symbol("x", 5);
   auto y = symbol::Symbol("y", 6);
 
-  translation::Level::Access ax; // dummy
-  std::shared_ptr<translation::Level> l; // dummy
+  ir::Level::Access ax; // dummy
+  std::shared_ptr<ir::Level> l; // dummy
 
   venv.begin_scope();
-  venv.enter(a, VarEntry(std::make_shared<semantic::types::Integer>(), ax));
+  venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
   lookup_ventry<VarEntry>(venv, a);
 
   venv.begin_scope();
-  venv.enter(b, VarEntry(std::make_shared<semantic::types::String>(), ax));
+  venv.enter(b, VarEntry(std::make_shared<seman::types::String>(), ax));
   lookup_ventry<VarEntry>(venv, b);
 
-  std::vector<std::shared_ptr<semantic::types::Type>> formals;
-  formals.push_back(std::make_shared<semantic::types::Integer>());
-  formals.push_back(std::make_shared<semantic::types::String>());
+  std::vector<std::shared_ptr<seman::types::Type>> formals;
+  formals.push_back(std::make_shared<seman::types::Integer>());
+  formals.push_back(std::make_shared<seman::types::String>());
   venv.enter(f,
-             FuncEntry(formals, std::make_shared<semantic::types::String>(), l));
+             FuncEntry(formals, std::make_shared<seman::types::String>(), l));
   lookup_ventry<FuncEntry>(venv, f);
 
   venv.end_scope();
@@ -125,9 +125,9 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   lookup_ventry<VarEntry, false>(venv, f);
 
   formals.clear();
-  formals.push_back(std::make_shared<semantic::types::String>());
+  formals.push_back(std::make_shared<seman::types::String>());
   venv.enter(
-    g, FuncEntry(formals, std::make_shared<semantic::types::String>(), l));
+    g, FuncEntry(formals, std::make_shared<seman::types::String>(), l));
   lookup_ventry<FuncEntry>(venv, g);
 
   venv.end_scope();
