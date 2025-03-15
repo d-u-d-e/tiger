@@ -37,6 +37,7 @@ if(BUILD_TEST_RUNNER)
         tests/parser/test_parser.cpp
         tests/seman/test_env.cpp
         tests/seman/test_analyzer.cpp
+        src/seman/escape.cpp
         ${sources_common}
     )
 
