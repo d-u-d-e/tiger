@@ -11,22 +11,17 @@
 #include <utility>
 #include <vector>
 
-namespace parser
-{
-namespace ast
+namespace parser::ast
 {
 
 using Position = lexer::Position;
-using PrettyPrinterExprVisitor = ExprVisitor<std::string>;
-using PrettyPrinterVarVisitor = VarVisitor<std::string>;
-using PrettyPrinterDeclVisitor = DeclVisitor<std::string>;
-using PrettyPrinterTypeVisitor = TypeVisitor<std::string>;
 
 class Expression {
   public:
   virtual std::string accept(PrettyPrinterExprVisitor& visitor) const = 0;
   virtual seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const = 0;
+  virtual void accept(seman::FindEscapeExprVisitor& visitor) const = 0;
   virtual ~Expression() = default;
   std::string field;
 };
@@ -35,6 +30,7 @@ class Declaration {
   public:
   virtual std::string accept(PrettyPrinterDeclVisitor& visitor) const = 0;
   virtual void accept(seman::TypeCheckerDeclVisitor& visitor) const = 0;
+  virtual void accept(seman::FindEscapeDeclVisitor& visitor) const = 0;
   virtual ~Declaration() = default;
   std::string field;
 };
@@ -44,6 +40,7 @@ class Type {
   virtual std::string accept(PrettyPrinterTypeVisitor& visitor) const = 0;
   virtual seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const = 0;
+  virtual void accept(seman::FindEscapeTypeVisitor& visitor) const = 0;
   virtual ~Type() = default;
   std::string field;
 };
@@ -53,6 +50,7 @@ class Variable {
   virtual std::string accept(PrettyPrinterVarVisitor& visitor) const = 0;
   virtual seman::types::shared_type_t
   accept(seman::TypeCheckerVarVisitor& visitor) const = 0;
+  virtual void accept(seman::FindEscapeVarVisitor& visitor) const = 0;
   virtual ~Variable() = default;
   std::string field;
 };
@@ -116,6 +114,11 @@ class SimpleVar : public Variable {
     return visitor.visit_simple_var(*this);
   }
 
+  void accept(seman::FindEscapeVarVisitor& visitor) const override
+  {
+    return visitor.visit_simple_var(*this);
+  }
+
   symbol::Symbol name;
   Position position;
 };
@@ -136,6 +139,11 @@ class FieldVar : public Variable {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerVarVisitor& visitor) const override
+  {
+    return visitor.visit_field_var(*this);
+  }
+
+  void accept(seman::FindEscapeVarVisitor& visitor) const override
   {
     return visitor.visit_field_var(*this);
   }
@@ -165,6 +173,11 @@ class SubscriptVar : public Variable {
     return visitor.visit_subscript_var(*this);
   }
 
+  void accept(seman::FindEscapeVarVisitor& visitor) const override
+  {
+    return visitor.visit_subscript_var(*this);
+  }
+
   std::unique_ptr<Variable> var;
   std::unique_ptr<Expression> exp;
   Position position;
@@ -186,6 +199,11 @@ class VarExp : public Expression {
     return visitor.visit_var_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_var_exp(*this);
+  }
+
   std::unique_ptr<Variable> var;
 };
 
@@ -197,6 +215,11 @@ class NilExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_nil_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_nil_exp(*this);
   }
@@ -218,6 +241,11 @@ class IntExp : public Expression {
     return visitor.visit_int_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_int_exp(*this);
+  }
+
   int value;
 };
 
@@ -234,6 +262,11 @@ class StringExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_string_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_string_exp(*this);
   }
@@ -262,6 +295,11 @@ class CallExp : public Expression {
     return visitor.visit_call_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_call_exp(*this);
+  }
+
   symbol::Symbol name;
   std::vector<std::unique_ptr<Expression>> args;
   Position position;
@@ -285,6 +323,11 @@ class OpExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_op_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_op_exp(*this);
   }
@@ -329,6 +372,11 @@ class RecordExp : public Expression {
     return visitor.visit_record_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_record_exp(*this);
+  }
+
   symbol::Symbol type;
   std::vector<_RecordField> fields;
   Position position;
@@ -350,6 +398,11 @@ class SeqExp : public Expression {
   {
     return visitor.visit_seq_exp(*this);
   }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_seq_exp(*this);
+  }
 };
 
 class AssignExp : public Expression {
@@ -368,6 +421,11 @@ class AssignExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_assign_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_assign_exp(*this);
   }
@@ -399,6 +457,11 @@ class IfExp : public Expression {
     return visitor.visit_if_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_if_exp(*this);
+  }
+
   std::shared_ptr<Expression> cond;
   std::shared_ptr<Expression> then;
   std::shared_ptr<Expression> else_;
@@ -421,6 +484,11 @@ class WhileExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_while_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_while_exp(*this);
   }
@@ -454,6 +522,11 @@ class ForExp : public Expression {
     return visitor.visit_for_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_for_exp(*this);
+  }
+
   symbol::Symbol var;
   std::unique_ptr<Expression> low;
   std::unique_ptr<Expression> high;
@@ -477,6 +550,11 @@ class BreakExp : public Expression {
     return visitor.visit_break_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_break_exp(*this);
+  }
+
   Position position;
 };
 
@@ -496,6 +574,11 @@ class LetExp : public Expression {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerExprVisitor& visitor) const override
+  {
+    return visitor.visit_let_exp(*this);
+  }
+
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
   {
     return visitor.visit_let_exp(*this);
   }
@@ -527,6 +610,11 @@ class ArrayExp : public Expression {
     return visitor.visit_array_exp(*this);
   }
 
+  void accept(seman::FindEscapeExprVisitor& visitor) const override
+  {
+    return visitor.visit_array_exp(*this);
+  }
+
   symbol::Symbol type;
   std::unique_ptr<Expression> size;
   std::unique_ptr<Expression> init;
@@ -550,6 +638,11 @@ class VarDecl : public Declaration {
   }
 
   void accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  {
+    return visitor.visit_var_decl(*this);
+  }
+
+  void accept(seman::FindEscapeDeclVisitor& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
@@ -596,6 +689,11 @@ class TypeDecl : public Declaration {
     return visitor.visit_type_decl(*this);
   }
 
+  void accept(seman::FindEscapeDeclVisitor& visitor) const override
+  {
+    return visitor.visit_type_decl(*this);
+  }
+
   std::vector<std::unique_ptr<_TypeDecl>> decls;
 };
 
@@ -632,6 +730,11 @@ class RecordType : public Type {
     return visitor.visit_record_type(*this);
   }
 
+  void accept(seman::FindEscapeTypeVisitor& visitor) const override
+  {
+    return visitor.visit_record_type(*this);
+  }
+
   std::vector<_Field> fields;
 };
 
@@ -648,6 +751,11 @@ class ArrayType : public Type {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const override
+  {
+    return visitor.visit_array_type(*this);
+  }
+
+  void accept(seman::FindEscapeTypeVisitor& visitor) const override
   {
     return visitor.visit_array_type(*this);
   }
@@ -669,6 +777,11 @@ class NameType : public Type {
 
   seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const override
+  {
+    return visitor.visit_name_type(*this);
+  }
+
+  void accept(seman::FindEscapeTypeVisitor& visitor) const override
   {
     return visitor.visit_name_type(*this);
   }
@@ -712,8 +825,11 @@ class FuncDecl : public Declaration {
   {
     return visitor.visit_func_decl(*this);
   }
+
+  void accept(seman::FindEscapeDeclVisitor& visitor) const override
+  {
+    return visitor.visit_func_decl(*this);
+  }
 };
 
-} // namespace ast
-
-} // namespace parser
+} // namespace parser::ast

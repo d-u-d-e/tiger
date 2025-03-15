@@ -4,10 +4,10 @@
 namespace parser::ast
 {
 
-class PrettyPrinter : public ExprVisitor<std::string>,
-                      public VarVisitor<std::string>,
-                      public DeclVisitor<std::string>,
-                      public TypeVisitor<std::string> {
+class PrettyPrinter : public PrettyPrinterExprVisitor,
+                      public PrettyPrinterTypeVisitor,
+                      public PrettyPrinterDeclVisitor,
+                      public PrettyPrinterVarVisitor {
 
   public:
   std::string visit_simple_var(const parser::ast::SimpleVar& var) override
@@ -279,7 +279,8 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     depth++;
     result += indent() + "name=symbol\"" + decl.name.str() + "\",\n";
     if(decl.type) {
-      result += indent() + "type=symbol\"" + decl.type.value().first.str() + "\",\n";
+      result +=
+        indent() + "type=symbol\"" + decl.type.value().first.str() + "\",\n";
     }
     decl.init->field = "init=";
     result += decl.init->accept(*this) + ",\n";
@@ -368,8 +369,8 @@ class PrettyPrinter : public ExprVisitor<std::string>,
     result += indent() + "]\n";
 
     if(decl.result) {
-      result += indent() + "result=symbol\"" +
-                decl.result.value().first.str() + "\",\n";
+      result += indent() + "result=symbol\"" + decl.result.value().first.str() +
+                "\",\n";
     }
     decl.body->field = "body=";
     result += decl.body->accept(*this) + ",\n";
