@@ -1,5 +1,6 @@
 #pragma once
 #include <format>
+#include <seman/env.hpp>
 #include <seman/visitor.hpp>
 #include <symbol.hpp>
 
@@ -23,10 +24,7 @@ class EscapeFinder : public FindEscapeExprVisitor,
                      public FindEscapeVarVisitor {
 
   public:
-  EscapeFinder(symbol::Table<Escape>& table)
-    : table(table)
-  { }
-
+  EscapeFinder() = default;
   void visit_string_exp(parser::ast::StringExp& exp) override;
   void visit_assign_exp(parser::ast::AssignExp& exp) override;
   void visit_op_exp(parser::ast::OpExp& exp) override;
@@ -51,9 +49,15 @@ class EscapeFinder : public FindEscapeExprVisitor,
   void visit_field_var(parser::ast::FieldVar& var) override;
   void visit_subscript_var(parser::ast::SubscriptVar& var) override;
 
+  Escape lookup(const symbol::Symbol& name)
+  {
+    auto v = env.lookup(name);
+    assert(v != nullptr);
+    return *v;
+  }
+
   private:
-  symbol::Table<Escape>& table;
-  int depth{0};
+  seman::env::Environment<Escape> env;
 };
 
 } // namespace seman

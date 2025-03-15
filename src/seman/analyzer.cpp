@@ -341,8 +341,7 @@ shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     bool can_break_saved = can_break;
     can_break = true;
     venv.begin_scope();
-    auto access =
-      translator.alloc_local(*current_level, true); // TODO: find escape
+    auto access = translator.alloc_local(*current_level, *exp.escape);
     venv.enter(exp.var, env::VarEntry(int_type, access));
     auto tbody = exp.body->accept(*this);
     venv.end_scope();
@@ -435,6 +434,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     batch.insert(fdecl->name.id());
 
     // type check the parameters
+    std::vector<bool> escapes;
     std::vector<shared_type_t> formals;
     for(auto& param : fdecl->params) {
       auto tparam = tenv.lookup(param.type);
@@ -444,6 +444,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
           std::format("undefined parameter type '{}'", param.type.str()));
       }
       formals.push_back(tparam->t);
+      escapes.push_back(*param.escape);
     }
 
     // typecheck return type (not against expression)
@@ -459,8 +460,6 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       tresult = opt_tresult->t;
     }
 
-    // TODO: find escape
-    std::vector<bool> escapes(formals.size(), true);
     // add the function header
     venv.enter(
       fdecl->name,
@@ -520,20 +519,20 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
                            tname.str(),
                            to_string(tinit)));
     }
-    // TODO: find escape
+
     venv.enter(
       decl.name,
-      env::VarEntry(tdecl->t, translator.alloc_local(*current_level, true)));
+      env::VarEntry(tdecl->t,
+                    translator.alloc_local(*current_level, *decl.escape)));
   }
   else {
     if(is_type<Nil>(tinit)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
-    // TODO: find escape
-    venv.enter(
-      decl.name,
-      env::VarEntry(tinit, translator.alloc_local(*current_level, true)));
+    venv.enter(decl.name,
+               env::VarEntry(
+                 tinit, translator.alloc_local(*current_level, *decl.escape)));
   }
 };
 
@@ -728,8 +727,7 @@ shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   return skip_name_types(std::get<1>(*iter));
 };
 
-shared_type_t
-Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
+shared_type_t Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);

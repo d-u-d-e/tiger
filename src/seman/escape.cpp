@@ -70,11 +70,11 @@ void EscapeFinder::visit_for_exp(parser::ast::ForExp& exp)
 {
   exp.low->accept(*this);
   exp.high->accept(*this);
-  depth++;
   *exp.escape = false;
-  table.enter(exp.var, Escape(depth, exp.escape));
+  env.begin_scope();
+  env.enter(exp.var, Escape(env.depth(), exp.escape));
   exp.body->accept(*this);
-  depth--;
+  env.end_scope();
 }
 
 void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
@@ -86,17 +86,17 @@ void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 
 void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 {
-  depth++;
+  env.begin_scope();
   for(auto& d : exp.decls) {
     d->accept(*this);
   }
   exp.body->accept(*this);
-  depth--;
+  env.end_scope();
 }
 
 void EscapeFinder::visit_simple_var(parser::ast::SimpleVar& var)
 {
-  if(auto v = table.lookup(var.name); v && v->depth < depth) {
+  if(auto v = env.lookup(var.name); v && v->depth < env.depth()) {
     *(v->ref) = true;
   }
 }
@@ -115,21 +115,21 @@ void EscapeFinder::visit_subscript_var(parser::ast::SubscriptVar& var)
 void EscapeFinder::visit_var_decl(parser::ast::VarDecl& decl)
 {
   *decl.escape = false;
-  table.enter(decl.name, Escape(depth, decl.escape));
+  env.enter(decl.name, Escape(env.depth(), decl.escape));
   decl.init->accept(*this);
 }
 
 void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
 {
-  depth++;
+  env.begin_scope();
   for(auto& d : decl.decls) {
     for(auto& p : d->params) {
       *p.escape = false;
-      table.enter(p.name, Escape(depth, p.escape));
+      env.enter(p.name, Escape(env.depth(), p.escape));
     }
     d->body->accept(*this);
   }
-  depth--;
+  env.end_scope();
 }
 
 } // namespace seman

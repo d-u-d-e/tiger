@@ -4,6 +4,8 @@
 namespace seman::env
 {
 
+Symbol scope_marker{"", 0};
+
 std::string VEntry::to_string() const
 {
   if(std::holds_alternative<VarEntry>(this->v)) {

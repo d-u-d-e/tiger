@@ -2,6 +2,7 @@
 #include <ir/temp.hpp>
 #include <memory>
 #include <vector>
+#include <cassert>
 
 namespace arch
 {

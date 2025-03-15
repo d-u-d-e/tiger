@@ -5,8 +5,6 @@
 namespace symbol
 {
 
-Symbol scope_marker{"", 0};
-
 const Symbol& StringTable::symbol(const std::string& name)
 {
   if(table.find(name) == table.end()) {

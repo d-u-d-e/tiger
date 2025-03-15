@@ -17,12 +17,12 @@ set(sources_common
     src/seman/types.cpp
     src/seman/env.cpp
     src/seman/analyzer.cpp
+    src/seman/escape.cpp
 )
 
 add_executable(
     tiger
     src/main.cpp
-    src/seman/escape.cpp
     ${sources_common}
 )
 target_include_directories(tiger PRIVATE include)
