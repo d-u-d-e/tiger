@@ -1,14 +1,14 @@
 #pragma once
-#include <format>
-#include <ir/level.hpp>
-#include <seman/types.hpp>
-#include <stack>
-#include <variant>
 #include <algorithm>
 #include <cassert>
+#include <format>
+#include <ir/level.hpp>
 #include <list>
 #include <memory>
 #include <optional>
+#include <seman/types.hpp>
+#include <stack>
+#include <variant>
 
 namespace seman::env
 {
@@ -115,16 +115,6 @@ class Environment {
     return &std::get<1>(*iter);
   }
 
-  void pop(const Symbol& s)
-  {
-    size_t index = s.id() % capacity;
-    assert(table[index].size() > 0);
-    std::pair<Symbol, T>& front = table[index].front();
-    assert(std::get<0>(front) == s);
-    table[index].pop_front();
-    count--;
-  }
-
   const_iterator begin() const
   {
     if(count == 0) {
@@ -143,7 +133,8 @@ class Environment {
     return count;
   }
 
-  int depth() const {
+  int depth() const
+  {
     return depth_;
   }
 
@@ -182,6 +173,16 @@ class Environment {
   }
 
   private:
+  void pop(const Symbol& s)
+  {
+    size_t index = s.id() % capacity;
+    assert(table[index].size() > 0);
+    std::pair<Symbol, T>& front = table[index].front();
+    assert(std::get<0>(front) == s);
+    table[index].pop_front();
+    count--;
+  }
+
   void grow()
   {
     auto capacity_old = capacity;
