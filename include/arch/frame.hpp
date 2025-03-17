@@ -42,7 +42,7 @@ class Frame {
         off += word_size; // incoming params
       }
       else {
-        formals_.push_back(InReg(ir::Temp::getInstance().new_temp()));
+        formals_.push_back(InReg(ir::Temp::new_temp()));
       }
     }
   }
@@ -66,7 +66,7 @@ class Frame {
       return InFrame(off);
     }
     else {
-      return InReg(ir::Temp::getInstance().new_temp());
+      return InReg(ir::Temp::new_temp());
     }
   }
 

@@ -12,7 +12,7 @@ class Translator {
   Translator()
   {
     lvl_outermost = std::make_shared<Level>(
-      nullptr, arch::Frame(Temp::getInstance().named_label("outermost"), {}));
+      nullptr, arch::Frame(Temp::named_label("outermost"), {}));
   }
 
   std::shared_ptr<Level> outermost_level()
