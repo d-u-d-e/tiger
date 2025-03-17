@@ -1,8 +1,9 @@
 #pragma once
+#include <cassert>
 #include <ir/temp.hpp>
+#include <ir/tree.hpp>
 #include <memory>
 #include <vector>
-#include <cassert>
 
 namespace arch
 {
@@ -68,6 +69,24 @@ class Frame {
     else {
       return InReg(ir::Temp::new_temp());
     }
+  }
+
+  std::unique_ptr<ir::Exp> exp(access_t access, std::unique_ptr<ir::Exp> fp)
+  {
+    // translate an access into an exp
+    if(std::holds_alternative<InFrame>(access)) {
+      auto ax = std::get<InFrame>(access);
+      auto at = std::make_unique<ir::BinOpExp>(
+        ir::BinaryOp::plus,
+        std::move(fp),
+        std::make_unique<ir::ConstExp>(ax.offset));
+      return std::make_unique<ir::MemExp>(std::move(at));
+    }
+    else {
+      auto ax = std::get<InReg>(access);
+      return std::make_unique<ir::TempExp>(ax.t);
+    }
+    assert(false);
   }
 
   private:

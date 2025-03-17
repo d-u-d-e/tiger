@@ -18,6 +18,7 @@ set(sources_common
     src/seman/env.cpp
     src/seman/analyzer.cpp
     src/seman/escape.cpp
+    src/ir/translator.cpp
 )
 
 add_executable(

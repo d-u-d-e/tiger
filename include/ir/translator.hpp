@@ -2,6 +2,7 @@
 #include <arch/frame.hpp>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
+#include <ir/tree.hpp>
 #include <memory>
 
 namespace ir
@@ -40,6 +41,8 @@ class Translator {
   {
     return Level::Access{.l = &level, .access = level.f.alloc_local(escape)};
   }
+
+  std::unique_ptr<Exp> simple_var(const Level::Access& ax, const Level& current);
 
   private:
   std::shared_ptr<Level> lvl_outermost;
