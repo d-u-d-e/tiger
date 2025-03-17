@@ -74,7 +74,8 @@ class Frame {
     }
   }
 
-  static std::unique_ptr<ir::Exp> exp(access_t fax, std::unique_ptr<ir::Exp> fp)
+  static std::unique_ptr<ir::Exp> exp(const access_t& fax,
+                                      std::unique_ptr<ir::Exp> fp)
   {
     // translate an access into an exp
     if(std::holds_alternative<InFrame>(fax)) {

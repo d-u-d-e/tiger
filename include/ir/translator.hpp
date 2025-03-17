@@ -34,7 +34,7 @@ class Translator {
 
   static const std::vector<Level::Access>& formals(const Level& level)
   {
-    return level.formals_;
+    return level.formals;
   }
 
   static Level::Access alloc_local(Level& level, bool escape)

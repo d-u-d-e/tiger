@@ -5,7 +5,8 @@ namespace ir
 {
 
 struct Level {
- 
+
+  public:
   struct Access {
     const Level* l{nullptr};
     arch::Frame::access_t fax;
@@ -16,16 +17,11 @@ struct Level {
     , f(f)
   {
     for(auto& f : f.formals()) {
-      formals_.emplace_back(this, f);
+      formals.emplace_back(this, f);
     }
   }
 
-  const std::vector<Access>& formals()
-  {
-    return formals_;
-  }
-
-  std::vector<Access> formals_;
+  std::vector<Access> formals;
   const Level* parent{nullptr};
   arch::Frame f;
 };
