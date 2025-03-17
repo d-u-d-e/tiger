@@ -22,7 +22,7 @@ Analyzer::Analyzer(symbol::StringTable& string_table,
   // create the current level, e.g. where the main program lives
   // TODO: formal arguments?
   current_level =
-    translator.new_level(*prev_level, ir::Temp::named_label("main"), {});
+    translator.new_level(prev_level.get(), ir::Temp::named_label("main"), {});
 }
 
 void Analyzer::add_predefined_types()
@@ -40,7 +40,7 @@ void Analyzer::add_predef_func(const symbol::Symbol& s,
                                Args&&... formals)
 {
   constexpr auto fsize = sizeof...(Args);
-  auto l = translator.new_level(*translator.outermost_level(),
+  auto l = translator.new_level(translator.outermost_level().get(),
                                 ir::Temp::new_label(),
                                 std::vector<bool>(fsize, false));
   venv.enter(
@@ -466,7 +466,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       env::FuncEntry(
         formals,
         tresult,
-        translator.new_level(*current_level, ir::Temp::new_label(), escapes)));
+        translator.new_level(current_level.get(), ir::Temp::new_label(), escapes)));
   }
 
   // go through the bodies
@@ -727,7 +727,8 @@ shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   return skip_name_types(std::get<1>(*iter));
 };
 
-shared_type_t Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
+shared_type_t
+Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this);

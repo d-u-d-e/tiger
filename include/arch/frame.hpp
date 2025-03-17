@@ -33,6 +33,9 @@ class Frame {
   using access_t = std::variant<std::monostate, InReg, InFrame>;
   static inline constexpr uint8_t word_size = 4;
 
+  // TODO: map this to rbp?
+  static inline auto FP = ir::Temp::new_temp();
+
   Frame(label_t label, const std::vector<bool>& formals)
     : label(label)
   {
@@ -71,20 +74,18 @@ class Frame {
     }
   }
 
-  std::unique_ptr<ir::Exp> exp(access_t access, std::unique_ptr<ir::Exp> fp)
+  static std::unique_ptr<ir::Exp> exp(access_t fax, std::unique_ptr<ir::Exp> fp)
   {
     // translate an access into an exp
-    if(std::holds_alternative<InFrame>(access)) {
-      auto ax = std::get<InFrame>(access);
+    if(std::holds_alternative<InFrame>(fax)) {
       auto at = std::make_unique<ir::BinOpExp>(
         ir::BinaryOp::plus,
         std::move(fp),
-        std::make_unique<ir::ConstExp>(ax.offset));
+        std::make_unique<ir::ConstExp>(std::get<InFrame>(fax).offset));
       return std::make_unique<ir::MemExp>(std::move(at));
     }
     else {
-      auto ax = std::get<InReg>(access);
-      return std::make_unique<ir::TempExp>(ax.t);
+      return std::make_unique<ir::TempExp>(std::get<InReg>(fax).t);
     }
     assert(false);
   }

@@ -21,7 +21,7 @@ class Translator {
     return lvl_outermost;
   }
 
-  static std::unique_ptr<Level> new_level(const Level& parent,
+  static std::unique_ptr<Level> new_level(const Level* parent,
                                           Temp::label_t label,
                                           const std::vector<bool>& formals)
   {
@@ -29,7 +29,7 @@ class Translator {
     std::vector<bool> with_slink(formals.size() + 1);
     std::copy(formals.begin(), formals.end(), with_slink.begin() + 1);
     with_slink[0] = true;
-    return std::make_unique<Level>(&parent, arch::Frame(label, with_slink));
+    return std::make_unique<Level>(parent, arch::Frame(label, with_slink));
   }
 
   static const std::vector<Level::Access>& formals(const Level& level)
@@ -39,10 +39,11 @@ class Translator {
 
   static Level::Access alloc_local(Level& level, bool escape)
   {
-    return Level::Access{.l = &level, .access = level.f.alloc_local(escape)};
+    return Level::Access{.l = &level, .fax = level.f.alloc_local(escape)};
   }
 
-  std::unique_ptr<Exp> simple_var(const Level::Access& ax, const Level& current);
+  std::unique_ptr<Exp> simple_var(const Level::Access& ax,
+                                  const Level* current);
 
   private:
   std::shared_ptr<Level> lvl_outermost;
