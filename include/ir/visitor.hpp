@@ -1,5 +1,4 @@
 #pragma once
-#include <ir/tree.hpp>
 #include <string>
 
 namespace ir
@@ -34,7 +33,7 @@ class PrettyPrinterExprVisitor {
 class PrettyPrinterStmtVisitor {
   public:
   // clang-format off
-  std::string virtual visit_move_stmt(const MoveStmt stmt) = 0;
+  std::string virtual visit_move_stmt(const MoveStmt& stmt) = 0;
   std::string virtual visit_exp_stmt(const ExpStmt& stmt) = 0;
   std::string virtual visit_jump_stmt(const JumpStmt& stmt) = 0;
   std::string virtual visit_cjump_stmt(const CJumpStmt& stmt) = 0;

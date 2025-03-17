@@ -1,4 +1,5 @@
 #pragma once
+#include <ir/tree.hpp>
 #include <ir/visitor.hpp>
 
 namespace ir
@@ -43,7 +44,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     return "";
   }
 
-  std::string visit_move_stmt(const MoveStmt stmt) override
+  std::string visit_move_stmt(const MoveStmt& stmt) override
   {
     // TODO
     return "";

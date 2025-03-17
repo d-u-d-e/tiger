@@ -1,5 +1,6 @@
 #pragma once
 #include <ir/temp.hpp>
+#include <ir/visitor.hpp>
 #include <memory>
 #include <vector>
 
@@ -9,11 +10,13 @@ namespace ir
 class Exp {
   public:
   virtual ~Exp() = default;
+  virtual std::string accept(PrettyPrinterExprVisitor& visitor) = 0;
 };
 
 class Stmt {
   public:
   virtual ~Stmt() = default;
+  virtual std::string accept(PrettyPrinterStmtVisitor& visitor) = 0;
 };
 
 enum class BinaryOp
@@ -49,6 +52,10 @@ struct ConstExp : public Exp {
     : v(v)
   { }
   int v;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_const_exp(*this);
+  }
 };
 
 struct NameExp : public Exp {
@@ -63,6 +70,10 @@ struct TempExp : public Exp {
     : temp(temp)
   { }
   Temp::temp_t temp;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_temp_exp(*this);
+  }
 };
 
 struct BinOpExp : public Exp {
@@ -74,12 +85,20 @@ struct BinOpExp : public Exp {
   BinaryOp op;
   std::unique_ptr<Exp> left;
   std::unique_ptr<Exp> right;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_binop_exp(*this);
+  }
 };
 
 struct MemExp : public Exp {
   MemExp(std::unique_ptr<Exp> address)
     : a(std::move(address)){};
   std::unique_ptr<Exp> a;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_mem_exp(*this);
+  }
 };
 
 struct CallExp : public Exp {
@@ -88,6 +107,10 @@ struct CallExp : public Exp {
     , args(std::move(args)){};
   std::unique_ptr<Exp> fun;
   std::vector<std::unique_ptr<Exp>> args;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_call_exp(*this);
+  }
 };
 
 struct ESeqExp : public Exp {
@@ -96,6 +119,10 @@ struct ESeqExp : public Exp {
     , exp(std::move(exp)){};
   std::unique_ptr<Stmt> stmt;
   std::unique_ptr<Exp> exp;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_eseq_exp(*this);
+  }
 };
 
 struct MoveStmt : public Stmt {
@@ -105,6 +132,10 @@ struct MoveStmt : public Stmt {
   { }
   std::unique_ptr<Exp> left;
   std::unique_ptr<Exp> right;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_move_stmt(*this);
+  }
 };
 
 struct ExpStmt : public Stmt {
@@ -112,6 +143,10 @@ struct ExpStmt : public Stmt {
     : exp(std::move(exp))
   { }
   std::unique_ptr<Exp> exp;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_exp_stmt(*this);
+  }
 };
 
 struct JumpStmt : public Stmt {
@@ -121,6 +156,10 @@ struct JumpStmt : public Stmt {
   { }
   std::unique_ptr<Exp> a;
   std::vector<Temp::label_t> labels;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_jump_stmt(*this);
+  }
 };
 
 struct CJumpStmt : public Stmt {
@@ -140,6 +179,10 @@ struct CJumpStmt : public Stmt {
   std::unique_ptr<Exp> fexp;
   Temp::temp_t tlabel;
   Temp::temp_t flabel;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_cjump_stmt(*this);
+  }
 };
 
 struct SeqStmt : public Stmt {
@@ -149,6 +192,10 @@ struct SeqStmt : public Stmt {
   { }
   std::unique_ptr<Stmt> stm1;
   std::unique_ptr<Stmt> stm2;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_seq_stmt(*this);
+  }
 };
 
 struct LabelStmt : public Stmt {
@@ -156,6 +203,10 @@ struct LabelStmt : public Stmt {
     : label(label)
   { }
   Temp::label_t label;
+  std::string accept(PrettyPrinterStmtVisitor& visitor)
+  {
+    return visitor.visit_label_stmt(*this);
+  }
 };
 
 } // namespace ir
