@@ -129,11 +129,13 @@ struct CJumpStmt : public Stmt {
             std::unique_ptr<Exp> fexp,
             Temp::temp_t tlabel,
             Temp::temp_t flabel)
-    : texp(std::move(texp))
+    : op(op)
+    , texp(std::move(texp))
     , fexp(std::move(fexp))
     , tlabel(tlabel)
     , flabel(flabel)
   { }
+  RelOp op;
   std::unique_ptr<Exp> texp;
   std::unique_ptr<Exp> fexp;
   Temp::temp_t tlabel;
