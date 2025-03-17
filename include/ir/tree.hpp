@@ -30,6 +30,20 @@ enum class BinaryOp
   xor_
 };
 
+enum class RelOp
+{
+  eq,
+  ne,
+  lt,
+  gt,
+  le,
+  ge,
+  ult,
+  ule,
+  ugt,
+  uge
+};
+
 struct ConstExp : public Exp {
   ConstExp(int v)
     : v(v)
@@ -93,6 +107,53 @@ struct MoveStmt : public Stmt {
   std::unique_ptr<Exp> right;
 };
 
-// TODO other stmts
+struct ExpStmt : public Stmt {
+  ExpStmt(std::unique_ptr<Exp> exp)
+    : exp(std::move(exp))
+  { }
+  std::unique_ptr<Exp> exp;
+};
+
+struct JumpStmt : public Stmt {
+  JumpStmt(std::unique_ptr<Exp> address, std::vector<Temp::label_t> labels)
+    : a(std::move(a))
+    , labels(std::move(labels))
+  { }
+  std::unique_ptr<Exp> a;
+  std::vector<Temp::label_t> labels;
+};
+
+struct CJumpStmt : public Stmt {
+  CJumpStmt(RelOp op,
+            std::unique_ptr<Exp> texp,
+            std::unique_ptr<Exp> fexp,
+            Temp::temp_t tlabel,
+            Temp::temp_t flabel)
+    : texp(std::move(texp))
+    , fexp(std::move(fexp))
+    , tlabel(tlabel)
+    , flabel(flabel)
+  { }
+  std::unique_ptr<Exp> texp;
+  std::unique_ptr<Exp> fexp;
+  Temp::temp_t tlabel;
+  Temp::temp_t flabel;
+};
+
+struct SeqStmt : public Stmt {
+  SeqStmt(std::unique_ptr<Stmt> stm1, std::unique_ptr<Stmt> stm2)
+    : stm1(std::move(stm1))
+    , stm2(std::move(stm2))
+  { }
+  std::unique_ptr<Stmt> stm1;
+  std::unique_ptr<Stmt> stm2;
+};
+
+struct LabelStmt : public Stmt {
+  LabelStmt(Temp::label_t label)
+    : label(label)
+  { }
+  Temp::label_t label;
+};
 
 } // namespace ir
