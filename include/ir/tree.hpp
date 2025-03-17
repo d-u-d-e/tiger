@@ -90,8 +90,8 @@ struct CallExp : public Exp {
   std::vector<std::unique_ptr<Exp>> args;
 };
 
-struct ESeqExpr : public Exp {
-  ESeqExpr(std::unique_ptr<Stmt> stmt, std::unique_ptr<Exp> exp)
+struct ESeqExp : public Exp {
+  ESeqExp(std::unique_ptr<Stmt> stmt, std::unique_ptr<Exp> exp)
     : stmt(std::move(stmt))
     , exp(std::move(exp)){};
   std::unique_ptr<Stmt> stmt;
