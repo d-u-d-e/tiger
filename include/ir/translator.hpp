@@ -24,7 +24,11 @@ class Translator {
                                           Temp::label_t label,
                                           const std::vector<bool>& formals)
   {
-    return std::make_unique<Level>(&parent, arch::Frame(label, formals));
+    // augment the formals with the static link as first parameter
+    std::vector<bool> with_slink(formals.size() + 1);
+    std::copy(formals.begin(), formals.end(), with_slink.begin() + 1);
+    with_slink[0] = true;
+    return std::make_unique<Level>(&parent, arch::Frame(label, with_slink));
   }
 
   static const std::vector<Level::Access>& formals(const Level& level)
