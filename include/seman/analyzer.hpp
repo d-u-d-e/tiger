@@ -71,7 +71,7 @@ class Analyzer : public TypeCheckerExprVisitor,
   bool can_break{false};
   symbol::StringTable& string_table;
   ir::Translator& translator;
-  std::shared_ptr<ir::Level> prev_level{}, current_level{};
+  std::shared_ptr<ir::Level> current_level{};
   env::Environment<env::TEntry> tenv;
   env::Environment<env::VEntry> venv;
 };

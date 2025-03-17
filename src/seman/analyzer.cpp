@@ -14,15 +14,14 @@ Analyzer::Analyzer(symbol::StringTable& string_table,
                    ir::Translator& translator)
   : string_table(string_table)
   , translator(translator)
-  , prev_level(translator.outermost_level())
 {
   add_predefined_types();
   add_predefined_functions();
 
   // create the current level, e.g. where the main program lives
   // TODO: formal arguments?
-  current_level =
-    translator.new_level(prev_level.get(), ir::Temp::named_label("main"), {});
+  current_level = translator.new_level(
+    translator.outermost_level().get(), ir::Temp::named_label("main"), {});
 }
 
 void Analyzer::add_predefined_types()
@@ -461,12 +460,12 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     }
 
     // add the function header
-    venv.enter(
-      fdecl->name,
-      env::FuncEntry(
-        formals,
-        tresult,
-        translator.new_level(current_level.get(), ir::Temp::new_label(), escapes)));
+    venv.enter(fdecl->name,
+               env::FuncEntry(formals,
+                              tresult,
+                              translator.new_level(current_level.get(),
+                                                   ir::Temp::new_label(),
+                                                   escapes)));
   }
 
   // go through the bodies
@@ -483,7 +482,10 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     }
 
     // type check return type
+    auto prev_level = current_level;
+    current_level = func_entry.level;
     auto tbody = fdecl->body->accept(*this);
+    current_level = prev_level;
 
     if(!same_types(skip_name_types(func_entry.result), tbody)) {
 
@@ -700,8 +702,11 @@ shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
     error_at(var.position,
              std::format("undefined variable '{}'", var.name.str()));
   }
-  // TODO: here std::get<VarEntry>(*v).access can be handed back to the translator to generate machine code
-  return skip_name_types(std::get<env::VarEntry>(maybe_var->v).type);
+  auto& ventry = std::get<env::VarEntry>(maybe_var->v);
+  // generate IR code to access the simple variable
+  auto ir_exp = translator.simple_var(ventry.access, current_level.get());
+  // TODO: return ir_exp
+  return skip_name_types(ventry.type);
 };
 
 shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
