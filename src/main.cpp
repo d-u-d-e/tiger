@@ -11,6 +11,7 @@
 
 #include <ir/translator.hpp>
 #include <seman/escape.hpp>
+#include <ir/pretty_printer.hpp>
 
 int main(int argc, char** argv)
 {
