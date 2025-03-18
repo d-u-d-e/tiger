@@ -63,6 +63,10 @@ struct NameExp : public Exp {
     : label(label)
   { }
   Temp::label_t label;
+  std::string accept(PrettyPrinterExprVisitor& visitor)
+  {
+    return visitor.visit_name_exp(*this);
+  }
 };
 
 struct TempExp : public Exp {
@@ -164,21 +168,21 @@ struct JumpStmt : public Stmt {
 
 struct CJumpStmt : public Stmt {
   CJumpStmt(RelOp op,
-            std::unique_ptr<Exp> texp,
-            std::unique_ptr<Exp> fexp,
-            Temp::temp_t tlabel,
-            Temp::temp_t flabel)
+            std::unique_ptr<Exp> lexp,
+            std::unique_ptr<Exp> rexp,
+            Temp::label_t tlabel,
+            Temp::label_t flabel)
     : op(op)
-    , texp(std::move(texp))
-    , fexp(std::move(fexp))
+    , lexp(std::move(lexp))
+    , rexp(std::move(rexp))
     , tlabel(tlabel)
     , flabel(flabel)
   { }
   RelOp op;
-  std::unique_ptr<Exp> texp;
-  std::unique_ptr<Exp> fexp;
-  Temp::temp_t tlabel;
-  Temp::temp_t flabel;
+  std::unique_ptr<Exp> lexp;
+  std::unique_ptr<Exp> rexp;
+  Temp::label_t tlabel;
+  Temp::label_t flabel;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
   {
     return visitor.visit_cjump_stmt(*this);
