@@ -18,36 +18,35 @@ class Analyzer : public TypeCheckerExprVisitor,
 
   public:
   Analyzer(symbol::StringTable& string_table, ir::Translator& translator);
-  void type_check(const parser::ast::Expression& exp);
+  std::unique_ptr<ir::Exp> type_check(const parser::ast::Expression& exp);
 
-  shared_type_t visit_string_exp(const parser::ast::StringExp& exp) override;
-  shared_type_t visit_assign_exp(const parser::ast::AssignExp& exp) override;
-  shared_type_t visit_op_exp(const parser::ast::OpExp& exp) override;
-  shared_type_t visit_int_exp(const parser::ast::IntExp& exp) override;
-  shared_type_t visit_var_exp(const parser::ast::VarExp& exp) override;
-  shared_type_t visit_seq_exp(const parser::ast::SeqExp& exp) override;
-  shared_type_t visit_array_exp(const parser::ast::ArrayExp& exp) override;
-  shared_type_t visit_nil_exp(const parser::ast::NilExp& exp) override;
-  shared_type_t visit_record_exp(const parser::ast::RecordExp& exp) override;
-  shared_type_t visit_if_exp(const parser::ast::IfExp& exp) override;
-  shared_type_t visit_break_exp(const parser::ast::BreakExp& exp) override;
-  shared_type_t visit_while_exp(const parser::ast::WhileExp& exp) override;
-  shared_type_t visit_for_exp(const parser::ast::ForExp& exp) override;
-  shared_type_t visit_call_exp(const parser::ast::CallExp& exp) override;
-  shared_type_t visit_let_exp(const parser::ast::LetExp& exp) override;
+  Result visit_string_exp(const parser::ast::StringExp& exp) override;
+  Result visit_assign_exp(const parser::ast::AssignExp& exp) override;
+  Result visit_op_exp(const parser::ast::OpExp& exp) override;
+  Result visit_int_exp(const parser::ast::IntExp& exp) override;
+  Result visit_var_exp(const parser::ast::VarExp& exp) override;
+  Result visit_seq_exp(const parser::ast::SeqExp& exp) override;
+  Result visit_array_exp(const parser::ast::ArrayExp& exp) override;
+  Result visit_nil_exp(const parser::ast::NilExp& exp) override;
+  Result visit_record_exp(const parser::ast::RecordExp& exp) override;
+  Result visit_if_exp(const parser::ast::IfExp& exp) override;
+  Result visit_break_exp(const parser::ast::BreakExp& exp) override;
+  Result visit_while_exp(const parser::ast::WhileExp& exp) override;
+  Result visit_for_exp(const parser::ast::ForExp& exp) override;
+  Result visit_call_exp(const parser::ast::CallExp& exp) override;
+  Result visit_let_exp(const parser::ast::LetExp& exp) override;
 
   void visit_func_decl(const parser::ast::FuncDecl& decl) override;
   void visit_var_decl(const parser::ast::VarDecl& decl) override;
   void visit_type_decl(const parser::ast::TypeDecl& decl) override;
 
-  shared_type_t visit_name_type(const parser::ast::NameType& type) override;
-  shared_type_t visit_array_type(const parser::ast::ArrayType& type) override;
-  shared_type_t visit_record_type(const parser::ast::RecordType& type) override;
+  Result visit_name_type(const parser::ast::NameType& type) override;
+  Result visit_array_type(const parser::ast::ArrayType& type) override;
+  Result visit_record_type(const parser::ast::RecordType& type) override;
 
-  shared_type_t visit_simple_var(const parser::ast::SimpleVar& var) override;
-  shared_type_t visit_field_var(const parser::ast::FieldVar& var) override;
-  shared_type_t
-  visit_subscript_var(const parser::ast::SubscriptVar& var) override;
+  Result visit_simple_var(const parser::ast::SimpleVar& var) override;
+  Result visit_field_var(const parser::ast::FieldVar& var) override;
+  Result visit_subscript_var(const parser::ast::SubscriptVar& var) override;
 
   private:
   void add_predefined_types();

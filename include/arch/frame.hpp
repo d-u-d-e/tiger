@@ -23,10 +23,10 @@ class Frame {
 
   struct InFrame {
     // offset from the frame pointer
-    InFrame(uint16_t offset)
+    InFrame(int16_t offset)
       : offset(offset)
     { }
-    uint16_t offset;
+    int16_t offset;
   };
 
   public:
@@ -40,7 +40,7 @@ class Frame {
     : label(label)
   {
     for(auto escape : formals) {
-      uint16_t off = 0;
+      int16_t off = 0;
       if(escape) {
         formals_.push_back(InFrame(off));
         off += word_size; // incoming params
@@ -92,7 +92,7 @@ class Frame {
   }
 
   private:
-  uint16_t offset{0};
+  int16_t offset{0};
   std::vector<access_t> formals_;
   label_t label;
 };

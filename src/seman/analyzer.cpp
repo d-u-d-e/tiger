@@ -74,28 +74,30 @@ void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
     std::format("[line {}:{}] Err: {}", pos.line, pos.column, err_msg));
 }
 
-void Analyzer::type_check(const parser::ast::Expression& exp)
+std::unique_ptr<ir::Exp>
+Analyzer::type_check(const parser::ast::Expression& exp)
 {
   auto t = exp.accept(*this);
-  // TODO: do something with t
+  return std::move(t.ir);
 }
 
-shared_type_t Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
+Result Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
-  return string_type;
+  return Result{string_type};
 };
 
-shared_type_t Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
+Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
 
-  if(!can_assign(tvar, trhs)) {
+  if(!can_assign(tvar.type, trhs.type)) {
     error_at(exp.position,
-             std::format(
-               "cannot assign '{}' to '{}'", to_string(trhs), to_string(tvar)));
+             std::format("cannot assign '{}' to '{}'",
+                         to_string(trhs.type),
+                         to_string(tvar.type)));
   }
-  return unit_type;
+  return Result{unit_type};
 };
 
 template <typename T>
@@ -122,7 +124,7 @@ shared_type_t Analyzer::skip_name_types(const shared_type_t& t)
   return r;
 }
 
-shared_type_t Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
+Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
   auto tlhs = exp.left->accept(*this);
   auto trhs = exp.right->accept(*this);
@@ -133,26 +135,26 @@ shared_type_t Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::times:
   case parser::ast::Operator::divide: {
     // these can be applied to integers
-    if(!same_types(tlhs, trhs) || !is_type<Integer>(tlhs)) {
+    if(!same_types(tlhs.type, trhs.type) || !is_type<Integer>(tlhs.type)) {
       error_at(exp.position, "operands must be integers");
     }
   }
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
-    if(!same_types(tlhs, trhs)) {
+    if(!same_types(tlhs.type, trhs.type)) {
       // testing equality between nil and record is supported
-      if(is_type<Nil>(tlhs) && is_type<Record>(trhs)) {
-        return int_type;
+      if(is_type<Nil>(tlhs.type) && is_type<Record>(trhs.type)) {
+        return Result{int_type};
       }
-      else if(is_type<Nil>(trhs) && is_type<Record>(tlhs)) {
-        return int_type;
+      else if(is_type<Nil>(trhs.type) && is_type<Record>(tlhs.type)) {
+        return Result{int_type};
       }
       error_at(exp.position, "operands must be of the same type");
     }
-    else if(is_type<Integer>(tlhs) || is_type<String>(tlhs) ||
-            is_type<Array>(tlhs) || is_type<Record>(tlhs)) {
-      return int_type;
+    else if(is_type<Integer>(tlhs.type) || is_type<String>(tlhs.type) ||
+            is_type<Array>(tlhs.type) || is_type<Record>(tlhs.type)) {
+      return Result{int_type};
     }
     error_at(exp.position,
              "operands must be integers, strings, records or arrays");
@@ -164,8 +166,8 @@ shared_type_t Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater:
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
-    if(!same_types(tlhs, trhs) ||
-       (!is_type<Integer>(tlhs) && !is_type<String>(tlhs))) {
+    if(!same_types(tlhs.type, trhs.type) ||
+       (!is_type<Integer>(tlhs.type) && !is_type<String>(tlhs.type))) {
       error_at(exp.position, "operands must be integers or strings");
     }
     break;
@@ -173,29 +175,66 @@ shared_type_t Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   default:
     assert(false);
   }
-  return int_type;
+  return Result{int_type};
 };
 
-shared_type_t Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
+Result Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
 {
-  return int_type;
+  return Result{int_type};
 };
 
-shared_type_t Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
+Result Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 {
-  return exp.var->accept(*this);
+  return Result{exp.var->accept(*this)};
 };
 
-shared_type_t Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
+Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
-  shared_type_t tres = unit_type;
-  for(auto& [e, pos] : exp.exps) {
-    tres = e->accept(*this);
+  // TODO this is so unnecessary verbose
+  // further, we don't need to return 0 if this is a seq exp that return the unit type
+
+  /*
+    Should we do something like?
+
+    std::vector<std::unique_ptr<ir::Exp>> exps;
+    shared_type_t tres = unit_type;
+    for(auto& [e, pos] : exp.exps) {
+      auto [type, ir] = e->accept(*this);
+      tres = type;
+      exps.push_back(std::move(ir));
+    }
+    return {tres, translator.seq_exp(exps)}
+
+    This way we move all this logic away from the type checker, although we create a useless vector.
+  */
+
+  auto tres = Result{unit_type, std::make_unique<ir::ConstExp>(0)};
+  auto size = exp.exps.size();
+  if(!size) {
+    return tres;
   }
+
+  auto first = exp.exps.at(0).first->accept(*this);
+  if(size == 1) {
+    return {first.type, std::move(first.ir)};
+  }
+
+  std::unique_ptr<ir::Stmt> stmt_seq =
+    std::make_unique<ir::ExpStmt>(std::move(first.ir));
+
+  for(auto i = 1; i < size - 1; i++) {
+    auto [type, ir] = exp.exps.at(i).first->accept(*this);
+    auto exp_stmt = std::make_unique<ir::ExpStmt>(std::move(ir));
+    stmt_seq =
+      std::make_unique<ir::SeqStmt>(std::move(stmt_seq), std::move(exp_stmt));
+  }
+  auto last = exp.exps.at(size - 1).first->accept(*this);
+  tres.type = last.type;
+  tres.ir = std::make_unique<ir::ESeqExp>(move(stmt_seq), std::move(last.ir));
   return tres;
 };
 
-shared_type_t Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
+Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
@@ -205,28 +244,28 @@ shared_type_t Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
     error_at(exp.position,
              std::format("undefined array type '{}'", exp.type.str()));
   }
-  else if(!is_type<Integer>(tsize)) {
+  else if(!is_type<Integer>(tsize.type)) {
     error_at(exp.position, "array size must be an integer");
   }
   else {
     auto arr = dynamic_cast<Array*>(texpr->t.get());
-    if(!can_assign(skip_name_types(arr->type), tinit)) {
+    if(!can_assign(skip_name_types(arr->type), tinit.type)) {
       error_at(exp.position,
                std::format("array type mismatch: '{}' != '{}'",
                            to_string(arr->type),
-                           to_string(tinit)));
+                           to_string(tinit.type)));
     }
   }
   // this is an array type, whose elements may be name types
-  return texpr->t;
+  return {texpr->t};
 }
 
-shared_type_t Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
+Result Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
-  return nil_type;
+  return Result{nil_type};
 };
 
-shared_type_t Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
+Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
   auto maybe_rec = tenv.lookup(exp.type);
   if(!maybe_rec || !is_type<Record>(maybe_rec->t)) {
@@ -259,81 +298,81 @@ shared_type_t Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
     // this can occur while type checking mutually recursive types
     auto tactual = actual.exp->accept(*this);
     auto tformal = skip_name_types(formal.second);
-    if(!can_assign(tformal, tactual)) {
+    if(!can_assign(tformal, tactual.type)) {
       error_at(actual.position,
                std::format("expected type '{}' for field '{}', got '{}'",
                            to_string(formal.second),
                            actual.name.str(),
-                           to_string(tactual)));
+                           to_string(tactual.type)));
     }
   }
-  return maybe_rec->t;
+  return Result{maybe_rec->t};
 };
 
-shared_type_t Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
+Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
   auto tcond = exp.cond->accept(*this);
-  if(!is_type<Integer>(tcond)) {
+  if(!is_type<Integer>(tcond.type)) {
     error_at(exp.position, "the condition must be an integer");
   }
   auto tthen = exp.then->accept(*this);
 
   if(exp.else_) {
     auto telse = exp.else_->accept(*this);
-    if(!same_types(tthen, telse)) {
-      if(is_type<Record>(tthen) && is_type<Nil>(telse)) {
-        return tthen;
+    if(!same_types(tthen.type, telse.type)) {
+      if(is_type<Record>(tthen.type) && is_type<Nil>(telse.type)) {
+        return Result{tthen.type};
       }
-      else if(is_type<Record>(telse) && is_type<Nil>(tthen)) {
-        return telse;
+      else if(is_type<Record>(telse.type) && is_type<Nil>(tthen.type)) {
+        return Result{telse.type};
       }
       else {
         error_at(exp.position, "types of then and else branches must match");
       }
     }
-    return tthen;
+    return Result{tthen.type};
   }
   else {
-    if(!is_type<Unit>(tthen)) {
+    if(!is_type<Unit>(tthen.type)) {
       error_at(exp.position, "the then branch must not produce any value");
     }
   }
-  return unit_type;
+  return Result{unit_type};
 };
 
-shared_type_t Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
+Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
   if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
   }
-  return unit_type;
+  return Result{unit_type};
 };
 
-shared_type_t Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
+Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
   // condition must be an integer
-  if(!is_type<Integer>(exp.cond->accept(*this))) {
+  if(!is_type<Integer>(exp.cond->accept(*this).type)) {
     error_at(exp.position, "the condition must be an integer");
   } // body must not produce any value
   else {
     bool can_break_saved = can_break;
     can_break = true;
-    if(!is_type<Unit>(exp.body->accept(*this))) {
+    if(!is_type<Unit>(exp.body->accept(*this).type)) {
       error_at(exp.position,
                "the body of the while loop must not produce any value");
     }
     can_break = can_break_saved;
   }
-  return unit_type;
+  return Result{unit_type};
 };
 
-shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
+Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
   // high and low must be integers
-  if(!is_type<Integer>(exp.low->accept(*this))) {
+  if(!is_type<Integer>(exp.low->accept(*this).type)) {
     error_at(exp.position, "the lower bound must be an integer");
   }
-  else if(!is_type<Integer>(exp.high->accept(*this))) {
+  else if(!is_type<Integer>(exp.high->accept(*this).type)) {
     error_at(exp.position, "the upper bound must be an integer");
   } // body must not produce any value
   else {
@@ -346,15 +385,15 @@ shared_type_t Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     venv.end_scope();
     can_break = can_break_saved;
 
-    if(!is_type<Unit>(tbody)) {
+    if(!is_type<Unit>(tbody.type)) {
       error_at(exp.position,
                "the body of the for loop must not produce any value");
     }
   }
-  return unit_type;
+  return Result{unit_type};
 };
 
-shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
+Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
   auto maybe_fentry = venv.lookup(exp.name);
   if(!maybe_fentry ||
@@ -380,18 +419,18 @@ shared_type_t Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   for(int i = 0; i < asize; i++) {
     auto tactual = exp.args[i]->accept(*this);
     auto texpected = fentry.formals[i];
-    if(!same_types(skip_name_types(texpected), tactual)) {
+    if(!same_types(skip_name_types(texpected), tactual.type)) {
       error_at(exp.position,
                std::format("argument {} expects type '{}', got '{}'",
                            i,
                            texpected->to_string(),
-                           tactual->to_string()));
+                           tactual.type->to_string()));
     }
   }
-  return skip_name_types(fentry.result);
+  return Result{skip_name_types(fentry.result)};
 };
 
-shared_type_t Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
+Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
 {
   tenv.begin_scope();
   venv.begin_scope();
@@ -487,7 +526,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     auto tbody = fdecl->body->accept(*this);
     current_level = prev_level;
 
-    if(!same_types(skip_name_types(func_entry.result), tbody)) {
+    if(!same_types(skip_name_types(func_entry.result), tbody.type)) {
 
       auto pos = fdecl->position;
       if(fdecl->result) {
@@ -497,7 +536,7 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       error_at(pos,
                std::format("return type '{}' does not match body type '{}'",
                            to_string(func_entry.result),
-                           to_string(tbody)));
+                           to_string(tbody.type)));
     }
 
     venv.end_scope(); // end body scope
@@ -515,11 +554,11 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
     if(!tdecl) {
       error_at(tpos, std::format("undefined type '{}'", tname.str()));
     }
-    if(!can_assign(skip_name_types(tdecl->t), tinit)) {
+    if(!can_assign(skip_name_types(tdecl->t), tinit.type)) {
       error_at(tpos,
                std::format("decl type '{}' does not match expr type '{}'",
                            tname.str(),
-                           to_string(tinit)));
+                           to_string(tinit.type)));
     }
 
     venv.enter(
@@ -528,13 +567,14 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
                     translator.alloc_local(*current_level, *decl.escape)));
   }
   else {
-    if(is_type<Nil>(tinit)) {
+    if(is_type<Nil>(tinit.type)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
-    venv.enter(decl.name,
-               env::VarEntry(
-                 tinit, translator.alloc_local(*current_level, *decl.escape)));
+    venv.enter(
+      decl.name,
+      env::VarEntry(tinit.type,
+                    translator.alloc_local(*current_level, *decl.escape)));
   }
 };
 
@@ -558,7 +598,7 @@ void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
   // next we replace all those fake names with the true type
   for(auto& tdecl : decl.decls) {
     auto actual = tdecl->type->accept(*this);
-    tenv.replace(tdecl->name, env::TEntry{actual});
+    tenv.replace(tdecl->name, env::TEntry{actual.type});
   }
 
   // prevent cycles
@@ -661,27 +701,27 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-shared_type_t Analyzer::visit_name_type(const parser::ast::NameType& type)
+Result Analyzer::visit_name_type(const parser::ast::NameType& type)
 {
   auto ty = tenv.lookup(type.name);
   if(!ty) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return ty->t;
+  return Result{ty->t};
 };
 
-shared_type_t Analyzer::visit_array_type(const parser::ast::ArrayType& type)
+Result Analyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return std::make_shared<Array>(elem_type->t);
+  return Result{std::make_shared<Array>(elem_type->t)};
 };
 
-shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
+Result Analyzer::visit_record_type(const parser::ast::RecordType& type)
 {
   std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
   for(auto& field : type.fields) {
@@ -692,10 +732,10 @@ shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
     }
     fields.push_back({field.name, tfield->t});
   }
-  return std::make_shared<Record>(fields);
+  return Result{std::make_shared<Record>(fields)};
 };
 
-shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
+Result Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 {
   auto maybe_var = venv.lookup(var.name);
   if(!maybe_var || !std::holds_alternative<env::VarEntry>(maybe_var->v)) {
@@ -705,19 +745,18 @@ shared_type_t Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
   auto& ventry = std::get<env::VarEntry>(maybe_var->v);
   // generate IR code to access the simple variable
   auto ir_exp = translator.simple_var(ventry.access, current_level.get());
-  // TODO: return ir_exp
-  return skip_name_types(ventry.type);
+  return Result{skip_name_types(ventry.type), std::move(ir_exp)};
 };
 
-shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
+Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
   auto tlhs = var.var->accept(*this);
   // . applicable to records only
-  if(!is_type<Record>(tlhs)) {
+  if(!is_type<Record>(tlhs.type)) {
     error_at(var.position,
-             std::format("'{}' is not a record type", to_string(tlhs)));
+             std::format("'{}' is not a record type", to_string(tlhs.type)));
   }
-  auto record = dynamic_cast<Record*>(tlhs.get());
+  auto record = dynamic_cast<Record*>(tlhs.type.get());
 
   // check whether the field name belongs to the record fields
   auto iter =
@@ -729,14 +768,13 @@ shared_type_t Analyzer::visit_field_var(const parser::ast::FieldVar& var)
     error_at(var.position,
              std::format("unexpected record field name '{}'", var.name.str()));
   }
-  return skip_name_types(std::get<1>(*iter));
+  return Result{skip_name_types(std::get<1>(*iter))};
 };
 
-shared_type_t
-Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
+Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // [] applicable to arrays only
-  auto tlhs = var.var->accept(*this);
+  auto tlhs = var.var->accept(*this).type;
   if(!is_type<Array>(tlhs)) {
     error_at(var.position,
              std::format("'{}' is not an array type", to_string(tlhs)));
@@ -744,13 +782,13 @@ Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
   auto array = dynamic_cast<Array*>(tlhs.get());
 
   // expression must be an integer
-  auto texp = var.exp->accept(*this);
+  auto texp = var.exp->accept(*this).type;
   if(!is_type<Integer>(texp)) {
     error_at(var.position, "expression between '[]' must be an integer");
   }
 
   // the type of the expression is the type of each array element
-  return skip_name_types(array->type);
+  return Result{skip_name_types(array->type)};
 };
 
 } // namespace seman

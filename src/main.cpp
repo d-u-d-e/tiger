@@ -44,7 +44,11 @@ int main(int argc, char** argv)
 
   ir::Translator translator;
   seman::Analyzer type_checker(string_table, translator);
-  type_checker.type_check(*exp);
+  auto ir = type_checker.type_check(*exp);
+
+  ir::PrettyPrinter ir_pretty_printer;
+  std::cout << ir->accept(ir_pretty_printer) << std::endl << std::endl;
+  return EX_OK;
 
   /*// test
 
@@ -76,6 +80,4 @@ int main(int argc, char** argv)
 
   ir::PrettyPrinter ir_pretty_printer;
   std::cout << t6->accept(ir_pretty_printer) << std::endl;*/
-
-  return 0;
 }
