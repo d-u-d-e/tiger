@@ -122,11 +122,25 @@ nx_t Translator::unnx(exp_t&& exp)
 
 cx_t Translator::uncx(exp_t&& exp)
 {
-  // TODO
   // uncx(nx) should not occur in a valid program
   // uncx(ex) is: (t, f) -> CJumpStmt(eq, ex, 0, f, t)
   // uncx(cx) is just cx
-  return [](Temp::label_t t, Temp::label_t f) { return nullptr; };
+
+  if(std::holds_alternative<ex_t>(exp)) {
+    return [&exp](Temp::label_t t, Temp::label_t f) -> nx_t {
+      return std::make_unique<ir::CJumpStmt>(ir::RelOp::eq,
+                                             std::move(std::get<ex_t>(exp)),
+                                             std::make_unique<ir::ConstExp>(0),
+                                             f,
+                                             t);
+    };
+  }
+  else if(std::holds_alternative<cx_t>(exp)) {
+    return std::move(std::get<cx_t>(exp));
+  }
+
+  assert(false);
+  std::unreachable();
 }
 
 } // namespace ir
