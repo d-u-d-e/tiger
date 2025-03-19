@@ -20,8 +20,9 @@ class Scanner {
     auto f = std::ifstream(filename);
 
     if(!f.is_open()) {
-      std::cerr << std::format("could not open file '{}'\n", filename.generic_string());
-      exit(EX_IOERR);
+      error(
+        std::format("Err: could not open file '{}'\n", filename.generic_string()),
+        EX_IOERR);
     }
 
     std::stringstream buffer;
@@ -65,7 +66,7 @@ class Scanner {
   void expect(char ch, const std::string& err_msg)
   {
     if(*current != ch) {
-      error(err_msg);
+      error_at(err_msg);
     }
     current++;
   }
@@ -79,9 +80,14 @@ class Scanner {
     return false;
   }
 
+  void error_at(const std::string& err_msg, int exit_code = EX_DATAERR)
+  {
+    error(std::format("[line {}] Err: {}\n", line, err_msg), exit_code);
+  }
+
   void error(const std::string& err_msg, int exit_code = EX_DATAERR)
   {
-    std::cerr << std::format("[line {}] Err: {}\n", line, err_msg);
+    std::cerr << "\033[1;31m" << err_msg << "\033[0m";
     exit(exit_code);
   }
 

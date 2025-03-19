@@ -15,7 +15,7 @@ char Scanner::escape_sequence(const char** current)
     int v = 0;
     v = (ch1 - '0') * 64 + (ch2 - '0') * 8 + (ch3 - '0');
     if(v > 255) {
-      error("3-digit octal escape sequence out of range");
+      error_at("3-digit octal escape sequence out of range");
     }
     *current += 4;
     return (char)v;
@@ -36,7 +36,7 @@ char Scanner::escape_sequence(const char** current)
   default:
     break;
   }
-  error(std::format("Invalid escape sequence '\\{}'", ch1));
+  error_at(std::format("Invalid escape sequence '\\{}'", ch1));
   std::unreachable();
 }
 
@@ -124,7 +124,7 @@ Token Scanner::punctuation()
     break;
   }
 
-  error(std::format("invalid character '{}'", *current));
+  error_at(std::format("invalid character '{}'", *current));
   std::unreachable();
 }
 
@@ -163,7 +163,7 @@ Token Scanner::string_literal()
       }
     }
     else if(*current == '\n' || *current == '\r') {
-      error("unterminated string literal");
+      error_at("unterminated string literal");
     }
     else if(*current != '"') {
       value += *current;
@@ -175,7 +175,7 @@ Token Scanner::string_literal()
     }
   }
 
-  error("unterminated string literal");
+  error_at("unterminated string literal");
   std::unreachable();
 }
 
@@ -225,7 +225,7 @@ void Scanner::skip_multiline_comment()
     }
     current++;
   }
-  error("unterminated multiline comment");
+  error_at("unterminated multiline comment");
 }
 
 } // namespace lexer
