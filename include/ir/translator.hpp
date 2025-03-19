@@ -42,13 +42,14 @@ class Translator {
     return Level::Access{.l = &level, .fax = level.f.alloc_local(escape)};
   }
 
-  std::unique_ptr<Exp> simple_var(const Level::Access& ax,
-                                  const Level* current);
-  std::unique_ptr<ir::Exp>
-  seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps);
-  std::unique_ptr<ir::ConstExp> constant(int constant);
-  std::unique_ptr<ir::CallExp>
-  call_exp(Temp::label_t flab, std::vector<std::unique_ptr<Exp>>&& args);
+  exp_t simple_var(const Level::Access& ax, const Level* current);
+  exp_t seq_exp(std::vector<ir::exp_t>&& exps);
+  ex_t constant(int constant);
+  exp_t call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args);
+
+  ex_t unex(exp_t&& exp);
+  nx_t unnx(exp_t&& exp);
+  cx_t uncx(exp_t&& exp);
 
   private:
   std::shared_ptr<Level> lvl_outermost;

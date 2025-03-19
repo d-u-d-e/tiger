@@ -18,7 +18,7 @@ class Analyzer : public TypeCheckerExprVisitor,
 
   public:
   Analyzer(symbol::StringTable& string_table, ir::Translator& translator);
-  std::unique_ptr<ir::Exp> type_check(const parser::ast::Expression& exp);
+  ir::exp_t type_check(const parser::ast::Expression& exp);
 
   Result visit_string_exp(const parser::ast::StringExp& exp) override;
   Result visit_assign_exp(const parser::ast::AssignExp& exp) override;

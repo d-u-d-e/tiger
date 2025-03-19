@@ -5,8 +5,8 @@
 namespace ir
 {
 
-std::unique_ptr<Exp> Translator::simple_var(const Level::Access& var_ax,
-                                            const Level* current)
+ir::exp_t Translator::simple_var(const Level::Access& var_ax,
+                                 const Level* current)
 {
   std::unique_ptr<Exp> fp = std::make_unique<TempExp>(arch::Frame::FP);
 
@@ -20,8 +20,7 @@ std::unique_ptr<Exp> Translator::simple_var(const Level::Access& var_ax,
   return arch::Frame::exp(var_ax.fax, std::move(fp));
 }
 
-std::unique_ptr<ir::Exp>
-Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps)
+ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
 {
   auto size = exps.size();
   if(0 == size) {
@@ -31,30 +30,65 @@ Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps)
     return std::move(exps[0]);
   }
 
-  std::unique_ptr<ir::Stmt> stmt_seq =
-    std::make_unique<ir::ExpStmt>(std::move(exps[0]));
+  auto stmt_seq = unnx(std::move(exps[0]));
 
   for(auto i = 1; i < size - 1; i++) {
-    auto exp_stmt = std::make_unique<ir::ExpStmt>(std::move(exps[i]));
+    auto exp_stmt = unnx(std::move(exps[i]));
     stmt_seq =
       std::make_unique<ir::SeqStmt>(std::move(stmt_seq), std::move(exp_stmt));
   }
 
   return std::make_unique<ir::ESeqExp>(move(stmt_seq),
-                                       std::move(exps[size - 1]));
+                                       unex(std::move(exps[size - 1])));
 }
 
-std::unique_ptr<ir::ConstExp> Translator::constant(int constant)
+ex_t Translator::constant(int constant)
 {
   return std::make_unique<ir::ConstExp>(constant);
 }
 
-std::unique_ptr<ir::CallExp>
-Translator::call_exp(Temp::label_t flab,
-                     std::vector<std::unique_ptr<Exp>>&& args)
+exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args)
 {
   return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(flab),
                                        std::move(args));
+}
+
+ex_t Translator::unex(exp_t&& exp)
+{
+  if(std::holds_alternative<ex_t>(exp)) {
+    return std::move(std::get<ex_t>(exp));
+  }
+  else if(std::holds_alternative<nx_t>(exp)) {
+    return std::make_unique<ir::ESeqExp>(std::move(std::get<nx_t>(exp)),
+                                         constant(0));
+  }
+  else if(std::holds_alternative<cx_t>(exp)) {
+    // TODO
+    // 
+    assert(false);
+  }
+  return nullptr;
+}
+
+nx_t Translator::unnx(exp_t&& exp)
+{
+  if(std::holds_alternative<ex_t>(exp)) {
+    return std::make_unique<ir::ExpStmt>(std::move(std::get<ex_t>(exp)));
+  }
+  else if(std::holds_alternative<nx_t>(exp)) {
+    return std::move(std::get<nx_t>(exp));
+  }
+  else if(std::holds_alternative<cx_t>(exp)) {
+    // TODO
+    assert(false);
+  }
+  return nullptr;
+}
+
+cx_t Translator::uncx(exp_t&& exp)
+{
+  // TODO
+  return [](Temp::label_t a, Temp::label_t b) { return nullptr; };
 }
 
 } // namespace ir

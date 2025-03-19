@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <ir/temp.hpp>
 #include <ir/visitor.hpp>
 #include <memory>
@@ -18,6 +19,12 @@ class Stmt {
   virtual ~Stmt() = default;
   virtual std::string accept(PrettyPrinterStmtVisitor& visitor) = 0;
 };
+
+using ex_t = std::unique_ptr<ir::Exp>;
+using nx_t = std::unique_ptr<ir::Stmt>;
+using cx_t =
+  std::function<std::unique_ptr<ir::Stmt>(Temp::label_t, Temp::label_t)>;
+using exp_t = std::variant<std::monostate, ex_t, nx_t, cx_t>;
 
 enum class BinaryOp
 {

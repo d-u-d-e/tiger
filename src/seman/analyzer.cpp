@@ -74,8 +74,7 @@ void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
     std::format("[line {}:{}] Err: {}", pos.line, pos.column, err_msg));
 }
 
-std::unique_ptr<ir::Exp>
-Analyzer::type_check(const parser::ast::Expression& exp)
+ir::exp_t Analyzer::type_check(const parser::ast::Expression& exp)
 {
   auto t = exp.accept(*this);
   return std::move(t.ir);
@@ -194,7 +193,7 @@ Result Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 
 Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
-  std::vector<std::unique_ptr<ir::Exp>> exps;
+  std::vector<ir::exp_t> exps;
   shared_type_t tres{unit_type};
   for(auto& [e, pos] : exp.exps) {
     auto [type, ir] = e->accept(*this);
@@ -394,10 +393,9 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
              std::format("expected {} arguments, got {}", fsize, asize));
   }
 
-  std::vector<std::unique_ptr<ir::Exp>> arg_exps;
+  std::vector<ir::ex_t> arg_exps;
   for(int i = 0; i < asize; i++) {
     auto [tactual, ir] = exp.args[i]->accept(*this);
-    arg_exps.emplace_back(std::move(ir));
     auto texpected = fentry.formals[i];
     if(!same_types(skip_name_types(texpected), tactual)) {
       error_at(exp.position,
@@ -406,6 +404,7 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
                            texpected->to_string(),
                            tactual->to_string()));
     }
+    arg_exps.emplace_back(translator.unex(std::move(ir)));
   };
   return Result{skip_name_types(fentry.result),
                 translator.call_exp(fentry.label, std::move(arg_exps))};

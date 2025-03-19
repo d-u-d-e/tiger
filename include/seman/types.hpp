@@ -1,8 +1,8 @@
 #pragma once
+#include <ir/tree.hpp>
 #include <memory>
 #include <symbol.hpp>
 #include <vector>
-#include <ir/tree.hpp>
 
 namespace seman::types
 {
@@ -60,7 +60,7 @@ struct Name : public Type {
 
 struct Result {
   shared_type_t type;
-  std::unique_ptr<ir::Exp> ir;
+  ir::exp_t ir;
 };
 
 std::string to_string(const shared_type_t& t);
