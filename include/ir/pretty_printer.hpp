@@ -16,7 +16,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
 
   std::string visit_name_exp(const NameExp& exp) override
   {
-    return std::format("{}NameExp(\"{}\")", indent(), exp.label.str());
+    return std::format("{}NameExp({})", indent(), exp.label.str());
   }
 
   std::string visit_temp_exp(const TempExp& exp) override

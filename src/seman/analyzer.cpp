@@ -82,8 +82,7 @@ ir::exp_t Analyzer::type_check(const parser::ast::Expression& exp)
 
 Result Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
-  // TODO translation
-  return Result{string_type};
+  return Result{string_type, translator.string(exp.value)};
 };
 
 Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)

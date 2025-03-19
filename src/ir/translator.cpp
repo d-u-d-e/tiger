@@ -47,6 +47,13 @@ ex_t Translator::constant(int constant)
   return std::make_unique<ir::ConstExp>(constant);
 }
 
+ex_t Translator::string(const std::string& value)
+{
+  auto lab = Temp::new_label();
+  add_fragment(StringFragment{lab, value});
+  return std::make_unique<ir::NameExp>(lab);
+}
+
 exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args)
 {
   return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(flab),

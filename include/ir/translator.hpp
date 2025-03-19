@@ -1,5 +1,6 @@
 #pragma once
 #include <arch/frame.hpp>
+#include <ir/fragment.hpp>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
@@ -46,12 +47,24 @@ class Translator {
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
   exp_t call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args);
+  ex_t string(const std::string & value);
 
   ex_t unex(exp_t&& exp);
   nx_t unnx(exp_t&& exp);
   cx_t uncx(exp_t&& exp);
 
+  void add_fragment(Fragment&& f)
+  {
+    fragments_.emplace_back(std::move(f));
+  }
+
+  const std::vector<Fragment>& fragments() const
+  {
+    return fragments_;
+  }
+
   private:
+  std::vector<Fragment> fragments_;
   std::shared_ptr<Level> lvl_outermost;
 };
 
