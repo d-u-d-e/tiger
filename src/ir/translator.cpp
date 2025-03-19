@@ -43,4 +43,10 @@ std::unique_ptr<ir::Exp> Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp
                                        std::move(exps[size - 1]));
 }
 
+
+std::unique_ptr<ir::Exp> Translator::constant(int constant) 
+{
+  return std::make_unique<ir::ConstExp>(constant);
+}
+
 } // namespace ir
