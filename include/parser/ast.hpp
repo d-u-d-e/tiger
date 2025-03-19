@@ -38,7 +38,7 @@ class Declaration {
 class Type {
   public:
   virtual std::string accept(PrettyPrinterTypeVisitor& visitor) const = 0;
-  virtual seman::types::Result
+  virtual seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const = 0;
   virtual ~Type() = default;
   std::string field;
@@ -728,7 +728,7 @@ class RecordType : public Type {
     return visitor.visit_record_type(*this);
   }
 
-  seman::types::Result
+  seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_record_type(*this);
@@ -748,7 +748,7 @@ class ArrayType : public Type {
     return visitor.visit_array_type(*this);
   }
 
-  seman::types::Result
+  seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_array_type(*this);
@@ -769,7 +769,7 @@ class NameType : public Type {
     return visitor.visit_name_type(*this);
   }
 
-  seman::types::Result
+  seman::types::shared_type_t
   accept(seman::TypeCheckerTypeVisitor& visitor) const override
   {
     return visitor.visit_name_type(*this);

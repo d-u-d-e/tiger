@@ -40,9 +40,9 @@ class Analyzer : public TypeCheckerExprVisitor,
   void visit_var_decl(const parser::ast::VarDecl& decl) override;
   void visit_type_decl(const parser::ast::TypeDecl& decl) override;
 
-  Result visit_name_type(const parser::ast::NameType& type) override;
-  Result visit_array_type(const parser::ast::ArrayType& type) override;
-  Result visit_record_type(const parser::ast::RecordType& type) override;
+  shared_type_t visit_name_type(const parser::ast::NameType& type) override;
+  shared_type_t visit_array_type(const parser::ast::ArrayType& type) override;
+  shared_type_t visit_record_type(const parser::ast::RecordType& type) override;
 
   Result visit_simple_var(const parser::ast::SimpleVar& var) override;
   Result visit_field_var(const parser::ast::FieldVar& var) override;

@@ -83,11 +83,13 @@ Analyzer::type_check(const parser::ast::Expression& exp)
 
 Result Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 {
+  // TODO translation
   return Result{string_type};
 };
 
 Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
+  // TODO translation
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
 
@@ -126,6 +128,8 @@ shared_type_t Analyzer::skip_name_types(const shared_type_t& t)
 
 Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
+  // TODO translation
+
   auto tlhs = exp.left->accept(*this);
   auto trhs = exp.right->accept(*this);
 
@@ -180,18 +184,18 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 
 Result Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
 {
-  return Result{int_type};
+  return Result{int_type, translator.constant(exp.value)};
 };
 
 Result Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 {
-  return Result{exp.var->accept(*this)};
+  return exp.var->accept(*this);
 };
 
 Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
   std::vector<std::unique_ptr<ir::Exp>> exps;
-  shared_type_t tres = unit_type;
+  shared_type_t tres{unit_type};
   for(auto& [e, pos] : exp.exps) {
     auto [type, ir] = e->accept(*this);
     tres = type;
@@ -202,6 +206,8 @@ Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 
 Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
+  // TODO translation
+
   auto tsize = exp.size->accept(*this);
   auto tinit = exp.init->accept(*this);
   auto texpr = tenv.lookup(exp.type);
@@ -228,11 +234,13 @@ Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 
 Result Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
+  // TODO translation
   return Result{nil_type};
 };
 
 Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
+  // TODO translation
   auto maybe_rec = tenv.lookup(exp.type);
   if(!maybe_rec || !is_type<Record>(maybe_rec->t)) {
     error_at(exp.position,
@@ -277,6 +285,7 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 
 Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
+  // TODO translation
   auto tcond = exp.cond->accept(*this);
   if(!is_type<Integer>(tcond.type)) {
     error_at(exp.position, "the condition must be an integer");
@@ -308,6 +317,7 @@ Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 
 Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
+  // TODO translation
   if(!can_break) {
     error_at(exp.position, "break statement not within a loop");
   }
@@ -316,6 +326,7 @@ Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 
 Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
+  // TODO translation
   // condition must be an integer
   if(!is_type<Integer>(exp.cond->accept(*this).type)) {
     error_at(exp.position, "the condition must be an integer");
@@ -334,6 +345,7 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 
 Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
+  // TODO translation
   // high and low must be integers
   if(!is_type<Integer>(exp.low->accept(*this).type)) {
     error_at(exp.position, "the lower bound must be an integer");
@@ -361,6 +373,7 @@ Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 
 Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
+  // TODO translation
   auto maybe_fentry = venv.lookup(exp.name);
   if(!maybe_fentry ||
      !std::holds_alternative<env::FuncEntry>(maybe_fentry->v)) {
@@ -405,14 +418,15 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
     decl->accept(*this);
   }
 
-  auto tres = exp.body->accept(*this);
+  auto res = exp.body->accept(*this);
   venv.end_scope();
   tenv.end_scope();
-  return tres;
+  return res;
 };
 
 void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
+  // TODO save the fragments
   /*
     To handle mutually recursive functions:
 
@@ -564,7 +578,7 @@ void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
   // next we replace all those fake names with the true type
   for(auto& tdecl : decl.decls) {
     auto actual = tdecl->type->accept(*this);
-    tenv.replace(tdecl->name, env::TEntry{actual.type});
+    tenv.replace(tdecl->name, env::TEntry{actual});
   }
 
   // prevent cycles
@@ -667,27 +681,27 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-Result Analyzer::visit_name_type(const parser::ast::NameType& type)
+shared_type_t Analyzer::visit_name_type(const parser::ast::NameType& type)
 {
   auto ty = tenv.lookup(type.name);
   if(!ty) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return Result{ty->t};
+  return ty->t;
 };
 
-Result Analyzer::visit_array_type(const parser::ast::ArrayType& type)
+shared_type_t Analyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
     error_at(type.position,
              std::format("undefined type '{}'", type.name.str()));
   }
-  return Result{std::make_shared<Array>(elem_type->t)};
+  return std::make_shared<Array>(elem_type->t);
 };
 
-Result Analyzer::visit_record_type(const parser::ast::RecordType& type)
+shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
 {
   std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
   for(auto& field : type.fields) {
@@ -698,7 +712,7 @@ Result Analyzer::visit_record_type(const parser::ast::RecordType& type)
     }
     fields.push_back({field.name, tfield->t});
   }
-  return Result{std::make_shared<Record>(fields)};
+  return std::make_shared<Record>(fields);
 };
 
 Result Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
@@ -709,13 +723,14 @@ Result Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
              std::format("undefined variable '{}'", var.name.str()));
   }
   auto& ventry = std::get<env::VarEntry>(maybe_var->v);
-  // generate IR code to access the simple variable
-  auto ir_exp = translator.simple_var(ventry.access, current_level.get());
-  return Result{skip_name_types(ventry.type), std::move(ir_exp)};
+  return Result{skip_name_types(ventry.type),
+                translator.simple_var(ventry.access, current_level.get())};
 };
 
 Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
+  // TODO translation
+
   auto tlhs = var.var->accept(*this);
   // . applicable to records only
   if(!is_type<Record>(tlhs.type)) {
@@ -739,6 +754,8 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 
 Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
+  // TODO translation
+  
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this).type;
   if(!is_type<Array>(tlhs)) {

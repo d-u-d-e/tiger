@@ -65,9 +65,9 @@ class TypeCheckerDeclVisitor {
 class TypeCheckerTypeVisitor {
   public:
   // clang-format off
- types::Result virtual visit_name_type(const parser::ast::NameType& type) = 0;
- types::Result virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
- types::Result virtual visit_record_type(const parser::ast::RecordType& type) = 0;
+ types::shared_type_t virtual visit_name_type(const parser::ast::NameType& type) = 0;
+ types::shared_type_t virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
+ types::shared_type_t virtual visit_record_type(const parser::ast::RecordType& type) = 0;
   // clang-format on
 };
 
