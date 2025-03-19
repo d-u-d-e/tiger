@@ -44,8 +44,11 @@ class Translator {
 
   std::unique_ptr<Exp> simple_var(const Level::Access& ax,
                                   const Level* current);
-  std::unique_ptr<ir::Exp> seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps);
-  std::unique_ptr<ir::Exp> constant(int constant);
+  std::unique_ptr<ir::Exp>
+  seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps);
+  std::unique_ptr<ir::ConstExp> constant(int constant);
+  std::unique_ptr<ir::CallExp>
+  call_exp(Temp::label_t flab, std::vector<std::unique_ptr<Exp>>&& args);
 
   private:
   std::shared_ptr<Level> lvl_outermost;

@@ -20,7 +20,8 @@ std::unique_ptr<Exp> Translator::simple_var(const Level::Access& var_ax,
   return arch::Frame::exp(var_ax.fax, std::move(fp));
 }
 
-std::unique_ptr<ir::Exp> Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps)
+std::unique_ptr<ir::Exp>
+Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp>>&& exps)
 {
   auto size = exps.size();
   if(0 == size) {
@@ -43,10 +44,17 @@ std::unique_ptr<ir::Exp> Translator::seq_exp(std::vector<std::unique_ptr<ir::Exp
                                        std::move(exps[size - 1]));
 }
 
-
-std::unique_ptr<ir::Exp> Translator::constant(int constant) 
+std::unique_ptr<ir::ConstExp> Translator::constant(int constant)
 {
   return std::make_unique<ir::ConstExp>(constant);
+}
+
+std::unique_ptr<ir::CallExp>
+Translator::call_exp(Temp::label_t flab,
+                     std::vector<std::unique_ptr<Exp>>&& args)
+{
+  return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(flab),
+                                       std::move(args));
 }
 
 } // namespace ir

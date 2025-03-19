@@ -373,7 +373,6 @@ Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 
 Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
 {
-  // TODO translation
   auto maybe_fentry = venv.lookup(exp.name);
   if(!maybe_fentry ||
      !std::holds_alternative<env::FuncEntry>(maybe_fentry->v)) {
@@ -395,18 +394,21 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
              std::format("expected {} arguments, got {}", fsize, asize));
   }
 
+  std::vector<std::unique_ptr<ir::Exp>> arg_exps;
   for(int i = 0; i < asize; i++) {
-    auto tactual = exp.args[i]->accept(*this);
+    auto [tactual, ir] = exp.args[i]->accept(*this);
+    arg_exps.emplace_back(std::move(ir));
     auto texpected = fentry.formals[i];
-    if(!same_types(skip_name_types(texpected), tactual.type)) {
+    if(!same_types(skip_name_types(texpected), tactual)) {
       error_at(exp.position,
                std::format("argument {} expects type '{}', got '{}'",
                            i,
                            texpected->to_string(),
-                           tactual.type->to_string()));
+                           tactual->to_string()));
     }
-  }
-  return Result{skip_name_types(fentry.result)};
+  };
+  return Result{skip_name_types(fentry.result),
+                translator.call_exp(fentry.label, std::move(arg_exps))};
 };
 
 Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
@@ -755,7 +757,7 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
   // TODO translation
-  
+
   // [] applicable to arrays only
   auto tlhs = var.var->accept(*this).type;
   if(!is_type<Array>(tlhs)) {
