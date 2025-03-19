@@ -34,9 +34,8 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
   auto stmt_seq = unnx(std::move(exps[0]));
 
   for(auto i = 1; i < size - 1; i++) {
-    auto exp_stmt = unnx(std::move(exps[i]));
-    stmt_seq =
-      std::make_unique<ir::SeqStmt>(std::move(stmt_seq), std::move(exp_stmt));
+    stmt_seq = std::make_unique<ir::SeqStmt>(std::move(stmt_seq),
+                                             unnx(std::move(exps[i])));
   }
 
   return std::make_unique<ir::ESeqExp>(move(stmt_seq),

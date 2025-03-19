@@ -88,14 +88,14 @@ struct TempExp : public Exp {
 };
 
 struct BinOpExp : public Exp {
-  BinOpExp(BinaryOp op, std::unique_ptr<Exp> left, std::unique_ptr<Exp> right)
+  BinOpExp(BinaryOp op, ex_t left, ex_t right)
     : op(op)
     , left(std::move(left))
     , right(std::move(right))
   { }
   BinaryOp op;
-  std::unique_ptr<Exp> left;
-  std::unique_ptr<Exp> right;
+  ex_t left;
+  ex_t right;
   std::string accept(PrettyPrinterExprVisitor& visitor)
   {
     return visitor.visit_binop_exp(*this);
@@ -103,9 +103,9 @@ struct BinOpExp : public Exp {
 };
 
 struct MemExp : public Exp {
-  MemExp(std::unique_ptr<Exp> address)
+  MemExp(ex_t address)
     : a(std::move(address)){};
-  std::unique_ptr<Exp> a;
+  ex_t a;
   std::string accept(PrettyPrinterExprVisitor& visitor)
   {
     return visitor.visit_mem_exp(*this);
@@ -113,11 +113,11 @@ struct MemExp : public Exp {
 };
 
 struct CallExp : public Exp {
-  CallExp(std::unique_ptr<Exp> fun, std::vector<std::unique_ptr<Exp>> args)
+  CallExp(ex_t fun, std::vector<ex_t> args)
     : fun(std::move(fun))
     , args(std::move(args)){};
-  std::unique_ptr<Exp> fun;
-  std::vector<std::unique_ptr<Exp>> args;
+  ex_t fun;
+  std::vector<ex_t> args;
   std::string accept(PrettyPrinterExprVisitor& visitor)
   {
     return visitor.visit_call_exp(*this);
@@ -125,11 +125,11 @@ struct CallExp : public Exp {
 };
 
 struct ESeqExp : public Exp {
-  ESeqExp(std::unique_ptr<Stmt> stmt, std::unique_ptr<Exp> exp)
+  ESeqExp(nx_t stmt, ex_t exp)
     : stmt(std::move(stmt))
     , exp(std::move(exp)){};
-  std::unique_ptr<Stmt> stmt;
-  std::unique_ptr<Exp> exp;
+  nx_t stmt;
+  ex_t exp;
   std::string accept(PrettyPrinterExprVisitor& visitor)
   {
     return visitor.visit_eseq_exp(*this);
@@ -137,12 +137,12 @@ struct ESeqExp : public Exp {
 };
 
 struct MoveStmt : public Stmt {
-  MoveStmt(std::unique_ptr<Exp> left, std::unique_ptr<Exp> right)
+  MoveStmt(ex_t left, ex_t right)
     : left(std::move(left))
     , right(std::move(right))
   { }
-  std::unique_ptr<Exp> left;
-  std::unique_ptr<Exp> right;
+  ex_t left;
+  ex_t right;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
   {
     return visitor.visit_move_stmt(*this);
@@ -150,10 +150,10 @@ struct MoveStmt : public Stmt {
 };
 
 struct ExpStmt : public Stmt {
-  ExpStmt(std::unique_ptr<Exp> exp)
+  ExpStmt(ex_t exp)
     : exp(std::move(exp))
   { }
-  std::unique_ptr<Exp> exp;
+  ex_t exp;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
   {
     return visitor.visit_exp_stmt(*this);
@@ -161,11 +161,11 @@ struct ExpStmt : public Stmt {
 };
 
 struct JumpStmt : public Stmt {
-  JumpStmt(std::unique_ptr<Exp> address, std::vector<Temp::label_t> labels)
+  JumpStmt(ex_t address, std::vector<Temp::label_t> labels)
     : a(std::move(a))
     , labels(std::move(labels))
   { }
-  std::unique_ptr<Exp> a;
+  ex_t a;
   std::vector<Temp::label_t> labels;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
   {
@@ -174,11 +174,8 @@ struct JumpStmt : public Stmt {
 };
 
 struct CJumpStmt : public Stmt {
-  CJumpStmt(RelOp op,
-            std::unique_ptr<Exp> lexp,
-            std::unique_ptr<Exp> rexp,
-            Temp::label_t tlabel,
-            Temp::label_t flabel)
+  CJumpStmt(
+    RelOp op, ex_t lexp, ex_t rexp, Temp::label_t tlabel, Temp::label_t flabel)
     : op(op)
     , lexp(std::move(lexp))
     , rexp(std::move(rexp))
@@ -186,8 +183,8 @@ struct CJumpStmt : public Stmt {
     , flabel(flabel)
   { }
   RelOp op;
-  std::unique_ptr<Exp> lexp;
-  std::unique_ptr<Exp> rexp;
+  ex_t lexp;
+  ex_t rexp;
   Temp::label_t tlabel;
   Temp::label_t flabel;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
@@ -197,12 +194,12 @@ struct CJumpStmt : public Stmt {
 };
 
 struct SeqStmt : public Stmt {
-  SeqStmt(std::unique_ptr<Stmt> stm1, std::unique_ptr<Stmt> stm2)
+  SeqStmt(nx_t stm1, nx_t stm2)
     : stm1(std::move(stm1))
     , stm2(std::move(stm2))
   { }
-  std::unique_ptr<Stmt> stm1;
-  std::unique_ptr<Stmt> stm2;
+  nx_t stm1;
+  nx_t stm2;
   std::string accept(PrettyPrinterStmtVisitor& visitor)
   {
     return visitor.visit_seq_stmt(*this);
