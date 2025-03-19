@@ -21,7 +21,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
 
   std::string visit_temp_exp(const TempExp& exp) override
   {
-    return std::format("{}NameExp(t{})", indent(), exp.temp);
+    return std::format("{}TempExp(t{})", indent(), exp.temp);
   }
 
   std::string visit_binop_exp(const BinOpExp& exp) override

@@ -190,48 +190,14 @@ Result Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 
 Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
-  // TODO this is so unnecessary verbose
-  // further, we don't need to return 0 if this is a seq exp that return the unit type
-
-  /*
-    Should we do something like?
-
-    std::vector<std::unique_ptr<ir::Exp>> exps;
-    shared_type_t tres = unit_type;
-    for(auto& [e, pos] : exp.exps) {
-      auto [type, ir] = e->accept(*this);
-      tres = type;
-      exps.push_back(std::move(ir));
-    }
-    return {tres, translator.seq_exp(exps)}
-
-    This way we move all this logic away from the type checker, although we create a useless vector.
-  */
-
-  auto tres = Result{unit_type, std::make_unique<ir::ConstExp>(0)};
-  auto size = exp.exps.size();
-  if(!size) {
-    return tres;
+  std::vector<std::unique_ptr<ir::Exp>> exps;
+  shared_type_t tres = unit_type;
+  for(auto& [e, pos] : exp.exps) {
+    auto [type, ir] = e->accept(*this);
+    tres = type;
+    exps.push_back(std::move(ir));
   }
-
-  auto first = exp.exps.at(0).first->accept(*this);
-  if(size == 1) {
-    return {first.type, std::move(first.ir)};
-  }
-
-  std::unique_ptr<ir::Stmt> stmt_seq =
-    std::make_unique<ir::ExpStmt>(std::move(first.ir));
-
-  for(auto i = 1; i < size - 1; i++) {
-    auto [type, ir] = exp.exps.at(i).first->accept(*this);
-    auto exp_stmt = std::make_unique<ir::ExpStmt>(std::move(ir));
-    stmt_seq =
-      std::make_unique<ir::SeqStmt>(std::move(stmt_seq), std::move(exp_stmt));
-  }
-  auto last = exp.exps.at(size - 1).first->accept(*this);
-  tres.type = last.type;
-  tres.ir = std::make_unique<ir::ESeqExp>(move(stmt_seq), std::move(last.ir));
-  return tres;
+  return {tres, translator.seq_exp(std::move(exps))};
 };
 
 Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
