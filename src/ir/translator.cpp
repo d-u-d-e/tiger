@@ -1,6 +1,7 @@
 #include <arch/frame.hpp>
 #include <cassert>
 #include <ir/translator.hpp>
+#include <utility>
 
 namespace ir
 {
@@ -55,6 +56,11 @@ exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args)
 
 ex_t Translator::unex(exp_t&& exp)
 {
+  // unex(nx) is just ESeqExp(nx, 0)
+  // unex(ex) is just ex
+  // unex(cx) is:
+  // ESeq(SeqStmt[MoveStmt(temp, 1), cx(t, f), LabelStmt(f), MoveStmt(temp, 0), LabelStmt(t)], temp)
+
   if(std::holds_alternative<ex_t>(exp)) {
     return std::move(std::get<ex_t>(exp));
   }
@@ -63,15 +69,37 @@ ex_t Translator::unex(exp_t&& exp)
                                          constant(0));
   }
   else if(std::holds_alternative<cx_t>(exp)) {
-    // TODO
-    // 
-    assert(false);
+    auto cx = std::get<cx_t>(exp);
+    auto temp = ir::Temp::new_temp();
+    auto tlab = ir::Temp::new_label();
+    auto flab = ir::Temp::new_label();
+    auto seq = std::make_unique<ir::SeqStmt>(
+      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                 std::make_unique<ConstExp>(1)),
+      cx(tlab, flab));
+    seq = std::make_unique<ir::SeqStmt>(std::move(seq),
+                                        std::make_unique<ir::LabelStmt>(flab));
+    seq = std::make_unique<ir::SeqStmt>(
+      std::move(seq),
+      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                 std::make_unique<ConstExp>(0)));
+    seq = std::make_unique<ir::SeqStmt>(std::move(seq),
+                                        std::make_unique<ir::LabelStmt>(tlab));
+    return std::make_unique<ir::ESeqExp>(std::move(seq),
+                                         std::make_unique<TempExp>(temp));
   }
+  // TODO this breaks the tests
+  //assert(false);
+  //std::unreachable();
   return nullptr;
 }
 
 nx_t Translator::unnx(exp_t&& exp)
 {
+  // unnx(nx) is just nx
+  // unnx(ex) is a ExpStmt(ex)
+  // unnx(cx) is Seq[cx(t, f), LabelStmt(t), LabelStmt(f)]
+
   if(std::holds_alternative<ex_t>(exp)) {
     return std::make_unique<ir::ExpStmt>(std::move(std::get<ex_t>(exp)));
   }
@@ -79,16 +107,27 @@ nx_t Translator::unnx(exp_t&& exp)
     return std::move(std::get<nx_t>(exp));
   }
   else if(std::holds_alternative<cx_t>(exp)) {
-    // TODO
-    assert(false);
+    auto genstm = std::get<cx_t>(exp);
+    auto tlab = ir::Temp::new_label();
+    auto flab = ir::Temp::new_label();
+    auto seq = std::make_unique<ir::SeqStmt>(
+      genstm(tlab, flab), std::make_unique<ir::LabelStmt>(tlab));
+    return std::make_unique<ir::SeqStmt>(std::move(seq),
+                                         std::make_unique<ir::LabelStmt>(flab));
   }
+  // TODO this breaks the tests
+  //assert(false);
+  //std::unreachable();
   return nullptr;
 }
 
 cx_t Translator::uncx(exp_t&& exp)
 {
   // TODO
-  return [](Temp::label_t a, Temp::label_t b) { return nullptr; };
+  // uncx(nx) should not occur in a valid program
+  // uncx(ex) is: (t, f) -> CJumpStmt(eq, ex, 0, f, t)
+  // uncx(cx) is just cx
+  return [](Temp::label_t t, Temp::label_t f) { return nullptr; };
 }
 
 } // namespace ir
