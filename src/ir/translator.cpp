@@ -1,5 +1,6 @@
 #include <arch/frame.hpp>
 #include <cassert>
+#include <ir/pretty_printer.hpp>
 #include <ir/translator.hpp>
 #include <utility>
 
@@ -52,6 +53,11 @@ ex_t Translator::string(const std::string& value)
   auto lab = Temp::new_label();
   add_fragment(StringFragment{lab, value});
   return std::make_unique<ir::NameExp>(lab);
+}
+
+void Translator::proc_entry_exit(const Level& level, exp_t body)
+{
+  add_fragment(ProcedureFragment{unnx(std::move(body)), level.f});
 }
 
 exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args)
@@ -148,6 +154,34 @@ cx_t Translator::uncx(exp_t&& exp)
 
   assert(false);
   std::unreachable();
+}
+
+template <class... Ts>
+struct overloads : Ts... {
+  using Ts::operator()...;
+};
+
+std::string Translator::dump_fragment(const Fragment& f) const
+{
+  auto dump_proc_frag = [](const ProcedureFragment& pf) -> std::string {
+    ir::PrettyPrinter printer;
+    auto result = std::format("frag function: {}, args: {}, locals: {}\n",
+                              pf.frame.name().str(),
+                              pf.frame.formals().size(),
+                              pf.frame.locals_count());
+    auto ir_str = pf.body->accept(printer);
+    result += ir_str + "------------------------------";
+    return result;
+  };
+
+  auto dump_string_frag = [](const StringFragment& sf) -> std::string {
+    auto result =
+      std::format("frag string: {}, value: \"{}\"\n", sf.label.str(), sf.lit);
+    result += "------------------------------";
+    return result;
+  };
+
+  return std::visit(overloads{dump_proc_frag, dump_string_frag}, f);
 }
 
 } // namespace ir

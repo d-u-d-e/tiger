@@ -59,5 +59,10 @@ int main(int argc, char** argv)
   std::cout << translator.unex(std::move(ir))->accept(ir_pretty_printer)
             << std::endl
             << std::endl;
+
+  for(auto& frag : translator.fragments()) {
+    std::cout << translator.dump_fragment(frag) << std::endl;
+  }
+
   return EX_OK;
 }

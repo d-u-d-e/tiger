@@ -74,6 +74,10 @@ class Frame {
     }
   }
 
+  uint16_t locals_count() const {
+    return std::abs(offset) / word_size;
+  }
+
   static std::unique_ptr<ir::Exp> exp(const access_t& fax,
                                       std::unique_ptr<ir::Exp> fp)
   {

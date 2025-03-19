@@ -47,7 +47,9 @@ class Translator {
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
   exp_t call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args);
-  ex_t string(const std::string & value);
+  ex_t string(const std::string& value);
+
+  void proc_entry_exit(const Level& level, exp_t body);
 
   ex_t unex(exp_t&& exp);
   nx_t unnx(exp_t&& exp);
@@ -62,6 +64,8 @@ class Translator {
   {
     return fragments_;
   }
+
+  std::string dump_fragment(const Fragment& f) const;
 
   private:
   std::vector<Fragment> fragments_;
