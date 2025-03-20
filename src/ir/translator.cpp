@@ -108,8 +108,9 @@ exp_t Translator::strings_equal(exp_t&& left, exp_t&& right)
 
 exp_t Translator::strings_nequal(exp_t&& left, exp_t&& right)
 {
-  //TODO
-  return exp_t{};
+  return rel_exp(parser::ast::Operator::equal,
+                 strings_equal(std::move(left), std::move(right)),
+                 constant(0));
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)
