@@ -30,7 +30,6 @@ std::string Unit::to_string()
 
 std::string Record::to_string()
 {
-
   std::string result = "{";
   auto size = fields.size();
 

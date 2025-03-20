@@ -173,7 +173,7 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   default:
     assert(false);
   }
-  
+
   return Result{
     int_type,
     translator.binary_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
@@ -231,8 +231,7 @@ Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 
 Result Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
 {
-  // TODO translation
-  return Result{nil_type};
+  return Result{nil_type, translator.constant(0)};
 };
 
 Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
@@ -418,6 +417,9 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   }
 
   auto res = exp.body->accept(*this);
+
+  //std::cout << venv.dump() << std::endl;
+
   venv.end_scope();
   tenv.end_scope();
   return res;

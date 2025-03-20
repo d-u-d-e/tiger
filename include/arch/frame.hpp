@@ -80,6 +80,16 @@ class Frame {
     return locals;
   }
 
+  static std::string to_string(const access_t& ax)
+  {
+    if(std::holds_alternative<InReg>(ax)) {
+      return std::format("InReg(t{})", std::get<InReg>(ax).t);
+    }
+    else {
+      return std::format("InFrame({})", std::get<InFrame>(ax).offset);
+    }
+  }
+
   static std::unique_ptr<ir::Exp> exp(const access_t& fax,
                                       std::unique_ptr<ir::Exp> fp)
   {
