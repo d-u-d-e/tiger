@@ -55,15 +55,54 @@ ex_t Translator::string(const std::string& value)
   return std::make_unique<ir::NameExp>(lab);
 }
 
-void Translator::proc_entry_exit(const Level& level, exp_t body)
+exp_t Translator::binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
+{
+  exp_t result;
+
+  switch(op) {
+  case parser::ast::Operator::plus:
+  case parser::ast::Operator::minus:
+  case parser::ast::Operator::divide:
+  case parser::ast::Operator::times: {
+    auto binop = map_binary_operator(op);
+    result = std::make_unique<ir::BinOpExp>(
+      binop, unex(std::move(left)), unex(std::move(right)));
+    break;
+  }
+  case parser::ast::Operator::equal:
+  case parser::ast::Operator::not_equal:
+  case parser::ast::Operator::less_equal:
+  case parser::ast::Operator::greater_equal:
+  case parser::ast::Operator::less:
+  case parser::ast::Operator::greater: {
+    auto relop = map_rel_operator(op);
+    result = [lex = unex(std::move(left)), rex = unex(std::move(right)), relop](
+               Temp::label_t tlabel, Temp::label_t flabel) mutable {
+      return std::make_unique<ir::CJumpStmt>(
+        relop, std::move(lex), std::move(rex), tlabel, flabel);
+    };
+    break;
+  }
+  default:
+    assert(false);
+  }
+  return result;
+}
+
+void Translator::proc_entry_exit(const Level& level, exp_t&& body)
 {
   add_fragment(ProcedureFragment{unnx(std::move(body)), level.f});
 }
 
-exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args)
+exp_t Translator::call_exp(Temp::label_t flab, std::vector<ir::exp_t>&& args)
 {
+  std::vector<ir::ex_t> args_as_exp(args.size());
+  std::transform(args.begin(),
+                 args.end(),
+                 args_as_exp.begin(),
+                 [this](auto& a) { return unex(std::move(a)); });
   return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(flab),
-                                       std::move(args));
+                                       std::move(args_as_exp));
 }
 
 ex_t Translator::unex(exp_t&& exp)
@@ -81,7 +120,7 @@ ex_t Translator::unex(exp_t&& exp)
                                          constant(0));
   }
   else if(std::holds_alternative<cx_t>(exp)) {
-    auto cx = std::get<cx_t>(exp);
+    auto cx = std::move(std::get<cx_t>(exp));
     auto temp = ir::Temp::new_temp();
     auto tlab = ir::Temp::new_label();
     auto flab = ir::Temp::new_label();
@@ -119,11 +158,10 @@ nx_t Translator::unnx(exp_t&& exp)
     return std::move(std::get<nx_t>(exp));
   }
   else if(std::holds_alternative<cx_t>(exp)) {
-    auto genstm = std::get<cx_t>(exp);
     auto tlab = ir::Temp::new_label();
     auto flab = ir::Temp::new_label();
     auto seq = std::make_unique<ir::SeqStmt>(
-      genstm(tlab, flab), std::make_unique<ir::LabelStmt>(tlab));
+      std::get<cx_t>(exp)(tlab, flab), std::make_unique<ir::LabelStmt>(tlab));
     return std::make_unique<ir::SeqStmt>(std::move(seq),
                                          std::make_unique<ir::LabelStmt>(flab));
   }

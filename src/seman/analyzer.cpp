@@ -126,8 +126,6 @@ shared_type_t Analyzer::skip_name_types(const shared_type_t& t)
 
 Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
 {
-  // TODO translation
-
   auto tlhs = exp.left->accept(*this);
   auto trhs = exp.right->accept(*this);
 
@@ -140,27 +138,25 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
     if(!same_types(tlhs.type, trhs.type) || !is_type<Integer>(tlhs.type)) {
       error_at(exp.position, "operands must be integers");
     }
+    break;
   }
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
     if(!same_types(tlhs.type, trhs.type)) {
       // testing equality between nil and record is supported
-      if(is_type<Nil>(tlhs.type) && is_type<Record>(trhs.type)) {
-        return Result{int_type};
-      }
-      else if(is_type<Nil>(trhs.type) && is_type<Record>(tlhs.type)) {
-        return Result{int_type};
+      if((is_type<Nil>(tlhs.type) && is_type<Record>(trhs.type)) ||
+         (is_type<Nil>(trhs.type) && is_type<Record>(tlhs.type))) {
+        break;
       }
       error_at(exp.position, "operands must be of the same type");
     }
     else if(is_type<Integer>(tlhs.type) || is_type<String>(tlhs.type) ||
             is_type<Array>(tlhs.type) || is_type<Record>(tlhs.type)) {
-      return Result{int_type};
+      break;
     }
     error_at(exp.position,
              "operands must be integers, strings, records or arrays");
-    break;
   }
 
   case parser::ast::Operator::less:
@@ -177,7 +173,10 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   default:
     assert(false);
   }
-  return Result{int_type};
+  
+  return Result{
+    int_type,
+    translator.binary_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
 };
 
 Result Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
@@ -392,7 +391,7 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
              std::format("expected {} arguments, got {}", fsize, asize));
   }
 
-  std::vector<ir::ex_t> arg_exps;
+  std::vector<ir::exp_t> arg_exps;
   for(int i = 0; i < asize; i++) {
     auto [tactual, ir] = exp.args[i]->accept(*this);
     auto texpected = fentry.formals[i];
@@ -403,7 +402,7 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
                            texpected->to_string(),
                            tactual->to_string()));
     }
-    arg_exps.emplace_back(translator.unex(std::move(ir)));
+    arg_exps.emplace_back(std::move(ir));
   };
   return Result{skip_name_types(fentry.result),
                 translator.call_exp(fentry.label, std::move(arg_exps))};

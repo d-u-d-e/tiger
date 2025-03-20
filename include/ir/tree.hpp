@@ -22,8 +22,8 @@ class Stmt {
 
 using ex_t = std::unique_ptr<ir::Exp>;
 using nx_t = std::unique_ptr<ir::Stmt>;
-using cx_t =
-  std::function<std::unique_ptr<ir::Stmt>(Temp::label_t, Temp::label_t)>;
+using cx_t = std::move_only_function<std::unique_ptr<ir::Stmt>(Temp::label_t,
+                                                               Temp::label_t)>;
 using exp_t = std::variant<std::monostate, ex_t, nx_t, cx_t>;
 
 enum class BinaryOp
@@ -88,7 +88,7 @@ struct TempExp : public Exp {
 };
 
 struct BinOpExp : public Exp {
-  BinOpExp(BinaryOp op, ex_t left, ex_t right)
+  BinOpExp(BinaryOp op, ex_t&& left, ex_t&& right)
     : op(op)
     , left(std::move(left))
     , right(std::move(right))
@@ -103,7 +103,7 @@ struct BinOpExp : public Exp {
 };
 
 struct MemExp : public Exp {
-  MemExp(ex_t address)
+  MemExp(ex_t&& address)
     : a(std::move(address)){};
   ex_t a;
   std::string accept(PrettyPrinterExprVisitor& visitor)
@@ -113,7 +113,7 @@ struct MemExp : public Exp {
 };
 
 struct CallExp : public Exp {
-  CallExp(ex_t fun, std::vector<ex_t> args)
+  CallExp(ex_t&& fun, std::vector<ex_t>&& args)
     : fun(std::move(fun))
     , args(std::move(args)){};
   ex_t fun;
@@ -125,7 +125,7 @@ struct CallExp : public Exp {
 };
 
 struct ESeqExp : public Exp {
-  ESeqExp(nx_t stmt, ex_t exp)
+  ESeqExp(nx_t&& stmt, ex_t&& exp)
     : stmt(std::move(stmt))
     , exp(std::move(exp)){};
   nx_t stmt;
@@ -137,7 +137,7 @@ struct ESeqExp : public Exp {
 };
 
 struct MoveStmt : public Stmt {
-  MoveStmt(ex_t left, ex_t right)
+  MoveStmt(ex_t&& left, ex_t&& right)
     : left(std::move(left))
     , right(std::move(right))
   { }
@@ -150,7 +150,7 @@ struct MoveStmt : public Stmt {
 };
 
 struct ExpStmt : public Stmt {
-  ExpStmt(ex_t exp)
+  ExpStmt(ex_t&& exp)
     : exp(std::move(exp))
   { }
   ex_t exp;
@@ -161,7 +161,7 @@ struct ExpStmt : public Stmt {
 };
 
 struct JumpStmt : public Stmt {
-  JumpStmt(ex_t address, std::vector<Temp::label_t> labels)
+  JumpStmt(ex_t&& address, std::vector<Temp::label_t> labels)
     : a(std::move(a))
     , labels(std::move(labels))
   { }
@@ -175,7 +175,7 @@ struct JumpStmt : public Stmt {
 
 struct CJumpStmt : public Stmt {
   CJumpStmt(
-    RelOp op, ex_t lexp, ex_t rexp, Temp::label_t tlabel, Temp::label_t flabel)
+    RelOp op, ex_t&& lexp, ex_t&& rexp, Temp::label_t tlabel, Temp::label_t flabel)
     : op(op)
     , lexp(std::move(lexp))
     , rexp(std::move(rexp))
@@ -194,7 +194,7 @@ struct CJumpStmt : public Stmt {
 };
 
 struct SeqStmt : public Stmt {
-  SeqStmt(nx_t stm1, nx_t stm2)
+  SeqStmt(nx_t&& stm1, nx_t&& stm2)
     : stm1(std::move(stm1))
     , stm2(std::move(stm2))
   { }

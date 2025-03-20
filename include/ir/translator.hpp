@@ -5,6 +5,7 @@
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <memory>
+#include <parser/ast.hpp>
 
 namespace ir
 {
@@ -46,14 +47,11 @@ class Translator {
   exp_t simple_var(const Level::Access& ax, const Level* current);
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
-  exp_t call_exp(Temp::label_t flab, std::vector<ir::ex_t>&& args);
+  exp_t call_exp(Temp::label_t flab, std::vector<ir::exp_t>&& args);
   ex_t string(const std::string& value);
+  exp_t binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
 
-  void proc_entry_exit(const Level& level, exp_t body);
-
-  ex_t unex(exp_t&& exp);
-  nx_t unnx(exp_t&& exp);
-  cx_t uncx(exp_t&& exp);
+  void proc_entry_exit(const Level& level, exp_t&& body);
 
   void add_fragment(Fragment&& f)
   {
@@ -66,8 +64,48 @@ class Translator {
   }
 
   std::string dump_fragment(const Fragment& f) const;
+  ex_t unex(exp_t&& exp);
 
   private:
+  nx_t unnx(exp_t&& exp);
+  cx_t uncx(exp_t&& exp);
+
+  ir::BinaryOp map_binary_operator(parser::ast::Operator op)
+  {
+    switch(op) {
+    case parser::ast::Operator::plus:
+      return ir::BinaryOp::plus;
+    case parser::ast::Operator::minus:
+      return ir::BinaryOp::minus;
+    case parser::ast::Operator::times:
+      return ir::BinaryOp::mul;
+    case parser::ast::Operator::divide:
+      return ir::BinaryOp::div;
+    default:
+      assert(false);
+    }
+  }
+
+  ir::RelOp map_rel_operator(parser::ast::Operator op)
+  {
+    switch(op) {
+    case parser::ast::Operator::equal:
+      return ir::RelOp::eq;
+    case parser::ast::Operator::not_equal:
+      return ir::RelOp::ne;
+    case parser::ast::Operator::greater_equal:
+      return ir::RelOp::ge;
+    case parser::ast::Operator::less_equal:
+      return ir::RelOp::le;
+    case parser::ast::Operator::greater:
+      return ir::RelOp::gt;
+    case parser::ast::Operator::less:
+      return ir::RelOp::lt;
+    default:
+      assert(false);
+    }
+  }
+
   std::vector<Fragment> fragments_;
   std::shared_ptr<Level> lvl_outermost;
 };
