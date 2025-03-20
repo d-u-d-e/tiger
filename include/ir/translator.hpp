@@ -15,7 +15,15 @@ class Translator {
   Translator()
   {
     lvl_outermost = std::make_shared<Level>(
-      nullptr, arch::Frame(Temp::named_label("outermost"), {}));
+      nullptr, arch::Frame(Temp::named_label("tiger_outermost"), {}));
+    // TODO: formal arguments of main?
+    lvl_main =
+      new_level(lvl_outermost.get(), Temp::named_label("tiger_main"), {});
+  }
+
+  std::shared_ptr<Level> main_level()
+  {
+    return lvl_main;
   }
 
   std::shared_ptr<Level> outermost_level()
@@ -47,7 +55,9 @@ class Translator {
   exp_t simple_var(const Level::Access& ax, const Level* current);
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
-  exp_t call_exp(Temp::label_t flab, std::vector<ir::exp_t>&& args);
+  exp_t call_exp(const ir::Level* caller,
+                 const ir::Level* callee,
+                 std::vector<ir::exp_t>&& args);
   exp_t assign(exp_t&& left, exp_t&& right);
   void proc_entry_exit(const Level& level, exp_t&& body);
   exp_t binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
@@ -112,6 +122,7 @@ class Translator {
 
   std::vector<Fragment> fragments_;
   std::shared_ptr<Level> lvl_outermost;
+  std::shared_ptr<Level> lvl_main;
 };
 
 } // namespace ir
