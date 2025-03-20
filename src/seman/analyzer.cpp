@@ -426,7 +426,6 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
 
 void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
-  // TODO save the fragments
   /*
     To handle mutually recursive functions:
 
@@ -503,10 +502,8 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     // type check return type
     auto prev_level = current_level;
     current_level = func_entry.level;
-    auto tbody = fdecl->body->accept(*this);
-    current_level = prev_level;
-
-    if(!same_types(skip_name_types(func_entry.result), tbody.type)) {
+    auto rbody = fdecl->body->accept(*this);
+    if(!same_types(skip_name_types(func_entry.result), rbody.type)) {
 
       auto pos = fdecl->position;
       if(fdecl->result) {
@@ -516,9 +513,11 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
       error_at(pos,
                std::format("return type '{}' does not match body type '{}'",
                            to_string(func_entry.result),
-                           to_string(tbody.type)));
+                           to_string(rbody.type)));
     }
 
+    translator.proc_entry_exit(*current_level, std::move(rbody.ir));
+    current_level = prev_level;
     venv.end_scope(); // end body scope
   }
 };

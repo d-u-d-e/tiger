@@ -63,6 +63,7 @@ class Frame {
 
   access_t alloc_local(bool escape)
   {
+    locals++;
     if(escape) {
       auto off = offset;
       assert(offset - word_size < offset); // overflow
@@ -74,8 +75,9 @@ class Frame {
     }
   }
 
-  uint16_t locals_count() const {
-    return std::abs(offset) / word_size;
+  uint16_t locals_count() const
+  {
+    return locals;
   }
 
   static std::unique_ptr<ir::Exp> exp(const access_t& fax,
@@ -96,9 +98,10 @@ class Frame {
   }
 
   private:
-  int16_t offset{0};
+  int16_t offset{};
   std::vector<access_t> formals_;
   label_t label;
+  uint16_t locals{};
 };
 
 } // namespace arch

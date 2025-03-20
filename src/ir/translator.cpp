@@ -169,7 +169,7 @@ std::string Translator::dump_fragment(const Fragment& f) const
                               pf.frame.name().str(),
                               pf.frame.formals().size(),
                               pf.frame.locals_count());
-    auto ir_str = pf.body->accept(printer);
+    auto ir_str = pf.body->accept(printer) + "\n";
     result += ir_str + "------------------------------";
     return result;
   };
