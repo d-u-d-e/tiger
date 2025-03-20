@@ -511,8 +511,9 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     auto prev_level = current_level;
     current_level = func_entry.level;
     auto rbody = fdecl->body->accept(*this);
-    if(!same_types(skip_name_types(func_entry.result), rbody.type)) {
+    current_level = prev_level;
 
+    if(!same_types(skip_name_types(func_entry.result), rbody.type)) {
       auto pos = fdecl->position;
       if(fdecl->result) {
         // use the position of the return type
@@ -524,8 +525,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
                            to_string(rbody.type)));
     }
 
-    translator.proc_entry_exit(*current_level, std::move(rbody.ir));
-    current_level = prev_level;
+    translator.proc_entry_exit(*func_entry.level, std::move(rbody.ir));
     venv.end_scope(); // end body scope
   }
 
