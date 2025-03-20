@@ -31,7 +31,7 @@ class FuncEntry {
   explicit FuncEntry(std::vector<shared_type_t> formals,
                      shared_type_t result,
                      std::shared_ptr<ir::Level> level)
-    : label(ir::Temp::new_label())
+    : label(level->f.name())
     , formals(std::move(formals))
     , result(std::move(result))
     , level(std::move(level))

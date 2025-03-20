@@ -102,8 +102,11 @@ exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
 
 exp_t Translator::strings_equal(exp_t&& left, exp_t&& right)
 {
-  // TODO
-  return exp_t{};
+  std::vector<ex_t> args_as_ex;
+  args_as_ex.emplace_back(unex(std::move(left)));
+  args_as_ex.emplace_back(unex(std::move(right)));
+  return arch::Frame::external_call(Temp::named_label("stringEqual"),
+                                    std::move(args_as_ex));
 }
 
 exp_t Translator::strings_nequal(exp_t&& left, exp_t&& right)

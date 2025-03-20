@@ -90,8 +90,7 @@ class Frame {
     }
   }
 
-  static std::unique_ptr<ir::Exp> exp(const access_t& fax,
-                                      std::unique_ptr<ir::Exp> fp)
+  static ir::ex_t exp(const access_t& fax, ir::ex_t&& fp)
   {
     // translate an access into an exp
     if(std::holds_alternative<InFrame>(fax)) {
@@ -105,6 +104,14 @@ class Frame {
       return std::make_unique<ir::TempExp>(std::get<InReg>(fax).t);
     }
     assert(false);
+  }
+
+  static ir::ex_t external_call(ir::Temp::label_t label,
+                                std::vector<ir::ex_t>&& args)
+  {
+    // no need to do anything
+    return std::make_unique<ir::CallExp>(std::make_unique<ir::NameExp>(label),
+                                         std::move(args));
   }
 
   private:

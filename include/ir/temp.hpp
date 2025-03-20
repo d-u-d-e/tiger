@@ -22,13 +22,12 @@ class Temp {
   static label_t new_label()
   {
     auto lid = getInstance().lid++;
-    return symbol::Symbol(std::format("L{}", lid), lid);
+    return getInstance().table.symbol(std::format("L{}", lid));
   }
 
   static label_t named_label(const std::string& s)
   {
-    auto lid = getInstance().lid++;
-    return symbol::Symbol(s, lid);
+    return getInstance().table.symbol(s);
   }
 
   static temp_t new_temp()
@@ -40,6 +39,7 @@ class Temp {
   private:
   Temp() = default;
 
+  symbol::StringTable table;
   uint32_t lid{0};
   uint32_t tid{0};
 };

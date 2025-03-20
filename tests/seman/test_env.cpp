@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include <ir/translator.hpp>
 #include <seman/env.hpp>
 
 TEST_SUITE_BEGIN("environment");
@@ -103,7 +104,9 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   auto y = symbol::Symbol("y", 6);
 
   ir::Level::Access ax; // dummy
-  std::shared_ptr<ir::Level> l; // dummy
+  ir::Translator translator;
+  std::shared_ptr<ir::Level> l =
+    translator.new_level(nullptr, ir::Temp::named_label(""), {}); // dummy
 
   venv.begin_scope();
   venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
@@ -126,8 +129,8 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
 
   formals.clear();
   formals.push_back(std::make_shared<seman::types::String>());
-  venv.enter(
-    g, FuncEntry(formals, std::make_shared<seman::types::String>(), l));
+  venv.enter(g,
+             FuncEntry(formals, std::make_shared<seman::types::String>(), l));
   lookup_ventry<FuncEntry>(venv, g);
 
   venv.end_scope();
