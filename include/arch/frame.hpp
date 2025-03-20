@@ -40,7 +40,7 @@ class Frame {
     : label(label)
   {
     for(auto escape : formals) {
-      int16_t off = 0;
+      int16_t off = word_size;
       if(escape) {
         formals_.push_back(InFrame(off));
         off += word_size; // incoming params
