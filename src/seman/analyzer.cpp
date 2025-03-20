@@ -18,10 +18,8 @@ Analyzer::Analyzer(symbol::StringTable& string_table,
   add_predefined_types();
   add_predefined_functions();
 
-  // create the current level, e.g. where the main program lives
-  // TODO: formal arguments?
-  current_level = translator.new_level(
-    translator.outermost_level().get(), ir::Temp::named_label("main"), {});
+  // current level is where the main program lives
+  current_level = translator.main_level();
 }
 
 void Analyzer::add_predefined_types()
@@ -38,15 +36,11 @@ void Analyzer::add_predef_func(const symbol::Symbol& s,
                                const shared_type_t& ret,
                                Args&&... formals)
 {
-  constexpr auto fsize = sizeof...(Args);
-  auto l = translator.new_level(translator.outermost_level().get(),
-                                ir::Temp::new_label(),
-                                std::vector<bool>(fsize, false));
   venv.enter(
     s,
     env::FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...},
                    ret,
-                   std::move(l)));
+                   translator.outermost_level()));
 }
 
 void Analyzer::add_predefined_functions()
@@ -408,8 +402,11 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
     }
     arg_exps.emplace_back(std::move(ir));
   };
+
   return Result{skip_name_types(fentry.result),
-                translator.call_exp(fentry.label, std::move(arg_exps))};
+                translator.call_exp(current_level.get(),
+                                    fentry.level.get(),
+                                    std::move(arg_exps))};
 };
 
 Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
