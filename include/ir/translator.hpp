@@ -48,11 +48,14 @@ class Translator {
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
   exp_t call_exp(Temp::label_t flab, std::vector<ir::exp_t>&& args);
-  ex_t string(const std::string& value);
-  exp_t binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
   exp_t assign(exp_t&& left, exp_t&& right);
-
   void proc_entry_exit(const Level& level, exp_t&& body);
+  exp_t binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
+  exp_t rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
+
+  ex_t string(const std::string& value);
+  exp_t
+  string_rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
 
   void add_fragment(Fragment&& f)
   {

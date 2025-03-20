@@ -60,7 +60,6 @@ exp_t Translator::binary_exp(parser::ast::Operator op,
                              exp_t&& right)
 {
   exp_t result;
-
   switch(op) {
   case parser::ast::Operator::plus:
   case parser::ast::Operator::minus:
@@ -71,6 +70,16 @@ exp_t Translator::binary_exp(parser::ast::Operator op,
       binop, unex(std::move(left)), unex(std::move(right)));
     break;
   }
+  default:
+    assert(false);
+  }
+  return result;
+}
+
+exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
+{
+  exp_t result;
+  switch(op) {
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal:
   case parser::ast::Operator::less_equal:
@@ -85,10 +94,16 @@ exp_t Translator::binary_exp(parser::ast::Operator op,
     };
     break;
   }
-  default:
-    assert(false);
   }
   return result;
+}
+
+exp_t Translator::string_rel_exp(parser::ast::Operator op,
+                                 exp_t&& left,
+                                 exp_t&& right)
+{
+  // This works for strings only
+  return exp_t{};
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)

@@ -135,28 +135,31 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::times:
   case parser::ast::Operator::divide: {
     // these can be applied to integers
-    if(!same_types(tlhs.type, trhs.type) || !is_type<Integer>(tlhs.type)) {
-      error_at(exp.position, "operands must be integers");
+    if(!is_type<Integer>(tlhs.type) || !is_type<Integer>(trhs.type)) {
+      error_at(exp.position, "invalid operand types");
     }
-    break;
+    return Result{
+      int_type,
+      translator.binary_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
   }
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
-    if(!same_types(tlhs.type, trhs.type)) {
-      // testing equality between nil and record is supported
-      if((is_type<Nil>(tlhs.type) && is_type<Record>(trhs.type)) ||
-         (is_type<Nil>(trhs.type) && is_type<Record>(tlhs.type))) {
-        break;
-      }
-      error_at(exp.position, "operands must be of the same type");
+    if(is_type<String>(tlhs.type) && is_type<String>(trhs.type)) {
+      return Result{int_type,
+                    translator.string_rel_exp(
+                      exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
     }
-    else if(is_type<Integer>(tlhs.type) || is_type<String>(tlhs.type) ||
-            is_type<Array>(tlhs.type) || is_type<Record>(tlhs.type)) {
-      break;
+    else if(is_type<Record>(tlhs.type) && is_type<Nil>(trhs.type) ||
+            is_type<Record>(trhs.type) && is_type<Nil>(tlhs.type) ||
+            (same_types(tlhs.type, trhs.type) &&
+             (is_type<Integer>(tlhs.type) || is_type<Array>(tlhs.type) ||
+              is_type<Record>(tlhs.type)))) {
+      return Result{
+        int_type,
+        translator.rel_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
     }
-    error_at(exp.position,
-             "operands must be integers, strings, records or arrays");
+    error_at(exp.position, "invalid operand types");
   }
 
   case parser::ast::Operator::less:
@@ -164,19 +167,25 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
   case parser::ast::Operator::greater:
   case parser::ast::Operator::greater_equal: {
     // these can be applied to integers or strings
-    if(!same_types(tlhs.type, trhs.type) ||
-       (!is_type<Integer>(tlhs.type) && !is_type<String>(tlhs.type))) {
-      error_at(exp.position, "operands must be integers or strings");
+    if(same_types(tlhs.type, trhs.type)) {
+      if(is_type<String>(tlhs.type)) {
+        return Result{int_type,
+                      translator.string_rel_exp(
+                        exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+      }
+      else if(is_type<Integer>(tlhs.type)) {
+        return Result{
+          int_type,
+          translator.rel_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+      }
     }
-    break;
+    error_at(exp.position, "invalid operand types");
   }
   default:
-    assert(false);
+    break;
   }
-
-  return Result{
-    int_type,
-    translator.binary_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+  assert(false);
+  std::unreachable();
 };
 
 Result Analyzer::visit_int_exp(const parser::ast::IntExp& exp)
