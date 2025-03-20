@@ -141,14 +141,30 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
     return Result{
       int_type,
       translator.binary_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+    break;
+  }
+  case parser::ast::Operator::less:
+  case parser::ast::Operator::less_equal:
+  case parser::ast::Operator::greater:
+  case parser::ast::Operator::greater_equal: {
+    // these can be applied to integers
+    if(!is_type<Integer>(tlhs.type) || !is_type<Integer>(trhs.type)) {
+      error_at(exp.position, "invalid operand types");
+    }
+    return Result{
+      int_type,
+      translator.rel_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+    break;
   }
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal: {
     // these can be applied to integers, strings, records and arrays
     if(is_type<String>(tlhs.type) && is_type<String>(trhs.type)) {
-      return Result{int_type,
-                    translator.string_rel_exp(
-                      exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
+      return Result{
+        int_type,
+        (exp.op == parser::ast::Operator::equal)
+          ? translator.strings_equal(std::move(tlhs.ir), std::move(trhs.ir))
+          : translator.strings_nequal(std::move(tlhs.ir), std::move(trhs.ir))};
     }
     else if(is_type<Record>(tlhs.type) && is_type<Nil>(trhs.type) ||
             is_type<Record>(trhs.type) && is_type<Nil>(tlhs.type) ||
@@ -158,26 +174,6 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
       return Result{
         int_type,
         translator.rel_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
-    }
-    error_at(exp.position, "invalid operand types");
-  }
-
-  case parser::ast::Operator::less:
-  case parser::ast::Operator::less_equal:
-  case parser::ast::Operator::greater:
-  case parser::ast::Operator::greater_equal: {
-    // these can be applied to integers or strings
-    if(same_types(tlhs.type, trhs.type)) {
-      if(is_type<String>(tlhs.type)) {
-        return Result{int_type,
-                      translator.string_rel_exp(
-                        exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
-      }
-      else if(is_type<Integer>(tlhs.type)) {
-        return Result{
-          int_type,
-          translator.rel_exp(exp.op, std::move(tlhs.ir), std::move(trhs.ir))};
-      }
     }
     error_at(exp.position, "invalid operand types");
   }

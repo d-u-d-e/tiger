@@ -29,10 +29,6 @@ in
   2 < 2;
   2 >= 2;
   2 <= 2;
-  "a" > "a";
-  "a" < "a";
-  "a" >= "a";
-  "a" <= "a";
 
   /* comparision between records, arrays */
   R1 {a = IntArray[1] of 0, b = ""} = R1 {a = IntArray[1] of 0, b = ""};

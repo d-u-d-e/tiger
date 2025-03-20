@@ -54,8 +54,8 @@ class Translator {
   exp_t rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
 
   ex_t string(const std::string& value);
-  exp_t
-  string_rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
+  exp_t strings_equal(exp_t&& left, exp_t&& right);
+  exp_t strings_nequal(exp_t&& left, exp_t&& right);
 
   void add_fragment(Fragment&& f)
   {

@@ -94,15 +94,21 @@ exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
     };
     break;
   }
+  default:
+    assert(false);
   }
   return result;
 }
 
-exp_t Translator::string_rel_exp(parser::ast::Operator op,
-                                 exp_t&& left,
-                                 exp_t&& right)
+exp_t Translator::strings_equal(exp_t&& left, exp_t&& right)
 {
-  // This works for strings only
+  // TODO
+  return exp_t{};
+}
+
+exp_t Translator::strings_nequal(exp_t&& left, exp_t&& right)
+{
+  //TODO
   return exp_t{};
 }
 
