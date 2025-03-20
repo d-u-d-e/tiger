@@ -87,7 +87,6 @@ Result Analyzer::visit_string_exp(const parser::ast::StringExp& exp)
 
 Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 {
-  // TODO translation
   auto tvar = exp.var->accept(*this);
   auto trhs = exp.exp->accept(*this);
 
@@ -97,7 +96,8 @@ Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
                          to_string(trhs.type),
                          to_string(tvar.type)));
   }
-  return Result{unit_type};
+  return Result{unit_type,
+                translator.assign(std::move(tvar.ir), std::move(trhs.ir))};
 };
 
 template <typename T>
@@ -529,7 +529,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     venv.end_scope(); // end body scope
   }
 
-  return Result{}; // does not generate code nor type for caller 
+  return Result{}; // does not generate code nor type for caller
 };
 
 Result Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
@@ -592,7 +592,7 @@ Result Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 
   // prevent cycles
   detect_cycles(decl);
-  return Result{}; // does not generate code nor type for caller 
+  return Result{}; // does not generate code nor type for caller
 }
 
 void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
