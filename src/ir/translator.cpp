@@ -55,7 +55,9 @@ ex_t Translator::string(const std::string& value)
   return std::make_unique<ir::NameExp>(lab);
 }
 
-exp_t Translator::binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
+exp_t Translator::binary_exp(parser::ast::Operator op,
+                             exp_t&& left,
+                             exp_t&& right)
 {
   exp_t result;
 
@@ -87,6 +89,12 @@ exp_t Translator::binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& rig
     assert(false);
   }
   return result;
+}
+
+exp_t Translator::assign(exp_t&& left, exp_t&& right)
+{
+  return std::make_unique<ir::MoveStmt>(unex(std::move(left)),
+                                        unex(std::move(right)));
 }
 
 void Translator::proc_entry_exit(const Level& level, exp_t&& body)

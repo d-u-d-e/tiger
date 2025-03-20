@@ -412,11 +412,18 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   tenv.begin_scope();
   venv.begin_scope();
 
+  std::vector<ir::exp_t> exp_list;
   for(auto& decl : exp.decls) {
-    decl->accept(*this);
+    auto r = decl->accept(*this);
+    if(!std::holds_alternative<std::monostate>(r.ir)) {
+      // there is some code here to be put before the body
+      exp_list.emplace_back(std::move(r.ir));
+    }
   }
 
   auto res = exp.body->accept(*this);
+  exp_list.emplace_back(std::move(res.ir));
+  res.ir = translator.seq_exp(std::move(exp_list));
 
   //std::cout << venv.dump() << std::endl;
 
@@ -425,7 +432,7 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   return res;
 };
 
-void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
+Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 {
   /*
     To handle mutually recursive functions:
@@ -521,11 +528,15 @@ void Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     current_level = prev_level;
     venv.end_scope(); // end body scope
   }
+
+  return Result{}; // does not generate code nor type for caller 
 };
 
-void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
+Result Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
 {
   auto tinit = decl.init->accept(*this);
+  ir::Level::Access ax = translator.alloc_local(*current_level, *decl.escape);
+
   if(decl.type) {
     auto tpos = decl.type.value().second;
     auto tname = decl.type.value().first;
@@ -540,25 +551,23 @@ void Analyzer::visit_var_decl(const parser::ast::VarDecl& decl)
                            tname.str(),
                            to_string(tinit.type)));
     }
-
-    venv.enter(
-      decl.name,
-      env::VarEntry(tdecl->t,
-                    translator.alloc_local(*current_level, *decl.escape)));
+    venv.enter(decl.name, env::VarEntry(tdecl->t, ax));
   }
   else {
     if(is_type<Nil>(tinit.type)) {
       // Nil must be constrained by a record type
       error_at(decl.position, "nil must be constrained by a record type");
     }
-    venv.enter(
-      decl.name,
-      env::VarEntry(tinit.type,
-                    translator.alloc_local(*current_level, *decl.escape)));
+    venv.enter(decl.name, env::VarEntry(tinit.type, ax));
   }
+
+  return Result{
+    nullptr,
+    translator.assign(translator.simple_var(ax, current_level.get()),
+                      std::move(tinit.ir))};
 };
 
-void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
+Result Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 {
   std::unordered_set<symbol::Identifier> batch;
 
@@ -583,6 +592,7 @@ void Analyzer::visit_type_decl(const parser::ast::TypeDecl& decl)
 
   // prevent cycles
   detect_cycles(decl);
+  return Result{}; // does not generate code nor type for caller 
 }
 
 void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)

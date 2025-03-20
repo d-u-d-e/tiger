@@ -56,9 +56,9 @@ class TypeCheckerExprVisitor {
 class TypeCheckerDeclVisitor {
   public:
   // clang-format off
-  void virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
-  void virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
-  void virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
+  types::Result virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
+  types::Result virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
+  types::Result virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
   // clang-format on
 };
 

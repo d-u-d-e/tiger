@@ -29,7 +29,8 @@ class Expression {
 class Declaration {
   public:
   virtual std::string accept(PrettyPrinterDeclVisitor& visitor) const = 0;
-  virtual void accept(seman::TypeCheckerDeclVisitor& visitor) const = 0;
+  virtual seman::types::Result
+  accept(seman::TypeCheckerDeclVisitor& visitor) const = 0;
   virtual void accept(seman::FindEscapeDeclVisitor& visitor) = 0;
   virtual ~Declaration() = default;
   std::string field;
@@ -640,7 +641,7 @@ class VarDecl : public Declaration {
     return visitor.visit_var_decl(*this);
   }
 
-  void accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
@@ -687,7 +688,7 @@ class TypeDecl : public Declaration {
     return visitor.visit_type_decl(*this);
   }
 
-  void accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_type_decl(*this);
   }
@@ -810,7 +811,7 @@ class FuncDecl : public Declaration {
     return visitor.visit_func_decl(*this);
   }
 
-  void accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_func_decl(*this);
   }

@@ -36,9 +36,9 @@ class Analyzer : public TypeCheckerExprVisitor,
   Result visit_call_exp(const parser::ast::CallExp& exp) override;
   Result visit_let_exp(const parser::ast::LetExp& exp) override;
 
-  void visit_func_decl(const parser::ast::FuncDecl& decl) override;
-  void visit_var_decl(const parser::ast::VarDecl& decl) override;
-  void visit_type_decl(const parser::ast::TypeDecl& decl) override;
+  Result visit_func_decl(const parser::ast::FuncDecl& decl) override;
+  Result visit_var_decl(const parser::ast::VarDecl& decl) override;
+  Result visit_type_decl(const parser::ast::TypeDecl& decl) override;
 
   shared_type_t visit_name_type(const parser::ast::NameType& type) override;
   shared_type_t visit_array_type(const parser::ast::ArrayType& type) override;
