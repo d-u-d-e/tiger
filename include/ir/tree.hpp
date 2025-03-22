@@ -55,10 +55,10 @@ enum class RelOp
 };
 
 struct ConstExp : public Exp {
-  ConstExp(int v)
+  ConstExp(size_t v)
     : v(v)
   { }
-  int v;
+  size_t v;
   std::string accept(PrettyPrinterExprVisitor& visitor)
   {
     return visitor.visit_const_exp(*this);

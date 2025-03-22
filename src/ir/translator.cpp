@@ -43,7 +43,7 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
                                        unex(std::move(exps[size - 1])));
 }
 
-ex_t Translator::constant(int constant)
+ex_t Translator::constant(size_t constant)
 {
   return std::make_unique<ir::ConstExp>(constant);
 }
@@ -132,8 +132,53 @@ exp_t Translator::array_exp(exp_t&& size, exp_t&& init)
   std::vector<ex_t> args;
   args.push_back(unex(std::move(size)));
   args.push_back(unex(std::move(init)));
-  return arch::Frame::external_call(Temp::named_label("initArray"),
+  return arch::Frame::external_call(Temp::named_label("init_array"),
                                     std::move(args));
+}
+
+exp_t Translator::record_field(exp_t&& var, size_t index)
+{
+  return std::make_unique<MemExp>(
+    std::make_unique<BinOpExp>(BinaryOp::plus,
+                               unex(std::move(var)),
+                               constant(index * arch::Frame::word_size)));
+}
+
+exp_t Translator::record_exp(std::vector<exp_t>&& fields)
+{
+  auto temp = Temp::new_temp();
+  std::vector<ex_t> args_alloc;
+  args_alloc.push_back(
+    constant((int)fields.size()));
+
+  // alloc space
+  auto do_alloc = std::make_unique<MoveStmt>(
+    std::make_unique<TempExp>(temp),
+    arch::Frame::external_call(Temp::named_label("alloc_record"),
+                               std::move(args_alloc)));
+
+  if(fields.size() != 0) {
+    // initialize all fields
+    auto f0 = std::make_unique<MoveStmt>(
+      std::make_unique<MemExp>(std::make_unique<BinOpExp>(
+        BinaryOp::plus, std::make_unique<TempExp>(temp), constant(0))),
+      unex(std::move(fields[0])));
+    auto seq = std::make_unique<SeqStmt>(std::move(do_alloc), std::move(f0));
+
+    for(size_t i = 1; i < fields.size(); i++) {
+      auto fi = std::make_unique<MoveStmt>(
+        std::make_unique<MemExp>(
+          std::make_unique<BinOpExp>(BinaryOp::plus,
+                                     std::make_unique<TempExp>(temp),
+                                     constant(i * arch::Frame::word_size))),
+        unex(std::move(fields[i])));
+      seq = std::make_unique<SeqStmt>(std::move(seq), std::move(fi));
+    }
+    return std::make_unique<ESeqExp>(std::move(seq),
+                                     std::make_unique<TempExp>(temp));
+  }
+  return std::make_unique<ESeqExp>(std::move(do_alloc),
+                                   std::make_unique<TempExp>(temp));
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)

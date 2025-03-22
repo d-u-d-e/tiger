@@ -203,8 +203,6 @@ Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 
 Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
-  // TODO translation
-
   auto rsize = exp.size->accept(*this);
   auto rinit = exp.init->accept(*this);
   auto texpr = tenv.lookup(exp.type);
@@ -237,7 +235,6 @@ Result Analyzer::visit_nil_exp([[maybe_unused]] const parser::ast::NilExp& exp)
 
 Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 {
-  // TODO translation
   auto maybe_rec = tenv.lookup(exp.type);
   if(!maybe_rec || !is_type<Record>(maybe_rec->t)) {
     error_at(exp.position,
@@ -254,6 +251,7 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   }
 
   // typecheck record fields
+  std::vector<ir::exp_t> fields;
   for(size_t i = 0; i < rsize; i++) {
     auto& formal = trec->fields[i];
     auto& actual = exp.fields[i];
@@ -276,8 +274,9 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
                            actual.name.str(),
                            to_string(tactual.type)));
     }
+    fields.emplace_back(std::move(tactual.ir));
   }
-  return Result{maybe_rec->t};
+  return Result{maybe_rec->t, translator.record_exp(std::move(fields))};
 };
 
 Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
@@ -745,8 +744,6 @@ Result Analyzer::visit_simple_var(const parser::ast::SimpleVar& var)
 
 Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 {
-  // TODO translation
-
   auto tlhs = var.var->accept(*this);
   // . applicable to records only
   if(!is_type<Record>(tlhs.type)) {
@@ -756,16 +753,21 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   auto record = dynamic_cast<Record*>(tlhs.type.get());
 
   // check whether the field name belongs to the record fields
-  auto iter =
-    std::find_if(record->fields.begin(),
-                 record->fields.end(),
-                 [&var](const auto& p) { return std::get<0>(p) == var.name; });
 
-  if(iter == record->fields.end()) {
+  size_t i = 0;
+  auto size = record->fields.size();
+  for(; i < size; i++) {
+    if(std::get<0>(record->fields[i]) == var.name) {
+      break;
+    }
+  }
+
+  if(i == size) {
     error_at(var.position,
              std::format("unexpected record field name '{}'", var.name.str()));
   }
-  return Result{skip_name_types(std::get<1>(*iter))};
+  return Result{skip_name_types(record->fields[i].second),
+                translator.record_field(std::move(tlhs.ir), i)};
 };
 
 Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
