@@ -162,7 +162,7 @@ struct ExpStmt : public Stmt {
 
 struct JumpStmt : public Stmt {
   JumpStmt(ex_t&& address, std::vector<Temp::label_t> labels)
-    : a(std::move(a))
+    : a(std::move(address))
     , labels(std::move(labels))
   { }
   ex_t a;

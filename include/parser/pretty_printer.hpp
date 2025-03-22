@@ -149,7 +149,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     result += indent() + "fields=[\n";
     depth++;
     auto size = exp.fields.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& field = exp.fields[i];
       field.exp->field = "(symbol\"" + field.name.str() +
                          "\", pos=" + field.position.to_string() + ", exp=";
@@ -228,7 +228,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     result += indent() + "args=[\n";
     depth++;
     auto size = exp.args.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& arg = exp.args[i];
       result += arg->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
     }
@@ -247,7 +247,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     result += indent() + "decls=[\n";
     depth++;
     auto size = exp.decls.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& decl = exp.decls[i];
       result += decl->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
     }
@@ -264,7 +264,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
   {
     std::string result = indent() + decl.field + "FuncDecl{\n";
     auto size = decl.decls.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& fdecl = decl.decls[i];
       result +=
         visit_single_func_decl(*fdecl) + ((i == size - 1) ? "\n" : ",\n");
@@ -293,7 +293,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
   {
     std::string result = indent() + decl.field + "TypeDecl{\n";
     auto size = decl.decls.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& tdecl = decl.decls[i];
       result += indent() + "(\n";
       depth++;
@@ -335,7 +335,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     std::string result = indent() + type.field + "RecordType{\n";
     depth++;
     auto size = type.fields.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& field = type.fields[i];
       result += visit_single_field(field) + ((i == size - 1) ? "\n" : ",\n");
     }
@@ -361,7 +361,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     result += indent() + "params=[\n";
     depth++;
     auto size = decl.params.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& param = decl.params[i];
       result += visit_single_field(param) + ((i == size - 1) ? "\n" : ",\n");
     }

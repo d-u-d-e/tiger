@@ -673,6 +673,8 @@ ast::Operator Parser::map_operator(lexer::TokenType type)
     return ast::Operator::greater;
   case lexer::TokenType::greater_equal_op:
     return ast::Operator::greater_equal;
+  default:
+    break;
   }
   assert(false);
   std::unreachable();
@@ -688,6 +690,8 @@ bool Parser::is_comparison_operator(ast::Operator type)
   case ast::Operator::greater:
   case ast::Operator::greater_equal:
     return true;
+  default:
+    break;
   }
   return false;
 }

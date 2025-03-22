@@ -35,6 +35,8 @@ class Frame {
 
   // TODO: map this to rbp?
   static inline auto FP = ir::Temp::new_temp();
+  // TODO: map this to rax?
+  static inline auto RV = ir::Temp::new_temp();
 
   Frame(label_t label, const std::vector<bool>& formals)
     : label(label)

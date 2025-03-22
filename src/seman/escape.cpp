@@ -4,15 +4,15 @@
 namespace seman
 {
 
-void EscapeFinder::visit_type_decl(parser::ast::TypeDecl& decl) { }
+void EscapeFinder::visit_type_decl(parser::ast::TypeDecl&) { }
 
-void EscapeFinder::visit_string_exp(parser::ast::StringExp& exp) { }
+void EscapeFinder::visit_string_exp(parser::ast::StringExp&) { }
 
-void EscapeFinder::visit_int_exp(parser::ast::IntExp& exp) { }
+void EscapeFinder::visit_int_exp(parser::ast::IntExp&) { }
 
-void EscapeFinder::visit_nil_exp(parser::ast::NilExp& exp) { }
+void EscapeFinder::visit_nil_exp(parser::ast::NilExp&) { }
 
-void EscapeFinder::visit_break_exp(parser::ast::BreakExp& exp) { }
+void EscapeFinder::visit_break_exp(parser::ast::BreakExp&) { }
 
 void EscapeFinder::visit_assign_exp(parser::ast::AssignExp& exp)
 {

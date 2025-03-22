@@ -55,7 +55,8 @@ class Translator {
   exp_t simple_var(const Level::Access& ax, const Level* current);
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
-  exp_t call_exp(Temp::label_t name, const ir::Level* lcaller,
+  exp_t call_exp(Temp::label_t name,
+                 const ir::Level* lcaller,
                  const ir::Level* lcallee,
                  std::vector<ir::exp_t>&& args);
   exp_t assign(exp_t&& left, exp_t&& right);
@@ -66,6 +67,9 @@ class Translator {
   ex_t string(const std::string& value);
   exp_t strings_equal(exp_t&& left, exp_t&& right);
   exp_t strings_nequal(exp_t&& left, exp_t&& right);
+
+  exp_t array_subscript(exp_t&& var, exp_t&& index);
+  exp_t array_exp(exp_t&& size, exp_t&& init);
 
   void add_fragment(Fragment&& f)
   {

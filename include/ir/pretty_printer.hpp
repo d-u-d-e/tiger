@@ -54,7 +54,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     r += indent() + "[\n";
     auto size = exp.args.size();
     depth++;
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& arg = exp.args[i];
       r += arg->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
     }
@@ -105,7 +105,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     r += indent() + "[";
     depth++;
     auto size = stmt.labels.size();
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       auto& l = stmt.labels[i];
       r += l.str() + ((i == size - 1) ? "\n" : ",\n");
     }

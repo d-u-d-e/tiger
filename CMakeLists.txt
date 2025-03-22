@@ -27,7 +27,7 @@ add_executable(
     ${sources_common}
 )
 target_include_directories(tiger PRIVATE include)
-target_compile_options(tiger PRIVATE -g -O0)
+target_compile_options(tiger PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
 
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
@@ -44,6 +44,6 @@ if(BUILD_TEST_RUNNER)
 
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include)
-    target_compile_options(test-runner PRIVATE -O2)
+    target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -pedantic -Wno-maybe-uninitialized -O2)
     
 endif(BUILD_TEST_RUNNER)

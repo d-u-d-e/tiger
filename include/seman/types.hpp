@@ -60,7 +60,7 @@ struct Name : public Type {
 
 struct Result {
   shared_type_t type;
-  ir::exp_t ir;
+  ir::exp_t ir {}; // TODO REMOVE
 };
 
 std::string to_string(const shared_type_t& t);

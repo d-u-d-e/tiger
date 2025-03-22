@@ -33,7 +33,7 @@ std::string Record::to_string()
   std::string result = "{";
   auto size = fields.size();
 
-  for(auto i = 0; i < size; i++) {
+  for(size_t i = 0; i < size; i++) {
     auto& [name, type] = fields[i];
     result +=
       name.str() + ": " + type->to_string() + (i == size - 1 ? "" : ", ");

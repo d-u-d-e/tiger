@@ -34,7 +34,7 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
 
   auto stmt_seq = unnx(std::move(exps[0]));
 
-  for(auto i = 1; i < size - 1; i++) {
+  for(size_t i = 1; i < size - 1; i++) {
     stmt_seq = std::make_unique<ir::SeqStmt>(std::move(stmt_seq),
                                              unnx(std::move(exps[i])));
   }
@@ -114,6 +114,26 @@ exp_t Translator::strings_nequal(exp_t&& left, exp_t&& right)
   return rel_exp(parser::ast::Operator::equal,
                  strings_equal(std::move(left), std::move(right)),
                  constant(0));
+}
+
+exp_t Translator::array_subscript(exp_t&& var, exp_t&& index)
+{
+  // we basically need to compute mem(var + index * word_size)
+  return std::make_unique<ir::MemExp>(std::make_unique<ir::BinOpExp>(
+    ir::BinaryOp::plus,
+    unex(std::move(var)),
+    std::make_unique<ir::BinOpExp>(ir::BinaryOp::mul,
+                                   unex(std::move(index)),
+                                   constant(arch::Frame::word_size))));
+}
+
+exp_t Translator::array_exp(exp_t&& size, exp_t&& init)
+{
+  std::vector<ex_t> args;
+  args.push_back(unex(std::move(size)));
+  args.push_back(unex(std::move(init)));
+  return arch::Frame::external_call(Temp::named_label("initArray"),
+                                    std::move(args));
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)

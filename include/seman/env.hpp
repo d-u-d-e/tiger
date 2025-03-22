@@ -22,8 +22,8 @@ class VarEntry {
     , access(std::move(access))
   { }
 
-  ir::Level::Access access; // tells where the variable resides in memory
   shared_type_t type;
+  ir::Level::Access access; // tells where the variable resides in memory
 };
 
 class FuncEntry {

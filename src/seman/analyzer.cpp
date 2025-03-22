@@ -161,8 +161,8 @@ Result Analyzer::visit_op_exp(const parser::ast::OpExp& exp)
           ? translator.strings_equal(std::move(tlhs.ir), std::move(trhs.ir))
           : translator.strings_nequal(std::move(tlhs.ir), std::move(trhs.ir))};
     }
-    else if(is_type<Record>(tlhs.type) && is_type<Nil>(trhs.type) ||
-            is_type<Record>(trhs.type) && is_type<Nil>(tlhs.type) ||
+    else if((is_type<Record>(tlhs.type) && is_type<Nil>(trhs.type)) ||
+            (is_type<Record>(trhs.type) && is_type<Nil>(tlhs.type)) ||
             (same_types(tlhs.type, trhs.type) &&
              (is_type<Integer>(tlhs.type) || is_type<Array>(tlhs.type) ||
               is_type<Record>(tlhs.type)))) {
@@ -205,31 +205,32 @@ Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
 {
   // TODO translation
 
-  auto tsize = exp.size->accept(*this);
-  auto tinit = exp.init->accept(*this);
+  auto rsize = exp.size->accept(*this);
+  auto rinit = exp.init->accept(*this);
   auto texpr = tenv.lookup(exp.type);
 
   if(!texpr || !is_type<Array>(texpr->t)) {
     error_at(exp.position,
              std::format("undefined array type '{}'", exp.type.str()));
   }
-  else if(!is_type<Integer>(tsize.type)) {
+  else if(!is_type<Integer>(rsize.type)) {
     error_at(exp.position, "array size must be an integer");
   }
   else {
     auto arr = dynamic_cast<Array*>(texpr->t.get());
-    if(!can_assign(skip_name_types(arr->type), tinit.type)) {
+    if(!can_assign(skip_name_types(arr->type), rinit.type)) {
       error_at(exp.position,
                std::format("array type mismatch: '{}' != '{}'",
                            to_string(arr->type),
-                           to_string(tinit.type)));
+                           to_string(rinit.type)));
     }
   }
   // this is an array type, whose elements may be name types
-  return {texpr->t};
+  return {texpr->t,
+          translator.array_exp(std::move(rsize.ir), std::move(rinit.ir))};
 }
 
-Result Analyzer::visit_nil_exp(const parser::ast::NilExp& exp)
+Result Analyzer::visit_nil_exp([[maybe_unused]] const parser::ast::NilExp& exp)
 {
   return Result{nil_type, translator.constant(0)};
 };
@@ -253,7 +254,7 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   }
 
   // typecheck record fields
-  for(int i = 0; i < rsize; i++) {
+  for(size_t i = 0; i < rsize; i++) {
     auto& formal = trec->fields[i];
     auto& actual = exp.fields[i];
 
@@ -391,7 +392,7 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   }
 
   std::vector<ir::exp_t> arg_exps;
-  for(int i = 0; i < asize; i++) {
+  for(size_t i = 0; i < asize; i++) {
     auto [tactual, ir] = exp.args[i]->accept(*this);
     auto texpected = fentry.formals[i];
     if(!same_types(skip_name_types(texpected), tactual)) {
@@ -507,7 +508,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 
     // add formals
     auto ax = translator.formals(*func_entry.level);
-    for(auto i = 0; i < fdecl->params.size(); i++) {
+    for(size_t i = 0; i < fdecl->params.size(); i++) {
       auto& param = fdecl->params[i];
       venv.enter(param.name, env::VarEntry(tenv.lookup(param.type)->t, ax[i]));
     }
@@ -769,24 +770,24 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
 
 Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
 {
-  // TODO translation
-
   // [] applicable to arrays only
-  auto tlhs = var.var->accept(*this).type;
-  if(!is_type<Array>(tlhs)) {
+  auto lhs = var.var->accept(*this);
+  if(!is_type<Array>(lhs.type)) {
     error_at(var.position,
-             std::format("'{}' is not an array type", to_string(tlhs)));
+             std::format("'{}' is not an array type", to_string(lhs.type)));
   }
-  auto array = dynamic_cast<Array*>(tlhs.get());
 
+  auto array = dynamic_cast<Array*>(lhs.type.get());
   // expression must be an integer
-  auto texp = var.exp->accept(*this).type;
-  if(!is_type<Integer>(texp)) {
+  auto rexp = var.exp->accept(*this);
+  if(!is_type<Integer>(rexp.type)) {
     error_at(var.position, "expression between '[]' must be an integer");
   }
 
   // the type of the expression is the type of each array element
-  return Result{skip_name_types(array->type)};
+  return Result{
+    skip_name_types(array->type),
+    translator.array_subscript(std::move(lhs.ir), std::move(rexp.ir))};
 };
 
 } // namespace seman
