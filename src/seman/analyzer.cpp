@@ -38,7 +38,8 @@ void Analyzer::add_predef_func(const symbol::Symbol& s,
 {
   venv.enter(
     s,
-    env::FuncEntry(std::vector<shared_type_t>{std::forward<Args>(formals)...},
+    env::FuncEntry(ir::Temp::named_label(s.str()),
+                   std::vector<shared_type_t>{std::forward<Args>(formals)...},
                    ret,
                    translator.outermost_level()));
 }
@@ -404,7 +405,8 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
   };
 
   return Result{skip_name_types(fentry.result),
-                translator.call_exp(current_level.get(),
+                translator.call_exp(fentry.label,
+                                    current_level.get(),
                                     fentry.level.get(),
                                     std::move(arg_exps))};
 };
@@ -488,12 +490,13 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     }
 
     // add the function header
+    auto flabel = ir::Temp::new_label();
     venv.enter(fdecl->name,
-               env::FuncEntry(formals,
-                              tresult,
-                              translator.new_level(current_level.get(),
-                                                   ir::Temp::new_label(),
-                                                   escapes)));
+               env::FuncEntry(
+                 flabel,
+                 formals,
+                 tresult,
+                 translator.new_level(current_level.get(), flabel, escapes)));
   }
 
   // go through the bodies

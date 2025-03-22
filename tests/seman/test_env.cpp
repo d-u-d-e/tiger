@@ -106,7 +106,7 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   ir::Level::Access ax; // dummy
   ir::Translator translator;
   std::shared_ptr<ir::Level> l =
-    translator.new_level(nullptr, ir::Temp::named_label(""), {}); // dummy
+    translator.new_level(nullptr, ir::Temp::named_label("ldummy"), {}); // dummy
 
   venv.begin_scope();
   venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
@@ -120,7 +120,10 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   formals.push_back(std::make_shared<seman::types::Integer>());
   formals.push_back(std::make_shared<seman::types::String>());
   venv.enter(f,
-             FuncEntry(formals, std::make_shared<seman::types::String>(), l));
+             FuncEntry(ir::Temp::new_label(),
+                       formals,
+                       std::make_shared<seman::types::String>(),
+                       l));
   lookup_ventry<FuncEntry>(venv, f);
 
   venv.end_scope();
@@ -130,7 +133,10 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
   formals.clear();
   formals.push_back(std::make_shared<seman::types::String>());
   venv.enter(g,
-             FuncEntry(formals, std::make_shared<seman::types::String>(), l));
+             FuncEntry(ir::Temp::new_label(),
+                       formals,
+                       std::make_shared<seman::types::String>(),
+                       l));
   lookup_ventry<FuncEntry>(venv, g);
 
   venv.end_scope();

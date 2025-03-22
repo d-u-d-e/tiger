@@ -28,10 +28,11 @@ class VarEntry {
 
 class FuncEntry {
   public:
-  explicit FuncEntry(std::vector<shared_type_t> formals,
+  explicit FuncEntry(ir::Temp::label_t name,
+                     std::vector<shared_type_t> formals,
                      shared_type_t result,
                      std::shared_ptr<ir::Level> level)
-    : label(level->f.name())
+    : label(name)
     , formals(std::move(formals))
     , result(std::move(result))
     , level(std::move(level))

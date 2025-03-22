@@ -55,8 +55,8 @@ class Translator {
   exp_t simple_var(const Level::Access& ax, const Level* current);
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(int constant);
-  exp_t call_exp(const ir::Level* caller,
-                 const ir::Level* callee,
+  exp_t call_exp(Temp::label_t name, const ir::Level* lcaller,
+                 const ir::Level* lcallee,
                  std::vector<ir::exp_t>&& args);
   exp_t assign(exp_t&& left, exp_t&& right);
   void proc_entry_exit(const Level& level, exp_t&& body);

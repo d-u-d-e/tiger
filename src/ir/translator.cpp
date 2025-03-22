@@ -127,36 +127,42 @@ void Translator::proc_entry_exit(const Level& level, exp_t&& body)
   add_fragment(ProcedureFragment{unnx(std::move(body)), level.f});
 }
 
-exp_t Translator::call_exp(const ir::Level* caller,
-                           const ir::Level* callee,
+exp_t Translator::call_exp(Temp::label_t name,
+                           const ir::Level* lcaller,
+                           const ir::Level* lcallee,
                            std::vector<ir::exp_t>&& args)
 {
-  // unex all arguments
-  std::vector<ir::ex_t> args_as_exp(args.size() + 1);
-  std::transform(args.begin(),
-                 args.end(),
-                 args_as_exp.begin() + 1,
-                 [this](auto& a) { return unex(std::move(a)); });
-  
+  std::vector<ir::ex_t> args_as_exp;
+  bool is_external = lcallee == lvl_outermost.get();
 
-  // TODO: handle calls to library functions, defined in outermost level
-  
-  // pass the static link as first argument
-  // we need to compute it by going through the caller's link until we hit the level of the callee
-  // it may happen that we are inside a recursive function, so caller level == callee level
-
-  ex_t fp = std::make_unique<TempExp>(arch::Frame::FP);
-  while(callee != caller && caller != lvl_main.get()) {
-    // first arg holds the static link
-    auto slink = caller->formals[0].fax;
-    fp = arch::Frame::exp(slink, std::move(fp));
-    caller = caller->parent;
-    assert(caller != nullptr);
+  if(!is_external) {
+    // not a library function (runtime)
+    // pass the static link as first argument
+    // we need to compute it by going through the caller's link until we hit the level of the callee
+    // it may happen that we are inside a recursive function, so caller level == callee level
+    ex_t fp = std::make_unique<TempExp>(arch::Frame::FP);
+    while(lcallee != lcaller && lcaller != lvl_main.get()) {
+      // first arg holds the static link
+      auto slink = lcaller->formals[0].fax;
+      fp = arch::Frame::exp(slink, std::move(fp));
+      lcaller = lcaller->parent;
+      assert(lcaller != nullptr);
+    }
+    args_as_exp.emplace_back(
+      arch::Frame::exp(lcaller->formals[0].fax, std::move(fp)));
   }
-  args_as_exp[0] = arch::Frame::exp(caller->formals[0].fax, std::move(fp));
 
-  return std::make_unique<ir::CallExp>(
-    std::make_unique<NameExp>(callee->f.name()), std::move(args_as_exp));
+  for(auto& arg : args) {
+    // unex all arguments
+    args_as_exp.emplace_back(unex(std::move(arg)));
+  }
+
+  if(is_external) {
+    return arch::Frame::external_call(name, std::move(args_as_exp));
+  }
+
+  return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(name),
+                                       std::move(args_as_exp));
 }
 
 ex_t Translator::unex(exp_t&& exp)
