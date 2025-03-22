@@ -148,8 +148,7 @@ exp_t Translator::record_exp(std::vector<exp_t>&& fields)
 {
   auto temp = Temp::new_temp();
   std::vector<ex_t> args_alloc;
-  args_alloc.push_back(
-    constant((int)fields.size()));
+  args_alloc.push_back(constant(fields.size()));
 
   // alloc space
   auto do_alloc = std::make_unique<MoveStmt>(
@@ -179,6 +178,15 @@ exp_t Translator::record_exp(std::vector<exp_t>&& fields)
   }
   return std::make_unique<ESeqExp>(std::move(do_alloc),
                                    std::make_unique<TempExp>(temp));
+}
+
+exp_t Translator::if_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp) 
+{
+  // TODO: simple translation applies uncx to cond, 
+  (void)cond;
+  (void)texp;
+  (void)fexp;
+  return exp_t{};
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)
@@ -303,9 +311,9 @@ cx_t Translator::uncx(exp_t&& exp)
   // uncx(cx) is just cx
 
   if(std::holds_alternative<ex_t>(exp)) {
-    return [&exp](Temp::label_t t, Temp::label_t f) -> nx_t {
+    return [e = std::move(exp)](Temp::label_t t, Temp::label_t f) mutable {
       return std::make_unique<ir::CJumpStmt>(ir::RelOp::eq,
-                                             std::move(std::get<ex_t>(exp)),
+                                             std::move(std::get<ex_t>(e)),
                                              std::make_unique<ir::ConstExp>(0),
                                              f,
                                              t);

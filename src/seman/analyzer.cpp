@@ -281,34 +281,41 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
 
 Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 {
-  // TODO translation
+  Result r{};
   auto tcond = exp.cond->accept(*this);
   if(!is_type<Integer>(tcond.type)) {
     error_at(exp.position, "the condition must be an integer");
   }
   auto tthen = exp.then->accept(*this);
+  r.type = unit_type;
 
   if(exp.else_) {
+    r.type = tthen.type;
     auto telse = exp.else_->accept(*this);
     if(!same_types(tthen.type, telse.type)) {
       if(is_type<Record>(tthen.type) && is_type<Nil>(telse.type)) {
-        return Result{tthen.type};
+        r.type = tthen.type;
       }
       else if(is_type<Record>(telse.type) && is_type<Nil>(tthen.type)) {
-        return Result{telse.type};
+        r.type = telse.type;
       }
       else {
         error_at(exp.position, "types of then and else branches must match");
       }
     }
-    return Result{tthen.type};
+    r.ir = translator.if_exp(
+      std::move(tcond.ir), std::move(tthen.ir), std::move(telse.ir));
+    return r;
   }
   else {
     if(!is_type<Unit>(tthen.type)) {
       error_at(exp.position, "the then branch must not produce any value");
     }
   }
-  return Result{unit_type};
+
+  r.ir =
+    translator.if_exp(std::move(tcond.ir), std::move(tthen.ir), ir::exp_t{});
+  return r;
 };
 
 Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
