@@ -67,7 +67,7 @@ class Analyzer : public TypeCheckerExprVisitor,
 
   void detect_cycles(const parser::ast::TypeDecl& decl);
   shared_type_t skip_name_types(const shared_type_t& t);
-  bool can_break{false};
+  ir::Temp::label_t* lbreak{nullptr};
   symbol::StringTable& string_table;
   ir::Translator& translator;
   std::shared_ptr<ir::Level> current_level{};

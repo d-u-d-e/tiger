@@ -75,7 +75,8 @@ class Translator {
   exp_t if_then_exp(exp_t&& cond, exp_t&& texp);
   exp_t if_then_else_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp);
 
-  exp_t while_exp(exp_t&& cond, exp_t&& body);
+  exp_t while_exp(exp_t&& cond, exp_t&& body, const Temp::label_t& lbreak);
+  exp_t break_exp(const Temp::label_t& lbreak);
 
   void add_fragment(Fragment&& f)
   {
@@ -133,6 +134,7 @@ class Translator {
   std::vector<Fragment> fragments_;
   std::shared_ptr<Level> lvl_outermost;
   std::shared_ptr<Level> lvl_main;
+  std::unique_ptr<Temp::label_t> lbreak{};
 };
 
 } // namespace ir

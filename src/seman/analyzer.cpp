@@ -319,11 +319,10 @@ Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 
 Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
-  // TODO translation
-  if(!can_break) {
+  if(lbreak == nullptr) {
     error_at(exp.position, "break statement not within a loop");
   }
-  return Result{unit_type};
+  return Result{unit_type, translator.break_exp(*lbreak)};
 };
 
 Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
@@ -334,18 +333,21 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
     error_at(exp.position, "the condition must be an integer");
   }
 
-  bool can_break_saved = can_break;
-  can_break = true;
+  ir::Temp::label_t* break_saved = lbreak;
+  auto blab = ir::Temp::new_label();
+  lbreak = &blab;
+
   // body must not produce any value
   auto rbody = exp.body->accept(*this);
   if(!is_type<Unit>(rbody.type)) {
     error_at(exp.position,
              "the body of the while loop must not produce any value");
   }
-  can_break = can_break_saved;
+  lbreak = break_saved;
 
-  return Result{unit_type,
-                translator.while_exp(std::move(rcond.ir), std::move(rbody.ir))};
+  return Result{
+    unit_type,
+    translator.while_exp(std::move(rcond.ir), std::move(rbody.ir), blab)};
 };
 
 Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
@@ -359,15 +361,17 @@ Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     error_at(exp.position, "the upper bound must be an integer");
   } // body must not produce any value
   else {
-    bool can_break_saved = can_break;
-    can_break = true;
+    ir::Temp::label_t* break_saved = lbreak;
+    auto blab = ir::Temp::new_label();
+    lbreak = &blab;
+
     venv.begin_scope();
     auto access = translator.alloc_local(*current_level, *exp.escape);
     venv.enter(exp.var, env::VarEntry(int_type, access));
     auto tbody = exp.body->accept(*this);
     venv.end_scope();
-    can_break = can_break_saved;
 
+    lbreak = break_saved;
     if(!is_type<Unit>(tbody.type)) {
       error_at(exp.position,
                "the body of the for loop must not produce any value");

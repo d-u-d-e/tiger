@@ -295,15 +295,17 @@ exp_t Translator::if_then_exp(exp_t&& cond, exp_t&& texp)
                                    std::make_unique<LabelStmt>(f));
 }
 
-exp_t Translator::while_exp(exp_t&& cond, exp_t&& body)
+exp_t Translator::while_exp(exp_t&& cond,
+                            exp_t&& body,
+                            const Temp::label_t& lbreak)
 {
+
   auto ltest = ir::Temp::new_label();
   auto t = ir::Temp::new_label();
-  auto f = ir::Temp::new_label();
 
-  // ltest:; cjump(cond, t, f)
+  // ltest:; cjump(cond, t, lbreak)
   auto seq = std::make_unique<SeqStmt>(std::make_unique<LabelStmt>(ltest),
-                                       uncx(std::move(cond))(t, f));
+                                       uncx(std::move(cond))(t, lbreak));
   // t:
   seq =
     std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(t));
@@ -314,9 +316,15 @@ exp_t Translator::while_exp(exp_t&& cond, exp_t&& body)
     std::move(seq),
     std::make_unique<JumpStmt>(std::make_unique<NameExp>(ltest),
                                std::vector{ltest}));
-  // f:
+  // lbreak:
   return std::make_unique<SeqStmt>(std::move(seq),
-                                   std::make_unique<LabelStmt>(f));
+                                   std::make_unique<LabelStmt>(lbreak));
+}
+
+exp_t Translator::break_exp(const Temp::label_t& lbreak)
+{
+  return std::make_unique<JumpStmt>(std::make_unique<NameExp>(lbreak),
+                                    std::vector{lbreak});
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)
