@@ -72,7 +72,10 @@ class Translator {
   exp_t array_exp(exp_t&& size, exp_t&& init);
   exp_t record_field(exp_t&& var, size_t index);
   exp_t record_exp(std::vector<exp_t>&& fields);
-  exp_t if_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp);
+  exp_t if_then_exp(exp_t&& cond, exp_t&& texp);
+  exp_t if_then_else_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp);
+
+  exp_t while_exp(exp_t&& cond, exp_t&& body);
 
   void add_fragment(Fragment&& f)
   {

@@ -20,8 +20,13 @@ class Stmt {
   virtual std::string accept(PrettyPrinterStmtVisitor& visitor) = 0;
 };
 
+// expressions
 using ex_t = std::unique_ptr<ir::Exp>;
+
+// statements which do not produce values
 using nx_t = std::unique_ptr<ir::Stmt>;
+
+// expressions that evaluate to boolean are better represented by a conditional jump
 using cx_t = std::move_only_function<std::unique_ptr<ir::Stmt>(Temp::label_t,
                                                                Temp::label_t)>;
 using exp_t = std::variant<std::monostate, ex_t, nx_t, cx_t>;
@@ -174,8 +179,11 @@ struct JumpStmt : public Stmt {
 };
 
 struct CJumpStmt : public Stmt {
-  CJumpStmt(
-    RelOp op, ex_t&& lexp, ex_t&& rexp, Temp::label_t tlabel, Temp::label_t flabel)
+  CJumpStmt(RelOp op,
+            ex_t&& lexp,
+            ex_t&& rexp,
+            Temp::label_t tlabel,
+            Temp::label_t flabel)
     : op(op)
     , lexp(std::move(lexp))
     , rexp(std::move(rexp))

@@ -26,7 +26,7 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
 {
   auto size = exps.size();
   if(0 == size) {
-    return std::make_unique<ir::ConstExp>(0);
+    return unnx(std::make_unique<ir::ConstExp>(0));
   }
   else if(1 == size) {
     return std::move(exps[0]);
@@ -38,7 +38,6 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
     stmt_seq = std::make_unique<ir::SeqStmt>(std::move(stmt_seq),
                                              unnx(std::move(exps[i])));
   }
-
   return std::make_unique<ir::ESeqExp>(move(stmt_seq),
                                        unex(std::move(exps[size - 1])));
 }
@@ -180,13 +179,144 @@ exp_t Translator::record_exp(std::vector<exp_t>&& fields)
                                    std::make_unique<TempExp>(temp));
 }
 
-exp_t Translator::if_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp) 
+exp_t Translator::if_then_else_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp)
 {
-  // TODO: simple translation applies uncx to cond, 
-  (void)cond;
-  (void)texp;
-  (void)fexp;
-  return exp_t{};
+  if(std::holds_alternative<ex_t>(texp) || std::holds_alternative<ex_t>(fexp)) {
+    // at least one branch is an expression
+
+    auto j = Temp::new_label();
+    auto tl = Temp::new_label();
+    auto fl = Temp::new_label();
+    auto temp = Temp::new_temp();
+
+    // cjump(cond, t, f); t:
+    auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(tl, fl),
+                                         std::make_unique<LabelStmt>(tl));
+    // move(temp, texp)
+    seq = std::make_unique<SeqStmt>(
+      std::move(seq),
+      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                 unex(std::move(texp))));
+    // jump(j)
+    seq = std::make_unique<SeqStmt>(
+      std::move(seq),
+      std::make_unique<JumpStmt>(std::make_unique<NameExp>(j), std::vector{j}));
+
+    // f:
+    seq = std::make_unique<SeqStmt>(std::move(seq),
+                                    std::make_unique<LabelStmt>(fl));
+
+    // move(temp, fexp)
+    seq = std::make_unique<SeqStmt>(
+      std::move(seq),
+      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                 unex(std::move(fexp))));
+
+    // j:
+    seq =
+      std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(j));
+
+    // temp
+    return std::make_unique<ESeqExp>(std::move(seq),
+                                     std::make_unique<TempExp>(temp));
+  }
+
+  else if(std::holds_alternative<cx_t>(texp) &&
+          std::holds_alternative<cx_t>(fexp)) {
+
+    // both branches are conditionals
+    return [cond = uncx(std::move(cond)),
+            cthen = std::move(texp),
+            celse = std::move(fexp)](ir::Temp::label_t t,
+                                     ir::Temp::label_t f) mutable {
+      auto t_ = ir::Temp::new_label();
+      auto f_ = ir::Temp::new_label();
+
+      // cjump(t_, f_); t_:
+      auto seq = std::make_unique<SeqStmt>(cond(t_, f_),
+                                           std::make_unique<LabelStmt>(t_));
+
+      // cjump(cthen, t, f)
+      seq =
+        std::make_unique<SeqStmt>(std::move(seq), std::get<cx_t>(cthen)(t, f));
+
+      // f_:
+      seq = std::make_unique<SeqStmt>(std::move(seq),
+                                      std::make_unique<LabelStmt>(f_));
+
+      // cjump(celse, t, f):
+      seq =
+        std::make_unique<SeqStmt>(std::move(seq), std::get<cx_t>(celse)(t, f));
+      return seq;
+    };
+  }
+  else {
+
+    // both branches are statements
+    assert(std::holds_alternative<nx_t>(texp));
+    assert(std::holds_alternative<nx_t>(fexp));
+
+    auto j = Temp::new_label();
+    auto t = Temp::new_label();
+    auto f = Temp::new_label();
+    // cjump(cond, t, f); t:
+    auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(t, f),
+                                         std::make_unique<LabelStmt>(t));
+    // (texp)
+    seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(texp)));
+    // jump(j)
+    seq = std::make_unique<SeqStmt>(
+      std::move(seq),
+      std::make_unique<JumpStmt>(std::make_unique<NameExp>(j), std::vector{j}));
+    // f:
+    seq =
+      std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(f));
+    // (fexp)
+    seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(fexp)));
+    // j:
+    return std::make_unique<SeqStmt>(std::move(seq),
+                                     std::make_unique<LabelStmt>(j));
+  }
+}
+
+exp_t Translator::if_then_exp(exp_t&& cond, exp_t&& texp)
+{
+  auto t = Temp::new_label();
+  auto f = Temp::new_label();
+
+  // cjump(cond, t, f); t:
+  auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(t, f),
+                                       std::make_unique<LabelStmt>(t));
+  // (ethen)
+  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(texp)));
+
+  // f:
+  return std::make_unique<SeqStmt>(std::move(seq),
+                                   std::make_unique<LabelStmt>(f));
+}
+
+exp_t Translator::while_exp(exp_t&& cond, exp_t&& body)
+{
+  auto ltest = ir::Temp::new_label();
+  auto t = ir::Temp::new_label();
+  auto f = ir::Temp::new_label();
+
+  // ltest:; cjump(cond, t, f)
+  auto seq = std::make_unique<SeqStmt>(std::make_unique<LabelStmt>(ltest),
+                                       uncx(std::move(cond))(t, f));
+  // t:
+  seq =
+    std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(t));
+  // (body)
+  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(body)));
+  // jump(ltest)
+  seq = std::make_unique<SeqStmt>(
+    std::move(seq),
+    std::make_unique<JumpStmt>(std::make_unique<NameExp>(ltest),
+                               std::vector{ltest}));
+  // f:
+  return std::make_unique<SeqStmt>(std::move(seq),
+                                   std::make_unique<LabelStmt>(f));
 }
 
 exp_t Translator::assign(exp_t&& left, exp_t&& right)

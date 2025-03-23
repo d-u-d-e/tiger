@@ -303,7 +303,7 @@ Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
         error_at(exp.position, "types of then and else branches must match");
       }
     }
-    r.ir = translator.if_exp(
+    r.ir = translator.if_then_else_exp(
       std::move(tcond.ir), std::move(tthen.ir), std::move(telse.ir));
     return r;
   }
@@ -313,8 +313,7 @@ Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
     }
   }
 
-  r.ir =
-    translator.if_exp(std::move(tcond.ir), std::move(tthen.ir), ir::exp_t{});
+  r.ir = translator.if_then_exp(std::move(tcond.ir), std::move(tthen.ir));
   return r;
 };
 
@@ -329,21 +328,24 @@ Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 
 Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 {
-  // TODO translation
   // condition must be an integer
-  if(!is_type<Integer>(exp.cond->accept(*this).type)) {
+  auto rcond = exp.cond->accept(*this);
+  if(!is_type<Integer>(rcond.type)) {
     error_at(exp.position, "the condition must be an integer");
-  } // body must not produce any value
-  else {
-    bool can_break_saved = can_break;
-    can_break = true;
-    if(!is_type<Unit>(exp.body->accept(*this).type)) {
-      error_at(exp.position,
-               "the body of the while loop must not produce any value");
-    }
-    can_break = can_break_saved;
   }
-  return Result{unit_type};
+
+  bool can_break_saved = can_break;
+  can_break = true;
+  // body must not produce any value
+  auto rbody = exp.body->accept(*this);
+  if(!is_type<Unit>(rbody.type)) {
+    error_at(exp.position,
+             "the body of the while loop must not produce any value");
+  }
+  can_break = can_break_saved;
+
+  return Result{unit_type,
+                translator.while_exp(std::move(rcond.ir), std::move(rbody.ir))};
 };
 
 Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
