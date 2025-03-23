@@ -352,32 +352,39 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
 
 Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
 {
-  // TODO translation
   // high and low must be integers
-  if(!is_type<Integer>(exp.low->accept(*this).type)) {
+  auto rlow = exp.low->accept(*this);
+  auto rhigh = exp.high->accept(*this);
+
+  if(!is_type<Integer>(rlow.type)) {
     error_at(exp.position, "the lower bound must be an integer");
   }
-  else if(!is_type<Integer>(exp.high->accept(*this).type)) {
+  else if(!is_type<Integer>(rhigh.type)) {
     error_at(exp.position, "the upper bound must be an integer");
-  } // body must not produce any value
-  else {
-    ir::Temp::label_t* break_saved = lbreak;
-    auto blab = ir::Temp::new_label();
-    lbreak = &blab;
-
-    venv.begin_scope();
-    auto access = translator.alloc_local(*current_level, *exp.escape);
-    venv.enter(exp.var, env::VarEntry(int_type, access));
-    auto tbody = exp.body->accept(*this);
-    venv.end_scope();
-
-    lbreak = break_saved;
-    if(!is_type<Unit>(tbody.type)) {
-      error_at(exp.position,
-               "the body of the for loop must not produce any value");
-    }
   }
-  return Result{unit_type};
+
+  ir::Temp::label_t* break_saved = lbreak;
+  auto blab = ir::Temp::new_label();
+  lbreak = &blab;
+
+  venv.begin_scope();
+  auto access = translator.alloc_local(*current_level, *exp.escape);
+  venv.enter(exp.var, env::VarEntry(int_type, access));
+  auto rbody = exp.body->accept(*this);
+  venv.end_scope();
+  lbreak = break_saved;
+
+  if(!is_type<Unit>(rbody.type)) {
+    error_at(exp.position,
+             "the body of the for loop must not produce any value");
+  }
+
+  return Result{unit_type,
+                translator.for_exp(access,
+                                   std::move(rlow.ir),
+                                   std::move(rhigh.ir),
+                                   std::move(rbody.ir),
+                                   blab)};
 };
 
 Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)

@@ -77,6 +77,11 @@ class Translator {
 
   exp_t while_exp(exp_t&& cond, exp_t&& body, const Temp::label_t& lbreak);
   exp_t break_exp(const Temp::label_t& lbreak);
+  exp_t for_exp(const Level::Access& iax,
+                exp_t&& low,
+                exp_t&& high,
+                exp_t&& body,
+                const Temp::label_t& lbreak);
 
   void add_fragment(Fragment&& f)
   {

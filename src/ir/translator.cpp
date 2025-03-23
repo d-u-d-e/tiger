@@ -327,6 +327,43 @@ exp_t Translator::break_exp(const Temp::label_t& lbreak)
                                     std::vector{lbreak});
 }
 
+exp_t Translator::for_exp(const Level::Access& iax,
+                          exp_t&& low,
+                          exp_t&& high,
+                          exp_t&& body,
+                          const Temp::label_t& lbreak)
+{
+  auto ltest = ir::Temp::new_label();
+  auto t = ir::Temp::new_label();
+
+  // id := low; ltest:
+  auto s1 = assign(simple_var(iax, iax.l), std::move(low));
+  auto seq = std::make_unique<SeqStmt>(unnx(std::move(s1)),
+                                       std::make_unique<LabelStmt>(ltest));
+  // cjump(id <= high, t, lbreak)
+  seq = std::make_unique<SeqStmt>(
+    std::move(seq),
+    std::make_unique<CJumpStmt>(ir::RelOp::le,
+                                unex(simple_var(iax, iax.l)),
+                                unex(std::move(high)),
+                                t,
+                                lbreak));
+
+  // t:
+  seq =
+    std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(t));
+  // (body)
+  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(body)));
+  // jump(ltest)
+  seq = std::make_unique<SeqStmt>(
+    std::move(seq),
+    std::make_unique<JumpStmt>(std::make_unique<NameExp>(ltest),
+                               std::vector{ltest}));
+  // lbreak:
+  return std::make_unique<SeqStmt>(std::move(seq),
+                                   std::make_unique<LabelStmt>(lbreak));
+}
+
 exp_t Translator::assign(exp_t&& left, exp_t&& right)
 {
   return std::make_unique<ir::MoveStmt>(unex(std::move(left)),
@@ -410,10 +447,8 @@ ex_t Translator::unex(exp_t&& exp)
     return std::make_unique<ir::ESeqExp>(std::move(seq),
                                          std::make_unique<TempExp>(temp));
   }
-  // TODO this breaks the tests
-  //assert(false);
-  //std::unreachable();
-  return nullptr;
+  assert(false);
+  std::unreachable();
 }
 
 nx_t Translator::unnx(exp_t&& exp)
@@ -436,10 +471,8 @@ nx_t Translator::unnx(exp_t&& exp)
     return std::make_unique<ir::SeqStmt>(std::move(seq),
                                          std::make_unique<ir::LabelStmt>(flab));
   }
-  // TODO this breaks the tests
-  //assert(false);
-  //std::unreachable();
-  return nullptr;
+  assert(false);
+  std::unreachable();
 }
 
 cx_t Translator::uncx(exp_t&& exp)
