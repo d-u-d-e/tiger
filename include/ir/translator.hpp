@@ -21,10 +21,10 @@ class Translator {
   Translator()
   {
     lvl_outermost = std::make_shared<Level>(
-      nullptr, arch::Frame(Temp::named_label("tiger_outermost"), {}));
+      nullptr, arch::Frame(TempGen::named_label("tiger_outermost"), {}));
     // TODO: formal arguments of main?
     lvl_main =
-      new_level(lvl_outermost.get(), Temp::named_label("tiger_main"), {});
+      new_level(lvl_outermost.get(), TempGen::named_label("tiger_main"), {});
   }
 
   std::shared_ptr<Level> main_level()
@@ -38,7 +38,7 @@ class Translator {
   }
 
   static std::unique_ptr<Level> new_level(const Level* parent,
-                                          Temp::label_t label,
+                                          TempGen::Label label,
                                           const std::vector<bool>& formals)
   {
     // augment the formals with the static link as first parameter
@@ -58,36 +58,36 @@ class Translator {
     return Level::Access{.l = &level, .fax = level.f.alloc_local(escape)};
   }
 
-  static exp_t simple_var(const Level::Access& ax, const Level* current);
-  exp_t seq_exp(std::vector<ir::exp_t>&& exps);
-  ex_t constant(size_t constant);
-  exp_t call_exp(Temp::label_t name,
-                 const ir::Level* lcaller,
-                 const ir::Level* lcallee,
-                 std::vector<ir::exp_t>&& args);
-  exp_t assign(exp_t&& left, exp_t&& right);
-  void proc_entry_exit(const Level& level, exp_t&& body);
-  exp_t binary_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
-  exp_t rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right);
+  static Exp simple_var(const Level::Access& ax, const Level* current);
+  Exp seq_exp(std::vector<Exp>&& exps);
+  Ex constant(size_t constant);
+  Exp call_exp(TempGen::Label name,
+               const Level* lcaller,
+               const Level* lcallee,
+               std::vector<Exp>&& args);
+  Exp assign(Exp&& left, Exp&& right);
+  void proc_entry_exit(const Level& level, Exp&& body);
+  Exp binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
+  Exp rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
 
-  ex_t string(const std::string& value);
-  exp_t strings_equal(exp_t&& left, exp_t&& right);
-  exp_t strings_nequal(exp_t&& left, exp_t&& right);
+  Ex string(const std::string& value);
+  Exp strings_equal(Exp&& left, Exp&& right);
+  Exp strings_nequal(Exp&& left, Exp&& right);
 
-  exp_t array_subscript(exp_t&& var, exp_t&& index);
-  exp_t array_exp(exp_t&& size, exp_t&& init);
-  exp_t record_field(exp_t&& var, size_t index);
-  exp_t record_exp(std::vector<exp_t>&& fields);
-  exp_t if_then_exp(exp_t&& cond, exp_t&& texp);
-  exp_t if_then_else_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp);
+  Exp array_subscript(Exp&& var, Exp&& index);
+  Exp array_exp(Exp&& size, Exp&& init);
+  Exp record_field(Exp&& var, size_t index);
+  Exp record_exp(std::vector<Exp>&& fields);
+  Exp if_then_exp(Exp&& cond, Exp&& texp);
+  Exp if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp);
 
-  exp_t while_exp(exp_t&& cond, exp_t&& body, const Temp::label_t& lbreak);
-  exp_t break_exp(const Temp::label_t& lbreak);
-  exp_t for_exp(const Level::Access& iax,
-                exp_t&& low,
-                exp_t&& high,
-                exp_t&& body,
-                const Temp::label_t& lbreak);
+  Exp while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak);
+  Exp break_exp(const TempGen::Label& lbreak);
+  Exp for_exp(const Level::Access& iax,
+              Exp&& low,
+              Exp&& high,
+              Exp&& body,
+              const TempGen::Label& lbreak);
 
   void add_fragment(Fragment&& f)
   {
@@ -100,43 +100,43 @@ class Translator {
   }
 
   std::string dump_fragment(const Fragment& f) const;
-  ex_t unex(exp_t&& exp);
+  Ex unex(Exp&& exp);
 
   private:
-  nx_t unnx(exp_t&& exp);
-  cx_t uncx(exp_t&& exp);
+  Nx unnx(Exp&& exp);
+  Cx uncx(Exp&& exp);
 
-  ir::BinaryOp map_binary_operator(parser::ast::Operator op)
+  tree::BinaryOp map_binary_operator(parser::ast::Operator op)
   {
     switch(op) {
     case parser::ast::Operator::plus:
-      return ir::BinaryOp::plus;
+      return tree::BinaryOp::plus;
     case parser::ast::Operator::minus:
-      return ir::BinaryOp::minus;
+      return tree::BinaryOp::minus;
     case parser::ast::Operator::times:
-      return ir::BinaryOp::mul;
+      return tree::BinaryOp::mul;
     case parser::ast::Operator::divide:
-      return ir::BinaryOp::div;
+      return tree::BinaryOp::div;
     default:
       assert(false);
     }
   }
 
-  ir::RelOp map_rel_operator(parser::ast::Operator op)
+  tree::RelOp map_rel_operator(parser::ast::Operator op)
   {
     switch(op) {
     case parser::ast::Operator::equal:
-      return ir::RelOp::eq;
+      return tree::RelOp::eq;
     case parser::ast::Operator::not_equal:
-      return ir::RelOp::ne;
+      return tree::RelOp::ne;
     case parser::ast::Operator::greater_equal:
-      return ir::RelOp::ge;
+      return tree::RelOp::ge;
     case parser::ast::Operator::less_equal:
-      return ir::RelOp::le;
+      return tree::RelOp::le;
     case parser::ast::Operator::greater:
-      return ir::RelOp::gt;
+      return tree::RelOp::gt;
     case parser::ast::Operator::less:
-      return ir::RelOp::lt;
+      return tree::RelOp::lt;
     default:
       assert(false);
     }
@@ -145,7 +145,7 @@ class Translator {
   std::vector<Fragment> fragments_;
   std::shared_ptr<Level> lvl_outermost;
   std::shared_ptr<Level> lvl_main;
-  std::unique_ptr<Temp::label_t> lbreak{};
+  std::unique_ptr<TempGen::Label> lbreak{};
 };
 
 } // namespace ir

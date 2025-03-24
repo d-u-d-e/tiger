@@ -21,20 +21,20 @@ using namespace symbol;
 
 class VarEntry {
   public:
-  explicit VarEntry(shared_type_t type, ir::Level::Access access)
+  explicit VarEntry(SharedType type, ir::Level::Access access)
     : type(std::move(type))
     , access(std::move(access))
   { }
 
-  shared_type_t type;
+  SharedType type;
   ir::Level::Access access; // tells where the variable resides in memory
 };
 
 class FuncEntry {
   public:
-  explicit FuncEntry(ir::Temp::label_t name,
-                     std::vector<shared_type_t> formals,
-                     shared_type_t result,
+  explicit FuncEntry(ir::TempGen::Label name,
+                     std::vector<SharedType> formals,
+                     SharedType result,
                      std::shared_ptr<ir::Level> level)
     : label(name)
     , formals(std::move(formals))
@@ -42,9 +42,9 @@ class FuncEntry {
     , level(std::move(level))
   { }
 
-  ir::Temp::label_t label;
-  std::vector<shared_type_t> formals;
-  shared_type_t result;
+  ir::TempGen::Label label;
+  std::vector<SharedType> formals;
+  SharedType result;
   std::shared_ptr<ir::Level> level{};
 };
 
@@ -55,7 +55,7 @@ struct VEntry {
 
 struct TEntry {
   std::string to_string() const;
-  shared_type_t t;
+  SharedType t;
 };
 
 template <typename T>

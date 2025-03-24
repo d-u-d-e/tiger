@@ -18,10 +18,10 @@
 namespace ir
 {
 
-ir::exp_t Translator::simple_var(const Level::Access& var_ax,
-                                 const Level* current)
+Exp Translator::simple_var(const Level::Access& var_ax, const Level* current)
 {
-  std::unique_ptr<Exp> fp_exp = std::make_unique<TempExp>(arch::Frame::FP);
+  std::unique_ptr<tree::Exp> fp_exp =
+    std::make_unique<tree::TempExp>(arch::Frame::FP);
 
   while(var_ax.l != current) {
     // first arg holds the static link
@@ -33,11 +33,11 @@ ir::exp_t Translator::simple_var(const Level::Access& var_ax,
   return arch::Frame::exp(var_ax.fax, std::move(fp_exp));
 }
 
-ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
+Exp Translator::seq_exp(std::vector<Exp>&& exps)
 {
   auto size = exps.size();
   if(0 == size) {
-    return unnx(std::make_unique<ir::ConstExp>(0));
+    return unnx(std::make_unique<tree::ConstExp>(0));
   }
   if(1 == size) {
     return std::move(exps[0]);
@@ -46,37 +46,35 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
   auto stmt_seq = unnx(std::move(exps[0]));
 
   for(size_t i = 1; i < size - 1; i++) {
-    stmt_seq = std::make_unique<ir::SeqStmt>(std::move(stmt_seq),
-                                             unnx(std::move(exps[i])));
+    stmt_seq = std::make_unique<tree::SeqStmt>(std::move(stmt_seq),
+                                               unnx(std::move(exps[i])));
   }
-  return std::make_unique<ir::ESeqExp>(std::move(stmt_seq),
-                                       unex(std::move(exps[size - 1])));
+  return std::make_unique<tree::ESeqExp>(std::move(stmt_seq),
+                                         unex(std::move(exps[size - 1])));
 }
 
-ex_t Translator::constant(size_t constant)
+Ex Translator::constant(size_t constant)
 {
-  return std::make_unique<ir::ConstExp>(constant);
+  return std::make_unique<tree::ConstExp>(constant);
 }
 
-ex_t Translator::string(const std::string& value)
+Ex Translator::string(const std::string& value)
 {
-  auto lab = Temp::new_label();
+  auto lab = TempGen::new_label();
   add_fragment(StringFragment{lab, value});
-  return std::make_unique<ir::NameExp>(lab);
+  return std::make_unique<tree::NameExp>(lab);
 }
 
-exp_t Translator::binary_exp(parser::ast::Operator op,
-                             exp_t&& left,
-                             exp_t&& right)
+Exp Translator::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
 {
-  exp_t result;
+  Exp result;
   switch(op) {
   case parser::ast::Operator::plus:
   case parser::ast::Operator::minus:
   case parser::ast::Operator::divide:
   case parser::ast::Operator::times: {
     auto binop = map_binary_operator(op);
-    result = std::make_unique<ir::BinOpExp>(
+    result = std::make_unique<tree::BinOpExp>(
       binop, unex(std::move(left)), unex(std::move(right)));
     break;
   }
@@ -86,9 +84,9 @@ exp_t Translator::binary_exp(parser::ast::Operator op,
   return result;
 }
 
-exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
+Exp Translator::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
 {
-  exp_t result;
+  Exp result;
   switch(op) {
   case parser::ast::Operator::equal:
   case parser::ast::Operator::not_equal:
@@ -98,8 +96,8 @@ exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
   case parser::ast::Operator::greater: {
     auto relop = map_rel_operator(op);
     result = [lex = unex(std::move(left)), rex = unex(std::move(right)), relop](
-               Temp::label_t tlabel, Temp::label_t flabel) mutable {
-      return std::make_unique<ir::CJumpStmt>(
+               TempGen::Label tlabel, TempGen::Label flabel) mutable {
+      return std::make_unique<tree::CJumpStmt>(
         relop, std::move(lex), std::move(rex), tlabel, flabel);
     };
     break;
@@ -110,288 +108,293 @@ exp_t Translator::rel_exp(parser::ast::Operator op, exp_t&& left, exp_t&& right)
   return result;
 }
 
-exp_t Translator::strings_equal(exp_t&& left, exp_t&& right)
+Exp Translator::strings_equal(Exp&& left, Exp&& right)
 {
-  std::vector<ex_t> args_as_ex;
+  std::vector<Ex> args_as_ex;
   args_as_ex.emplace_back(unex(std::move(left)));
   args_as_ex.emplace_back(unex(std::move(right)));
-  return arch::Frame::external_call(Temp::named_label("stringEqual"),
+  return arch::Frame::external_call(TempGen::named_label("stringEqual"),
                                     std::move(args_as_ex));
 }
 
-exp_t Translator::strings_nequal(exp_t&& left, exp_t&& right)
+Exp Translator::strings_nequal(Exp&& left, Exp&& right)
 {
   return rel_exp(parser::ast::Operator::equal,
                  strings_equal(std::move(left), std::move(right)),
                  constant(0));
 }
 
-exp_t Translator::array_subscript(exp_t&& var, exp_t&& index)
+Exp Translator::array_subscript(Exp&& var, Exp&& index)
 {
   // we basically need to compute mem(var + index * word_size)
-  return std::make_unique<ir::MemExp>(std::make_unique<ir::BinOpExp>(
-    ir::BinaryOp::plus,
+  return std::make_unique<tree::MemExp>(std::make_unique<tree::BinOpExp>(
+    tree::BinaryOp::plus,
     unex(std::move(var)),
-    std::make_unique<ir::BinOpExp>(ir::BinaryOp::mul,
-                                   unex(std::move(index)),
-                                   constant(arch::Frame::word_size))));
+    std::make_unique<tree::BinOpExp>(tree::BinaryOp::mul,
+                                     unex(std::move(index)),
+                                     constant(arch::Frame::word_size))));
 }
 
-exp_t Translator::array_exp(exp_t&& size, exp_t&& init)
+Exp Translator::array_exp(Exp&& size, Exp&& init)
 {
-  std::vector<ex_t> args;
+  std::vector<Ex> args;
   args.push_back(unex(std::move(size)));
   args.push_back(unex(std::move(init)));
-  return arch::Frame::external_call(Temp::named_label("init_array"),
+  return arch::Frame::external_call(TempGen::named_label("init_array"),
                                     std::move(args));
 }
 
-exp_t Translator::record_field(exp_t&& var, size_t index)
+Exp Translator::record_field(Exp&& var, size_t index)
 {
-  return std::make_unique<MemExp>(
-    std::make_unique<BinOpExp>(BinaryOp::plus,
-                               unex(std::move(var)),
-                               constant(index * arch::Frame::word_size)));
+  return std::make_unique<tree::MemExp>(
+    std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus,
+                                     unex(std::move(var)),
+                                     constant(index * arch::Frame::word_size)));
 }
 
-exp_t Translator::record_exp(std::vector<exp_t>&& fields)
+Exp Translator::record_exp(std::vector<Exp>&& fields)
 {
-  auto temp = Temp::new_temp();
-  std::vector<ex_t> args_alloc;
+  auto temp = TempGen::new_temp();
+  std::vector<Ex> args_alloc;
   args_alloc.push_back(constant(fields.size()));
 
   // alloc space
-  auto do_alloc = std::make_unique<MoveStmt>(
-    std::make_unique<TempExp>(temp),
-    arch::Frame::external_call(Temp::named_label("alloc_record"),
+  auto do_alloc = std::make_unique<tree::MoveStmt>(
+    std::make_unique<tree::TempExp>(temp),
+    arch::Frame::external_call(TempGen::named_label("alloc_record"),
                                std::move(args_alloc)));
 
   if(fields.size() != 0) {
     // initialize all fields
-    auto f0 = std::make_unique<MoveStmt>(
-      std::make_unique<MemExp>(std::make_unique<BinOpExp>(
-        BinaryOp::plus, std::make_unique<TempExp>(temp), constant(0))),
+    auto f0 = std::make_unique<tree::MoveStmt>(
+      std::make_unique<tree::MemExp>(
+        std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus,
+                                         std::make_unique<tree::TempExp>(temp),
+                                         constant(0))),
       unex(std::move(fields[0])));
-    auto seq = std::make_unique<SeqStmt>(std::move(do_alloc), std::move(f0));
+    auto seq =
+      std::make_unique<tree::SeqStmt>(std::move(do_alloc), std::move(f0));
 
     for(size_t i = 1; i < fields.size(); i++) {
-      auto fi = std::make_unique<MoveStmt>(
-        std::make_unique<MemExp>(
-          std::make_unique<BinOpExp>(BinaryOp::plus,
-                                     std::make_unique<TempExp>(temp),
-                                     constant(i * arch::Frame::word_size))),
+      auto fi = std::make_unique<tree::MoveStmt>(
+        std::make_unique<tree::MemExp>(std::make_unique<tree::BinOpExp>(
+          tree::BinaryOp::plus,
+          std::make_unique<tree::TempExp>(temp),
+          constant(i * arch::Frame::word_size))),
         unex(std::move(fields[i])));
-      seq = std::make_unique<SeqStmt>(std::move(seq), std::move(fi));
+      seq = std::make_unique<tree::SeqStmt>(std::move(seq), std::move(fi));
     }
-    return std::make_unique<ESeqExp>(std::move(seq),
-                                     std::make_unique<TempExp>(temp));
+    return std::make_unique<tree::ESeqExp>(
+      std::move(seq), std::make_unique<tree::TempExp>(temp));
   }
-  return std::make_unique<ESeqExp>(std::move(do_alloc),
-                                   std::make_unique<TempExp>(temp));
+  return std::make_unique<tree::ESeqExp>(std::move(do_alloc),
+                                         std::make_unique<tree::TempExp>(temp));
 }
 
-exp_t Translator::if_then_else_exp(exp_t&& cond, exp_t&& texp, exp_t&& fexp)
+Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
 {
-  if(std::holds_alternative<ex_t>(texp) || std::holds_alternative<ex_t>(fexp)) {
+  if(std::holds_alternative<Ex>(texp) || std::holds_alternative<Ex>(fexp)) {
     // at least one branch is an expression
 
-    auto j = Temp::new_label();
-    auto tl = Temp::new_label();
-    auto fl = Temp::new_label();
-    auto temp = Temp::new_temp();
+    auto j = TempGen::new_label();
+    auto tl = TempGen::new_label();
+    auto fl = TempGen::new_label();
+    auto temp = TempGen::new_temp();
 
     // cjump(cond, t, f); t:
-    auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(tl, fl),
-                                         std::make_unique<LabelStmt>(tl));
+    auto seq = std::make_unique<tree::SeqStmt>(
+      uncx(std::move(cond))(tl, fl), std::make_unique<tree::LabelStmt>(tl));
     // move(temp, texp)
-    seq = std::make_unique<SeqStmt>(
+    seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
-      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                 unex(std::move(texp))));
+      std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
+                                       unex(std::move(texp))));
     // jump(j)
-    seq = std::make_unique<SeqStmt>(
+    seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
-      std::make_unique<JumpStmt>(std::make_unique<NameExp>(j), std::vector{j}));
+      std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(j),
+                                       std::vector{j}));
 
     // f:
-    seq = std::make_unique<SeqStmt>(std::move(seq),
-                                    std::make_unique<LabelStmt>(fl));
+    seq = std::make_unique<tree::SeqStmt>(
+      std::move(seq), std::make_unique<tree::LabelStmt>(fl));
 
     // move(temp, fexp)
-    seq = std::make_unique<SeqStmt>(
+    seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
-      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                 unex(std::move(fexp))));
+      std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
+                                       unex(std::move(fexp))));
 
     // j:
-    seq =
-      std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(j));
+    seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                          std::make_unique<tree::LabelStmt>(j));
 
     // temp
-    return std::make_unique<ESeqExp>(std::move(seq),
-                                     std::make_unique<TempExp>(temp));
+    return std::make_unique<tree::ESeqExp>(
+      std::move(seq), std::make_unique<tree::TempExp>(temp));
   }
 
-  else if(std::holds_alternative<cx_t>(texp) &&
-          std::holds_alternative<cx_t>(fexp)) {
+  else if(std::holds_alternative<Cx>(texp) &&
+          std::holds_alternative<Cx>(fexp)) {
 
     // both branches are conditionals
-    return [cond = uncx(std::move(cond)),
-            cthen = std::move(texp),
-            celse = std::move(fexp)](ir::Temp::label_t t,
-                                     ir::Temp::label_t f) mutable {
-      auto t_ = ir::Temp::new_label();
-      auto f_ = ir::Temp::new_label();
+    return
+      [cond = uncx(std::move(cond)),
+       cthen = std::move(texp),
+       celse = std::move(fexp)](TempGen::Label t, TempGen::Label f) mutable {
+        auto t_ = TempGen::new_label();
+        auto f_ = TempGen::new_label();
 
-      // cjump(t_, f_); t_:
-      auto seq = std::make_unique<SeqStmt>(cond(t_, f_),
-                                           std::make_unique<LabelStmt>(t_));
+        // cjump(t_, f_); t_:
+        auto seq = std::make_unique<tree::SeqStmt>(
+          cond(t_, f_), std::make_unique<tree::LabelStmt>(t_));
 
-      // cjump(cthen, t, f)
-      seq =
-        std::make_unique<SeqStmt>(std::move(seq), std::get<cx_t>(cthen)(t, f));
+        // cjump(cthen, t, f)
+        seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                              std::get<Cx>(cthen)(t, f));
 
-      // f_:
-      seq = std::make_unique<SeqStmt>(std::move(seq),
-                                      std::make_unique<LabelStmt>(f_));
+        // f_:
+        seq = std::make_unique<tree::SeqStmt>(
+          std::move(seq), std::make_unique<tree::LabelStmt>(f_));
 
-      // cjump(celse, t, f):
-      seq =
-        std::make_unique<SeqStmt>(std::move(seq), std::get<cx_t>(celse)(t, f));
-      return seq;
-    };
+        // cjump(celse, t, f):
+        seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                              std::get<Cx>(celse)(t, f));
+        return seq;
+      };
   }
   else {
 
     // both branches are statements
-    assert(std::holds_alternative<nx_t>(texp));
-    assert(std::holds_alternative<nx_t>(fexp));
+    assert(std::holds_alternative<Nx>(texp));
+    assert(std::holds_alternative<Nx>(fexp));
 
-    auto j = Temp::new_label();
-    auto t = Temp::new_label();
-    auto f = Temp::new_label();
+    auto j = TempGen::new_label();
+    auto t = TempGen::new_label();
+    auto f = TempGen::new_label();
     // cjump(cond, t, f); t:
-    auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(t, f),
-                                         std::make_unique<LabelStmt>(t));
+    auto seq = std::make_unique<tree::SeqStmt>(
+      uncx(std::move(cond))(t, f), std::make_unique<tree::LabelStmt>(t));
     // (texp)
-    seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(texp)));
-    // jump(j)
-    seq = std::make_unique<SeqStmt>(
-      std::move(seq),
-      std::make_unique<JumpStmt>(std::make_unique<NameExp>(j), std::vector{j}));
-    // f:
     seq =
-      std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(f));
+      std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(texp)));
+    // jump(j)
+    seq = std::make_unique<tree::SeqStmt>(
+      std::move(seq),
+      std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(j),
+                                       std::vector{j}));
+    // f:
+    seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                          std::make_unique<tree::LabelStmt>(f));
     // (fexp)
-    seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(fexp)));
+    seq =
+      std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(fexp)));
     // j:
-    return std::make_unique<SeqStmt>(std::move(seq),
-                                     std::make_unique<LabelStmt>(j));
+    return std::make_unique<tree::SeqStmt>(
+      std::move(seq), std::make_unique<tree::LabelStmt>(j));
   }
 }
 
-exp_t Translator::if_then_exp(exp_t&& cond, exp_t&& texp)
+Exp Translator::if_then_exp(Exp&& cond, Exp&& texp)
 {
-  auto t = Temp::new_label();
-  auto f = Temp::new_label();
+  auto t = TempGen::new_label();
+  auto f = TempGen::new_label();
 
   // cjump(cond, t, f); t:
-  auto seq = std::make_unique<SeqStmt>(uncx(std::move(cond))(t, f),
-                                       std::make_unique<LabelStmt>(t));
+  auto seq = std::make_unique<tree::SeqStmt>(
+    uncx(std::move(cond))(t, f), std::make_unique<tree::LabelStmt>(t));
   // (ethen)
-  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(texp)));
+  seq = std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(texp)));
 
   // f:
-  return std::make_unique<SeqStmt>(std::move(seq),
-                                   std::make_unique<LabelStmt>(f));
+  return std::make_unique<tree::SeqStmt>(std::move(seq),
+                                         std::make_unique<tree::LabelStmt>(f));
 }
 
-exp_t Translator::while_exp(exp_t&& cond,
-                            exp_t&& body,
-                            const Temp::label_t& lbreak)
+Exp Translator::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak)
 {
 
-  auto ltest = ir::Temp::new_label();
-  auto t = ir::Temp::new_label();
+  auto ltest = TempGen::new_label();
+  auto t = TempGen::new_label();
 
   // ltest:; cjump(cond, t, lbreak)
-  auto seq = std::make_unique<SeqStmt>(std::make_unique<LabelStmt>(ltest),
-                                       uncx(std::move(cond))(t, lbreak));
+  auto seq = std::make_unique<tree::SeqStmt>(
+    std::make_unique<tree::LabelStmt>(ltest), uncx(std::move(cond))(t, lbreak));
   // t:
-  seq =
-    std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(t));
+  seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                        std::make_unique<tree::LabelStmt>(t));
   // (body)
-  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(body)));
+  seq = std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(body)));
   // jump(ltest)
-  seq = std::make_unique<SeqStmt>(
+  seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
-    std::make_unique<JumpStmt>(std::make_unique<NameExp>(ltest),
-                               std::vector{ltest}));
+    std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(ltest),
+                                     std::vector{ltest}));
   // lbreak:
-  return std::make_unique<SeqStmt>(std::move(seq),
-                                   std::make_unique<LabelStmt>(lbreak));
+  return std::make_unique<tree::SeqStmt>(
+    std::move(seq), std::make_unique<tree::LabelStmt>(lbreak));
 }
 
-exp_t Translator::break_exp(const Temp::label_t& lbreak)
+Exp Translator::break_exp(const TempGen::Label& lbreak)
 {
-  return std::make_unique<JumpStmt>(std::make_unique<NameExp>(lbreak),
-                                    std::vector{lbreak});
+  return std::make_unique<tree::JumpStmt>(
+    std::make_unique<tree::NameExp>(lbreak), std::vector{lbreak});
 }
 
-exp_t Translator::for_exp(const Level::Access& iax,
-                          exp_t&& low,
-                          exp_t&& high,
-                          exp_t&& body,
-                          const Temp::label_t& lbreak)
+Exp Translator::for_exp(const Level::Access& iax,
+                        Exp&& low,
+                        Exp&& high,
+                        Exp&& body,
+                        const TempGen::Label& lbreak)
 {
-  auto ltest = ir::Temp::new_label();
-  auto t = ir::Temp::new_label();
+  auto ltest = TempGen::new_label();
+  auto t = TempGen::new_label();
 
   // id := low; ltest:
   auto s1 = assign(simple_var(iax, iax.l), std::move(low));
-  auto seq = std::make_unique<SeqStmt>(unnx(std::move(s1)),
-                                       std::make_unique<LabelStmt>(ltest));
+  auto seq = std::make_unique<tree::SeqStmt>(
+    unnx(std::move(s1)), std::make_unique<tree::LabelStmt>(ltest));
   // cjump(id <= high, t, lbreak)
-  seq = std::make_unique<SeqStmt>(
+  seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
-    std::make_unique<CJumpStmt>(ir::RelOp::le,
-                                unex(simple_var(iax, iax.l)),
-                                unex(std::move(high)),
-                                t,
-                                lbreak));
+    std::make_unique<tree::CJumpStmt>(tree::RelOp::le,
+                                      unex(simple_var(iax, iax.l)),
+                                      unex(std::move(high)),
+                                      t,
+                                      lbreak));
 
   // t:
-  seq =
-    std::make_unique<SeqStmt>(std::move(seq), std::make_unique<LabelStmt>(t));
+  seq = std::make_unique<tree::SeqStmt>(std::move(seq),
+                                        std::make_unique<tree::LabelStmt>(t));
   // (body)
-  seq = std::make_unique<SeqStmt>(std::move(seq), unnx(std::move(body)));
+  seq = std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(body)));
   // jump(ltest)
-  seq = std::make_unique<SeqStmt>(
+  seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
-    std::make_unique<JumpStmt>(std::make_unique<NameExp>(ltest),
-                               std::vector{ltest}));
+    std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(ltest),
+                                     std::vector{ltest}));
   // lbreak:
-  return std::make_unique<SeqStmt>(std::move(seq),
-                                   std::make_unique<LabelStmt>(lbreak));
+  return std::make_unique<tree::SeqStmt>(
+    std::move(seq), std::make_unique<tree::LabelStmt>(lbreak));
 }
 
-exp_t Translator::assign(exp_t&& left, exp_t&& right)
+Exp Translator::assign(Exp&& left, Exp&& right)
 {
-  return std::make_unique<ir::MoveStmt>(unex(std::move(left)),
-                                        unex(std::move(right)));
+  return std::make_unique<tree::MoveStmt>(unex(std::move(left)),
+                                          unex(std::move(right)));
 }
 
-void Translator::proc_entry_exit(const Level& level, exp_t&& body)
+void Translator::proc_entry_exit(const Level& level, Exp&& body)
 {
   add_fragment(ProcedureFragment{unnx(std::move(body)), level.f});
 }
 
-exp_t Translator::call_exp(Temp::label_t name,
-                           const ir::Level* lcaller,
-                           const ir::Level* lcallee,
-                           std::vector<ir::exp_t>&& args)
+Exp Translator::call_exp(TempGen::Label name,
+                         const Level* lcaller,
+                         const Level* lcallee,
+                         std::vector<Exp>&& args)
 {
-  std::vector<ir::ex_t> args_as_exp;
+  std::vector<Ex> args_as_exp;
   bool is_external = lcallee == lvl_outermost.get();
 
   if(!is_external) {
@@ -399,7 +402,7 @@ exp_t Translator::call_exp(Temp::label_t name,
     // pass the static link as first argument
     // we need to compute it by going through the caller's link until we hit the level of the callee
     // it may happen that we are inside a recursive function, so caller level == callee level
-    ex_t fp = std::make_unique<TempExp>(arch::Frame::FP);
+    Ex fp = std::make_unique<tree::TempExp>(arch::Frame::FP);
     while(lcallee != lcaller && lcaller != lvl_main.get()) {
       // first arg holds the static link
       auto slink = lcaller->formals[0].fax;
@@ -420,89 +423,90 @@ exp_t Translator::call_exp(Temp::label_t name,
     return arch::Frame::external_call(name, std::move(args_as_exp));
   }
 
-  return std::make_unique<ir::CallExp>(std::make_unique<NameExp>(name),
-                                       std::move(args_as_exp));
+  return std::make_unique<tree::CallExp>(std::make_unique<tree::NameExp>(name),
+                                         std::move(args_as_exp));
 }
 
-ex_t Translator::unex(exp_t&& exp)
+Ex Translator::unex(Exp&& exp)
 {
   // unex(nx) is just ESeqExp(nx, 0)
   // unex(ex) is just ex
   // unex(cx) is:
   // ESeq(SeqStmt[MoveStmt(temp, 1), cx(t, f), LabelStmt(f), MoveStmt(temp, 0), LabelStmt(t)], temp)
 
-  if(std::holds_alternative<ex_t>(exp)) {
-    return std::move(std::get<ex_t>(exp));
+  if(std::holds_alternative<Ex>(exp)) {
+    return std::move(std::get<Ex>(exp));
   }
-  else if(std::holds_alternative<nx_t>(exp)) {
-    return std::make_unique<ir::ESeqExp>(std::move(std::get<nx_t>(exp)),
-                                         constant(0));
+  else if(std::holds_alternative<Nx>(exp)) {
+    return std::make_unique<tree::ESeqExp>(std::move(std::get<Nx>(exp)),
+                                           constant(0));
   }
-  else if(std::holds_alternative<cx_t>(exp)) {
-    auto cx = std::move(std::get<cx_t>(exp));
-    auto temp = ir::Temp::new_temp();
-    auto tlab = ir::Temp::new_label();
-    auto flab = ir::Temp::new_label();
-    auto seq = std::make_unique<ir::SeqStmt>(
-      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                 std::make_unique<ConstExp>(1)),
+  else if(std::holds_alternative<Cx>(exp)) {
+    auto cx = std::move(std::get<Cx>(exp));
+    auto temp = TempGen::new_temp();
+    auto tlab = TempGen::new_label();
+    auto flab = TempGen::new_label();
+    auto seq = std::make_unique<tree::SeqStmt>(
+      std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
+                                       std::make_unique<tree::ConstExp>(1)),
       cx(tlab, flab));
-    seq = std::make_unique<ir::SeqStmt>(std::move(seq),
-                                        std::make_unique<ir::LabelStmt>(flab));
-    seq = std::make_unique<ir::SeqStmt>(
+    seq = std::make_unique<tree::SeqStmt>(
+      std::move(seq), std::make_unique<tree::LabelStmt>(flab));
+    seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
-      std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                 std::make_unique<ConstExp>(0)));
-    seq = std::make_unique<ir::SeqStmt>(std::move(seq),
-                                        std::make_unique<ir::LabelStmt>(tlab));
-    return std::make_unique<ir::ESeqExp>(std::move(seq),
-                                         std::make_unique<TempExp>(temp));
+      std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
+                                       std::make_unique<tree::ConstExp>(0)));
+    seq = std::make_unique<tree::SeqStmt>(
+      std::move(seq), std::make_unique<tree::LabelStmt>(tlab));
+    return std::make_unique<tree::ESeqExp>(
+      std::move(seq), std::make_unique<tree::TempExp>(temp));
   }
   assert(false);
   std::unreachable();
 }
 
-nx_t Translator::unnx(exp_t&& exp)
+Nx Translator::unnx(Exp&& exp)
 {
   // unnx(nx) is just nx
   // unnx(ex) is a ExpStmt(ex)
   // unnx(cx) is Seq[cx(t, f), LabelStmt(t), LabelStmt(f)]
 
-  if(std::holds_alternative<ex_t>(exp)) {
-    return std::make_unique<ir::ExpStmt>(std::move(std::get<ex_t>(exp)));
+  if(std::holds_alternative<Ex>(exp)) {
+    return std::make_unique<tree::ExpStmt>(std::move(std::get<Ex>(exp)));
   }
-  else if(std::holds_alternative<nx_t>(exp)) {
-    return std::move(std::get<nx_t>(exp));
+  else if(std::holds_alternative<Nx>(exp)) {
+    return std::move(std::get<Nx>(exp));
   }
-  else if(std::holds_alternative<cx_t>(exp)) {
-    auto tlab = ir::Temp::new_label();
-    auto flab = ir::Temp::new_label();
-    auto seq = std::make_unique<ir::SeqStmt>(
-      std::get<cx_t>(exp)(tlab, flab), std::make_unique<ir::LabelStmt>(tlab));
-    return std::make_unique<ir::SeqStmt>(std::move(seq),
-                                         std::make_unique<ir::LabelStmt>(flab));
+  else if(std::holds_alternative<Cx>(exp)) {
+    auto tlab = TempGen::new_label();
+    auto flab = TempGen::new_label();
+    auto seq = std::make_unique<tree::SeqStmt>(
+      std::get<Cx>(exp)(tlab, flab), std::make_unique<tree::LabelStmt>(tlab));
+    return std::make_unique<tree::SeqStmt>(
+      std::move(seq), std::make_unique<tree::LabelStmt>(flab));
   }
   assert(false);
   std::unreachable();
 }
 
-cx_t Translator::uncx(exp_t&& exp)
+Cx Translator::uncx(Exp&& exp)
 {
   // uncx(nx) should not occur in a valid program
   // uncx(ex) is: (t, f) -> CJumpStmt(eq, ex, 0, f, t)
   // uncx(cx) is just cx
 
-  if(std::holds_alternative<ex_t>(exp)) {
-    return [e = std::move(exp)](Temp::label_t t, Temp::label_t f) mutable {
-      return std::make_unique<ir::CJumpStmt>(ir::RelOp::eq,
-                                             std::move(std::get<ex_t>(e)),
-                                             std::make_unique<ir::ConstExp>(0),
-                                             f,
-                                             t);
+  if(std::holds_alternative<Ex>(exp)) {
+    return [e = std::move(exp)](TempGen::Label t, TempGen::Label f) mutable {
+      return std::make_unique<tree::CJumpStmt>(
+        tree::RelOp::eq,
+        std::move(std::get<Ex>(e)),
+        std::make_unique<tree::ConstExp>(0),
+        f,
+        t);
     };
   }
-  else if(std::holds_alternative<cx_t>(exp)) {
-    return std::move(std::get<cx_t>(exp));
+  else if(std::holds_alternative<Cx>(exp)) {
+    return std::move(std::get<Cx>(exp));
   }
 
   assert(false);
@@ -517,7 +521,7 @@ struct overloads : Ts... {
 std::string Translator::dump_fragment(const Fragment& f) const
 {
   auto dump_proc_frag = [](const ProcedureFragment& pf) -> std::string {
-    ir::PrettyPrinter printer;
+    tree::PrettyPrinter printer;
     auto result = std::format("frag function: {}, args: {}, locals: {}\n",
                               pf.frame.name().str(),
                               pf.frame.formals().size(),

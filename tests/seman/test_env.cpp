@@ -9,33 +9,34 @@
 #include <utility>
 #include <vector>
 
-TEST_SUITE_BEGIN("environment");
-using namespace seman::env;
-
-template <typename T, bool expected = true>
-auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
-  auto lookup = tenv.lookup(s);
-  CHECK((lookup != nullptr) == expected);
-  if constexpr(expected) {
-    auto t = dynamic_cast<T*>(lookup->t.get());
-    CHECK(t != nullptr);
-  }
-};
-
-template <typename T, bool expected = true>
-auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
-  auto lookup = venv.lookup(s);
-  CHECK((lookup != nullptr) == expected);
-  if constexpr(expected) {
-    CHECK(std::holds_alternative<T>(lookup->v));
-  }
-};
-
-TEST_CASE("nested_scopes_types.tig")
+TEST_SUITE("environment")
 {
-  // We are basically testing the environment for the following program
+  using namespace seman::env;
 
-  /*
+  template <typename T, bool expected = true>
+  auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
+    auto lookup = tenv.lookup(s);
+    CHECK((lookup != nullptr) == expected);
+    if constexpr(expected) {
+      auto t = dynamic_cast<T*>(lookup->t.get());
+      CHECK(t != nullptr);
+    }
+  };
+
+  template <typename T, bool expected = true>
+  auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
+    auto lookup = venv.lookup(s);
+    CHECK((lookup != nullptr) == expected);
+    if constexpr(expected) {
+      CHECK(std::holds_alternative<T>(lookup->v));
+    }
+  };
+
+  TEST_CASE("nested_scopes_types.tig")
+  {
+    // We are basically testing the environment for the following program
+
+    /*
     let
       type T = int
       let 
@@ -48,48 +49,47 @@ TEST_CASE("nested_scopes_types.tig")
     end
   */
 
-  Environment<TEntry> tenv;
-  auto T = symbol::Symbol("T", 1);
-  auto x = symbol::Symbol("x", 2);
-  auto y = symbol::Symbol("y", 3);
-  auto z = symbol::Symbol("z", 4);
-  auto R = symbol::Symbol("R", 5);
-  auto A = symbol::Symbol("A", 6);
+    Environment<TEntry> tenv;
+    auto T = symbol::Symbol("T", 1);
+    auto x = symbol::Symbol("x", 2);
+    auto y = symbol::Symbol("y", 3);
+    auto z = symbol::Symbol("z", 4);
+    auto R = symbol::Symbol("R", 5);
+    auto A = symbol::Symbol("A", 6);
 
-  tenv.begin_scope();
-  tenv.enter(T, TEntry{std::make_shared<seman::types::Integer>()});
-  lookup_tentry<seman::types::Integer>(tenv, T);
+    tenv.begin_scope();
+    tenv.enter(T, TEntry{std::make_shared<seman::types::Integer>()});
+    lookup_tentry<seman::types::Integer>(tenv, T);
 
-  tenv.begin_scope();
-  tenv.enter(T, TEntry{std::make_shared<seman::types::String>()});
-  lookup_tentry<seman::types::String>(tenv, T);
+    tenv.begin_scope();
+    tenv.enter(T, TEntry{std::make_shared<seman::types::String>()});
+    lookup_tentry<seman::types::String>(tenv, T);
 
-  tenv.end_scope();
-  lookup_tentry<seman::types::Integer>(tenv, T);
+    tenv.end_scope();
+    lookup_tentry<seman::types::Integer>(tenv, T);
 
-  std::vector<std::pair<symbol::Symbol, std::shared_ptr<seman::types::Type>>>
-    fields;
-  fields.emplace_back(x, std::make_shared<seman::types::Integer>());
-  fields.emplace_back(y, std::make_shared<seman::types::String>());
-  fields.emplace_back(z, std::make_shared<seman::types::String>());
-  tenv.enter(R, TEntry{std::make_shared<seman::types::Record>(fields)});
+    std::vector<std::pair<symbol::Symbol, seman::types::SharedType>> fields;
+    fields.emplace_back(x, std::make_shared<seman::types::Integer>());
+    fields.emplace_back(y, std::make_shared<seman::types::String>());
+    fields.emplace_back(z, std::make_shared<seman::types::String>());
+    tenv.enter(R, TEntry{std::make_shared<seman::types::Record>(fields)});
 
-  tenv.enter(A,
-             TEntry{std::make_shared<seman::types::Array>(
-               std::make_shared<seman::types::String>())});
+    tenv.enter(A,
+               TEntry{std::make_shared<seman::types::Array>(
+                 std::make_shared<seman::types::String>())});
 
-  lookup_tentry<seman::types::Record>(tenv, R);
-  lookup_tentry<seman::types::Array>(tenv, A);
+    lookup_tentry<seman::types::Record>(tenv, R);
+    lookup_tentry<seman::types::Array>(tenv, A);
 
-  tenv.end_scope();
-  CHECK(tenv.size() == 0);
-}
+    tenv.end_scope();
+    CHECK(tenv.size() == 0);
+  }
 
-TEST_CASE("nested_scopes_vars_funcs.tig")
-{
-  // We are basically testing the environment for the following program
+  TEST_CASE("nested_scopes_vars_funcs.tig")
+  {
+    // We are basically testing the environment for the following program
 
-  /*
+    /*
     let
       var a := 2
       let 
@@ -102,52 +102,51 @@ TEST_CASE("nested_scopes_vars_funcs.tig")
     end
   */
 
-  Environment<VEntry> venv;
-  auto a = symbol::Symbol("a", 1);
-  auto b = symbol::Symbol("b", 2);
-  auto f = symbol::Symbol("f", 3);
-  auto g = symbol::Symbol("g", 4);
-  auto x = symbol::Symbol("x", 5);
-  auto y = symbol::Symbol("y", 6);
+    Environment<VEntry> venv;
+    auto a = symbol::Symbol("a", 1);
+    auto b = symbol::Symbol("b", 2);
+    auto f = symbol::Symbol("f", 3);
+    auto g = symbol::Symbol("g", 4);
+    auto x = symbol::Symbol("x", 5);
+    auto y = symbol::Symbol("y", 6);
 
-  ir::Level::Access ax; // dummy
-  ir::Translator translator;
-  std::shared_ptr<ir::Level> l =
-    translator.new_level(nullptr, ir::Temp::named_label("ldummy"), {}); // dummy
+    ir::Level::Access ax; // dummy
+    ir::Translator translator;
+    std::shared_ptr<ir::Level> l = translator.new_level(
+      nullptr, ir::TempGen::named_label("ldummy"), {}); // dummy
 
-  venv.begin_scope();
-  venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
-  lookup_ventry<VarEntry>(venv, a);
+    venv.begin_scope();
+    venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
+    lookup_ventry<VarEntry>(venv, a);
 
-  venv.begin_scope();
-  venv.enter(b, VarEntry(std::make_shared<seman::types::String>(), ax));
-  lookup_ventry<VarEntry>(venv, b);
+    venv.begin_scope();
+    venv.enter(b, VarEntry(std::make_shared<seman::types::String>(), ax));
+    lookup_ventry<VarEntry>(venv, b);
 
-  std::vector<std::shared_ptr<seman::types::Type>> formals;
-  formals.push_back(std::make_shared<seman::types::Integer>());
-  formals.push_back(std::make_shared<seman::types::String>());
-  venv.enter(f,
-             FuncEntry(ir::Temp::new_label(),
-                       formals,
-                       std::make_shared<seman::types::String>(),
-                       l));
-  lookup_ventry<FuncEntry>(venv, f);
+    std::vector<seman::types::SharedType> formals;
+    formals.push_back(std::make_shared<seman::types::Integer>());
+    formals.push_back(std::make_shared<seman::types::String>());
+    venv.enter(f,
+               FuncEntry(ir::TempGen::new_label(),
+                         formals,
+                         std::make_shared<seman::types::String>(),
+                         l));
+    lookup_ventry<FuncEntry>(venv, f);
 
-  venv.end_scope();
-  lookup_ventry<VarEntry, false>(venv, b);
-  lookup_ventry<VarEntry, false>(venv, f);
+    venv.end_scope();
+    lookup_ventry<VarEntry, false>(venv, b);
+    lookup_ventry<VarEntry, false>(venv, f);
 
-  formals.clear();
-  formals.push_back(std::make_shared<seman::types::String>());
-  venv.enter(g,
-             FuncEntry(ir::Temp::new_label(),
-                       formals,
-                       std::make_shared<seman::types::String>(),
-                       l));
-  lookup_ventry<FuncEntry>(venv, g);
+    formals.clear();
+    formals.push_back(std::make_shared<seman::types::String>());
+    venv.enter(g,
+               FuncEntry(ir::TempGen::new_label(),
+                         formals,
+                         std::make_shared<seman::types::String>(),
+                         l));
+    lookup_ventry<FuncEntry>(venv, g);
 
-  venv.end_scope();
-  CHECK(venv.size() == 0);
+    venv.end_scope();
+    CHECK(venv.size() == 0);
+  }
 }
-
-TEST_SUITE_END();

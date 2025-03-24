@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace ir
+namespace ir::tree
 {
 struct ConstExp;
 struct NameExp;
@@ -38,4 +38,4 @@ class PrettyPrinterStmtVisitor {
   std::string virtual visit_label_stmt(const LabelStmt& stmt) = 0;
 };
 
-} // namespace ir
+} // namespace ir::tree

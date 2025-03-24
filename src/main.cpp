@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 
   ir::Translator translator;
   seman::Analyzer type_checker(string_table, translator);
-  ir::exp_t ir;
+  ir::Exp ir;
   try {
     ir = type_checker.type_check(*exp);
   }
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     return EX_DATAERR;
   }
 
-  ir::PrettyPrinter ir_pretty_printer;
+  ir::tree::PrettyPrinter ir_pretty_printer;
   std::cout << translator.unex(std::move(ir))->accept(ir_pretty_printer)
             << std::endl
             << std::endl;

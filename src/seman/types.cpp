@@ -5,7 +5,7 @@
 namespace seman::types
 {
 
-std::string to_string(const shared_type_t& t)
+std::string to_string(const SharedType& t)
 {
   return t->to_string();
 }

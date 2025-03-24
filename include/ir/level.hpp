@@ -10,7 +10,7 @@ struct Level {
   public:
   struct Access {
     const Level* l{nullptr};
-    arch::Frame::access_t fax;
+    arch::Frame::Access fax;
   };
 
   Level(const Level* parent, const arch::Frame& f)

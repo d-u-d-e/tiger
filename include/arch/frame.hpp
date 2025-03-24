@@ -15,15 +15,12 @@ namespace arch
 
 class Frame {
   public:
-  using temp_t = ir::Temp::temp_t;
-  using label_t = ir::Temp::label_t;
-
   private:
   struct InReg {
-    InReg(temp_t t)
+    InReg(ir::TempGen::Temp t)
       : t(t)
     { }
-    temp_t t;
+    ir::TempGen::Temp t;
   };
 
   struct InFrame {
@@ -35,15 +32,15 @@ class Frame {
   };
 
   public:
-  using access_t = std::variant<std::monostate, InReg, InFrame>;
+  using Access = std::variant<std::monostate, InReg, InFrame>;
   static inline constexpr uint8_t word_size = 4;
 
   // TODO: map this to rbp?
-  static inline auto FP = ir::Temp::new_temp();
+  static inline auto FP = ir::TempGen::new_temp();
   // TODO: map this to rax?
-  static inline auto RV = ir::Temp::new_temp();
+  static inline auto RV = ir::TempGen::new_temp();
 
-  Frame(label_t label, const std::vector<bool>& formals)
+  Frame(ir::TempGen::Label label, const std::vector<bool>& formals)
     : label(label)
   {
     for(auto escape : formals) {
@@ -53,22 +50,22 @@ class Frame {
         off += word_size; // incoming params
       }
       else {
-        formals_.push_back(InReg(ir::Temp::new_temp()));
+        formals_.push_back(InReg(ir::TempGen::new_temp()));
       }
     }
   }
 
-  const std::vector<access_t>& formals() const
+  const std::vector<Access>& formals() const
   {
     return formals_;
   }
 
-  label_t name() const
+  ir::TempGen::Label name() const
   {
     return label;
   }
 
-  access_t alloc_local(bool escape)
+  Access alloc_local(bool escape)
   {
     locals++;
     if(escape) {
@@ -78,7 +75,7 @@ class Frame {
       return InFrame(off);
     }
     else {
-      return InReg(ir::Temp::new_temp());
+      return InReg(ir::TempGen::new_temp());
     }
   }
 
@@ -87,7 +84,7 @@ class Frame {
     return locals;
   }
 
-  static std::string to_string(const access_t& ax)
+  static std::string to_string(const Access& ax)
   {
     if(std::holds_alternative<InReg>(ax)) {
       return std::format("InReg(t{})", std::get<InReg>(ax).t);
@@ -97,34 +94,34 @@ class Frame {
     }
   }
 
-  static ir::ex_t exp(const access_t& fax, ir::ex_t&& fp)
+  static ir::Ex exp(const Access& fax, ir::Ex&& fp)
   {
     // translate an access into an exp
     if(std::holds_alternative<InFrame>(fax)) {
-      auto at = std::make_unique<ir::BinOpExp>(
-        ir::BinaryOp::plus,
+      auto at = std::make_unique<ir::tree::BinOpExp>(
+        ir::tree::BinaryOp::plus,
         std::move(fp),
-        std::make_unique<ir::ConstExp>(std::get<InFrame>(fax).offset));
-      return std::make_unique<ir::MemExp>(std::move(at));
+        std::make_unique<ir::tree::ConstExp>(std::get<InFrame>(fax).offset));
+      return std::make_unique<ir::tree::MemExp>(std::move(at));
     }
     else {
-      return std::make_unique<ir::TempExp>(std::get<InReg>(fax).t);
+      return std::make_unique<ir::tree::TempExp>(std::get<InReg>(fax).t);
     }
     assert(false);
   }
 
-  static ir::ex_t external_call(ir::Temp::label_t label,
-                                std::vector<ir::ex_t>&& args)
+  static ir::Ex external_call(ir::TempGen::Label label,
+                                std::vector<ir::Ex>&& args)
   {
     // no need to do anything
-    return std::make_unique<ir::CallExp>(std::make_unique<ir::NameExp>(label),
+    return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
                                          std::move(args));
   }
 
   private:
   int16_t offset{};
-  std::vector<access_t> formals_;
-  label_t label;
+  std::vector<Access> formals_;
+  ir::TempGen::Label label;
   uint16_t locals{};
 };
 

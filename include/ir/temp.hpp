@@ -7,39 +7,39 @@
 namespace ir
 {
 
-class Temp {
+class TempGen {
   public:
-  using label_t = symbol::Symbol;
-  using temp_t = uint32_t;
+  using Label = symbol::Symbol;
+  using Temp = uint32_t;
 
-  Temp(const Temp&) = delete;
-  void operator=(const Temp&) = delete;
+  TempGen(const TempGen&) = delete;
+  void operator=(const TempGen&) = delete;
 
-  static Temp& getInstance()
+  static TempGen& getInstance()
   {
-    static Temp t;
+    static TempGen t;
     return t;
   }
 
-  static label_t new_label()
+  static Label new_label()
   {
     auto lid = getInstance().lid++;
     return getInstance().table.symbol(std::format("L{}", lid));
   }
 
-  static label_t named_label(const std::string& s)
+  static Label named_label(const std::string& s)
   {
     return getInstance().table.symbol(s);
   }
 
-  static temp_t new_temp()
+  static Temp new_temp()
   {
     auto tid = getInstance().tid++;
     return tid;
   }
 
   private:
-  Temp() = default;
+  TempGen() = default;
 
   symbol::StringTable table;
   uint32_t lid{0};

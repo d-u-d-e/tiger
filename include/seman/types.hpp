@@ -14,7 +14,7 @@ class Type {
   virtual ~Type() = default;
   virtual std::string to_string() = 0;
 };
-using shared_type_t = std::shared_ptr<Type>;
+using SharedType = std::shared_ptr<Type>;
 
 struct Integer : public Type {
   std::string to_string() override;
@@ -32,39 +32,39 @@ struct Unit : public Type {
 };
 
 struct Record : public Type {
-  explicit Record(std::vector<std::pair<symbol::Symbol, shared_type_t>> fields)
+  explicit Record(std::vector<std::pair<symbol::Symbol, SharedType>> fields)
     : fields(std::move(fields))
   { }
 
   std::string to_string() override;
-  std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
+  std::vector<std::pair<symbol::Symbol, SharedType>> fields;
 };
 
 struct Array : public Type {
-  explicit Array(shared_type_t type)
+  explicit Array(SharedType type)
     : type(std::move(type))
   { }
 
   std::string to_string() override;
-  shared_type_t type;
+  SharedType type;
 };
 
 struct Name : public Type {
-  explicit Name(const symbol::Symbol& name, shared_type_t type)
+  explicit Name(const symbol::Symbol& name, SharedType type)
     : name(name)
     , type(std::move(type))
   { }
 
   std::string to_string() override;
   symbol::Symbol name;
-  shared_type_t type;
+  SharedType type;
 };
 
 struct Result {
-  shared_type_t type;
-  ir::exp_t ir;
+  SharedType type;
+  ir::Exp ir;
 };
 
-std::string to_string(const shared_type_t& t);
+std::string to_string(const SharedType& t);
 
 } // namespace seman::types

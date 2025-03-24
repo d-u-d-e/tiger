@@ -26,7 +26,7 @@ class Analyzer : public TypeCheckerExprVisitor,
 
   public:
   Analyzer(symbol::StringTable& string_table, ir::Translator& translator);
-  ir::exp_t type_check(const parser::ast::Expression& exp);
+  ir::Exp type_check(const parser::ast::Expression& exp);
 
   Result visit_string_exp(const parser::ast::StringExp& exp) override;
   Result visit_assign_exp(const parser::ast::AssignExp& exp) override;
@@ -48,9 +48,9 @@ class Analyzer : public TypeCheckerExprVisitor,
   Result visit_var_decl(const parser::ast::VarDecl& decl) override;
   Result visit_type_decl(const parser::ast::TypeDecl& decl) override;
 
-  shared_type_t visit_name_type(const parser::ast::NameType& type) override;
-  shared_type_t visit_array_type(const parser::ast::ArrayType& type) override;
-  shared_type_t visit_record_type(const parser::ast::RecordType& type) override;
+  SharedType visit_name_type(const parser::ast::NameType& type) override;
+  SharedType visit_array_type(const parser::ast::ArrayType& type) override;
+  SharedType visit_record_type(const parser::ast::RecordType& type) override;
 
   Result visit_simple_var(const parser::ast::SimpleVar& var) override;
   Result visit_field_var(const parser::ast::FieldVar& var) override;
@@ -61,21 +61,21 @@ class Analyzer : public TypeCheckerExprVisitor,
   void add_predefined_functions();
   template <typename... Args>
   void add_predef_func(const symbol::Symbol& s,
-                       const shared_type_t& ret,
+                       const SharedType& ret,
                        Args&&... formals);
 
   template <typename T>
-  bool is_type(const shared_type_t& t);
-  bool can_assign(const shared_type_t& tlhs, const shared_type_t& trhs);
-  bool same_types(const shared_type_t& t1, const shared_type_t& t2)
+  bool is_type(const SharedType& t);
+  bool can_assign(const SharedType& tlhs, const SharedType& trhs);
+  bool same_types(const SharedType& t1, const SharedType& t2)
   {
     return t1 == t2;
   }
   void error_at(const lexer::Position& pos, const std::string& err_msg);
 
   void detect_cycles(const parser::ast::TypeDecl& decl);
-  shared_type_t skip_name_types(const shared_type_t& t);
-  ir::Temp::label_t* lbreak{nullptr};
+  SharedType skip_name_types(const SharedType& t);
+  ir::TempGen::Label* lbreak{nullptr};
   symbol::StringTable& string_table;
   ir::Translator& translator;
   std::shared_ptr<ir::Level> current_level{};

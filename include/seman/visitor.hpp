@@ -60,11 +60,11 @@ class TypeCheckerDeclVisitor {
 
 class TypeCheckerTypeVisitor {
   public:
-  types::shared_type_t virtual visit_name_type(
+  types::SharedType virtual visit_name_type(
     const parser::ast::NameType& type) = 0;
-  types::shared_type_t virtual visit_array_type(
+  types::SharedType virtual visit_array_type(
     const parser::ast::ArrayType& type) = 0;
-  types::shared_type_t virtual visit_record_type(
+  types::SharedType virtual visit_record_type(
     const parser::ast::RecordType& type) = 0;
 };
 

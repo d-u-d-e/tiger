@@ -50,13 +50,13 @@ void Analyzer::add_predefined_types()
 
 template <typename... Args>
 void Analyzer::add_predef_func(const symbol::Symbol& s,
-                               const shared_type_t& ret,
+                               const SharedType& ret,
                                Args&&... formals)
 {
   venv.enter(
     s,
-    env::FuncEntry(ir::Temp::named_label(s.str()),
-                   std::vector<shared_type_t>{std::forward<Args>(formals)...},
+    env::FuncEntry(ir::TempGen::named_label(s.str()),
+                   std::vector<SharedType>{std::forward<Args>(formals)...},
                    ret,
                    translator.outermost_level()));
 }
@@ -86,7 +86,7 @@ void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
     std::format("[line {}:{}] Err: {}", pos.line, pos.column, err_msg));
 }
 
-ir::exp_t Analyzer::type_check(const parser::ast::Expression& exp)
+ir::Exp Analyzer::type_check(const parser::ast::Expression& exp)
 {
   auto t = exp.accept(*this);
   return std::move(t.ir);
@@ -113,13 +113,13 @@ Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 };
 
 template <typename T>
-bool Analyzer::is_type(const shared_type_t& t)
+bool Analyzer::is_type(const SharedType& t)
 {
   auto& r = *t;
   return typeid(r) == typeid(T);
 }
 
-bool Analyzer::can_assign(const shared_type_t& tlhs, const shared_type_t& trhs)
+bool Analyzer::can_assign(const SharedType& tlhs, const SharedType& trhs)
 {
   if(is_type<Record>(tlhs) && is_type<Nil>(trhs)) {
     return true;
@@ -127,10 +127,10 @@ bool Analyzer::can_assign(const shared_type_t& tlhs, const shared_type_t& trhs)
   return same_types(tlhs, trhs);
 }
 
-shared_type_t Analyzer::skip_name_types(const shared_type_t& t)
+SharedType Analyzer::skip_name_types(const SharedType& t)
 {
   // the exit guarantee follows in case there are no cycles
-  shared_type_t r = t;
+  SharedType r = t;
   while(is_type<Name>(r)) {
     r = (*tenv.lookup(dynamic_cast<const Name*>(r.get())->name)).t;
   }
@@ -209,8 +209,8 @@ Result Analyzer::visit_var_exp(const parser::ast::VarExp& exp)
 
 Result Analyzer::visit_seq_exp(const parser::ast::SeqExp& exp)
 {
-  std::vector<ir::exp_t> exps;
-  shared_type_t tres{unit_type};
+  std::vector<ir::Exp> exps;
+  SharedType tres{unit_type};
   for(auto& [e, pos] : exp.exps) {
     auto [type, ir] = e->accept(*this);
     tres = type;
@@ -269,7 +269,7 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   }
 
   // typecheck record fields
-  std::vector<ir::exp_t> fields;
+  std::vector<ir::Exp> fields;
   for(size_t i = 0; i < rsize; i++) {
     auto& formal = trec->fields[i];
     auto& actual = exp.fields[i];
@@ -351,8 +351,8 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
     error_at(exp.position, "the condition must be an integer");
   }
 
-  ir::Temp::label_t* break_saved = lbreak;
-  auto blab = ir::Temp::new_label();
+  ir::TempGen::Label* break_saved = lbreak;
+  auto blab = ir::TempGen::new_label();
   lbreak = &blab;
 
   // body must not produce any value
@@ -381,8 +381,8 @@ Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     error_at(exp.position, "the upper bound must be an integer");
   }
 
-  ir::Temp::label_t* break_saved = lbreak;
-  auto blab = ir::Temp::new_label();
+  ir::TempGen::Label* break_saved = lbreak;
+  auto blab = ir::TempGen::new_label();
   lbreak = &blab;
 
   venv.begin_scope();
@@ -428,7 +428,7 @@ Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)
              std::format("expected {} arguments, got {}", fsize, asize));
   }
 
-  std::vector<ir::exp_t> arg_exps;
+  std::vector<ir::Exp> arg_exps;
   for(size_t i = 0; i < asize; i++) {
     auto [tactual, ir] = exp.args[i]->accept(*this);
     auto texpected = fentry.formals[i];
@@ -454,7 +454,7 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   tenv.begin_scope();
   venv.begin_scope();
 
-  std::vector<ir::exp_t> exp_list;
+  std::vector<ir::Exp> exp_list;
   for(auto& decl : exp.decls) {
     auto r = decl->accept(*this);
     if(!std::holds_alternative<std::monostate>(r.ir)) {
@@ -502,7 +502,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
 
     // type check the parameters
     std::vector<bool> escapes;
-    std::vector<shared_type_t> formals;
+    std::vector<SharedType> formals;
     for(auto& param : fdecl->params) {
       auto tparam = tenv.lookup(param.type);
       if(!tparam) {
@@ -515,7 +515,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     }
 
     // typecheck return type (not against expression)
-    shared_type_t tresult = unit_type;
+    SharedType tresult = unit_type;
     if(fdecl->result) {
       auto fdecl_result = fdecl->result.value();
       auto opt_tresult = tenv.lookup(fdecl_result.first);
@@ -528,7 +528,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
     }
 
     // add the function header
-    auto flabel = ir::Temp::new_label();
+    auto flabel = ir::TempGen::new_label();
     venv.enter(fdecl->name,
                env::FuncEntry(
                  flabel,
@@ -706,7 +706,7 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   */
 
   // this can be made more efficient
-  std::unordered_set<shared_type_t> visited;
+  std::unordered_set<SharedType> visited;
   for(auto& tdecl : decl.decls) {
     visited.clear();
     auto actual = tenv.lookup(tdecl->name)->t;
@@ -734,7 +734,7 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
   }
 }
 
-shared_type_t Analyzer::visit_name_type(const parser::ast::NameType& type)
+SharedType Analyzer::visit_name_type(const parser::ast::NameType& type)
 {
   auto ty = tenv.lookup(type.name);
   if(!ty) {
@@ -744,7 +744,7 @@ shared_type_t Analyzer::visit_name_type(const parser::ast::NameType& type)
   return ty->t;
 };
 
-shared_type_t Analyzer::visit_array_type(const parser::ast::ArrayType& type)
+SharedType Analyzer::visit_array_type(const parser::ast::ArrayType& type)
 {
   auto elem_type = tenv.lookup(type.name);
   if(!elem_type) {
@@ -754,9 +754,9 @@ shared_type_t Analyzer::visit_array_type(const parser::ast::ArrayType& type)
   return std::make_shared<Array>(elem_type->t);
 };
 
-shared_type_t Analyzer::visit_record_type(const parser::ast::RecordType& type)
+SharedType Analyzer::visit_record_type(const parser::ast::RecordType& type)
 {
-  std::vector<std::pair<symbol::Symbol, shared_type_t>> fields;
+  std::vector<std::pair<symbol::Symbol, SharedType>> fields;
   for(auto& field : type.fields) {
     auto tfield = tenv.lookup(field.type);
     if(!tfield) {

@@ -5,14 +5,15 @@
 #include <lexer/token.hpp>
 #include <string>
 
-TEST_SUITE_BEGIN("lexer");
-
-TEST_CASE("queens.tig")
+TEST_SUITE("lexer")
 {
-  lexer::Scanner scanner(std::filesystem::path("../tests/book/queens.tig"));
 
-  const lexer::Token tokens[] = {
-    // clang-format off
+  TEST_CASE("queens.tig")
+  {
+    lexer::Scanner scanner(std::filesystem::path("../tests/book/queens.tig"));
+
+    const lexer::Token tokens[] = {
+      // clang-format off
     {lexer::TokenType::let_keyword, "let", lexer::Position(3, 1)},
 
     {lexer::TokenType::var_keyword, "var", lexer::Position(4, 5)},
@@ -287,18 +288,17 @@ TEST_CASE("multiline-string")
   std::string s = std::string("var s : string = \"hello \\n\\\n") + 
   "world\\\n" + 
   "!!!\"";
-  // clang-format on
-  lexer::Scanner scanner(s);
+    // clang-format on
+    lexer::Scanner scanner(s);
 
-  CHECK_NOTHROW(CHECK((
-    // clang-format off
+    CHECK_NOTHROW(CHECK((
+      // clang-format off
     scanner.next() == lexer::Token(lexer::TokenType::var_keyword, "var", lexer::Position(1, 1)) &&
     scanner.next() == lexer::Token(lexer::TokenType::identifier, "s", lexer::Position(1, 5)) &&
     scanner.next() == lexer::Token(lexer::TokenType::colon, ":", lexer::Position(1, 7)) &&
     scanner.next() == lexer::Token(lexer::TokenType::identifier, "string", lexer::Position(1, 9)) &&
     scanner.next() == lexer::Token(lexer::TokenType::equal_op, "=", lexer::Position(1, 16)) &&
     scanner.next() == lexer::Token(lexer::TokenType::string_literal, "hello \nworld!!!", lexer::Position(1, 18)))););
-  // clang-format on
+    // clang-format on
+  }
 }
-
-TEST_SUITE_END();

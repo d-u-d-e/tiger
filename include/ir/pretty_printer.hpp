@@ -6,7 +6,7 @@
 #include <ir/visitor.hpp>
 #include <string>
 
-namespace ir
+namespace ir::tree
 {
 
 class PrettyPrinter : public PrettyPrinterExprVisitor,
@@ -242,4 +242,4 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
   }
 };
 
-} // namespace ir
+} // namespace ir::tree
