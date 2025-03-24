@@ -15,13 +15,17 @@
 #include <variant>
 #include <vector>
 
+template <class... Ts>
+struct overloads : Ts... {
+  using Ts::operator()...;
+};
+
 namespace ir
 {
 
 Exp Translator::simple_var(const Level::Access& var_ax, const Level* current)
 {
-  std::unique_ptr<tree::Exp> fp_exp =
-    std::make_unique<tree::TempExp>(arch::Frame::FP);
+  tree::Exp fp_exp = std::make_unique<tree::TempExp>(arch::Frame::FP);
 
   while(var_ax.l != current) {
     // first arg holds the static link
@@ -521,11 +525,6 @@ Cx Translator::uncx(Exp&& exp)
   std::unreachable();
 }
 
-template <class... Ts>
-struct overloads : Ts... {
-  using Ts::operator()...;
-};
-
 std::string Translator::dump_fragment(const Fragment& f) const
 {
   auto dump_proc_frag = [](const ProcedureFragment& pf) -> std::string {
@@ -534,7 +533,7 @@ std::string Translator::dump_fragment(const Fragment& f) const
                               pf.frame.name().str(),
                               pf.frame.formals().size(),
                               pf.frame.locals_count());
-    auto ir_str = pf.body->accept(printer) + "\n";
+    auto ir_str = std::visit(printer, pf.body) + "\n";
     result += ir_str + "------------------------------";
     return result;
   };
@@ -547,6 +546,8 @@ std::string Translator::dump_fragment(const Fragment& f) const
   };
 
   return std::visit(overloads{dump_proc_frag, dump_string_frag}, f);
+  (void)f;
+  return "";
 }
 
 } // namespace ir
