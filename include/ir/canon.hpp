@@ -30,17 +30,20 @@ class Canon {
     }
   }
 
-  std::pair<Stmt, Exp> do_exp(Exp&& e)
-  {
-    // TODO visitor
-    (void)e;
-    return {};
-  }
+  std::pair<Stmt, Exp> do_exp(Exp&& e);
+  Stmt do_stmt(Stmt&& s);
 
   Stmt concat(Stmt&& s1, Stmt&& s2)
   {
     return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
   }
+
+  std::pair<Stmt, Exp>
+  reorder_exp(std::list<Exp>&& el,
+              std::function<Exp(std::list<Exp>&&)> build_fn);
+
+  Stmt reorder_stmt(std::list<Exp>&& l,
+                    std::function<Stmt(std::list<Exp>&&)> build_fn);
 
   std::pair<Stmt, std::list<Exp>> reorder(std::list<Exp>&& el)
   {
