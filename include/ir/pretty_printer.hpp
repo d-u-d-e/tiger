@@ -104,16 +104,13 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
   {
     std::string r = indent() + "JumpStmt(\n";
     depth++;
-    r += stmt.a->accept(*this) + "\n";
+    r += stmt.a->accept(*this) + ",\n";
     r += indent() + "[";
-    depth++;
     auto size = stmt.labels.size();
     for(size_t i = 0; i < size; i++) {
       auto& l = stmt.labels[i];
-      r += l.str() + ((i == size - 1) ? "\n" : ",\n");
+      r += l.str() + ((i == size - 1) ? "]\n" : ", ");
     }
-    depth--;
-    r += indent() + "]";
     depth--;
     r += indent() + ")";
     return r;
