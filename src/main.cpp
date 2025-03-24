@@ -17,6 +17,8 @@
 #include <seman/escape.hpp>
 #include <utility>
 
+#include <ir/canon.hpp>
+
 int main(int argc, char** argv)
 {
   if(argc != 2) {
