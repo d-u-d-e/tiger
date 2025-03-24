@@ -26,6 +26,7 @@ Stmt Canon::reorder_stmt(std::list<Exp>&& l,
 std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
 {
   // This mimics do_exp from Appel's solutions (so much verbose here, thanks C++)
+  // TODO move this inside this class
 
   auto visitor = overloads{
     [&exp](std::unique_ptr<ConstExp> e) {
@@ -99,35 +100,81 @@ Stmt Canon::do_stmt(Stmt&& s)
 {
   // This mimics do_exp from Appel's solutions (so much verbose here, thanks C++)
 
-  auto visitor = overloads{[](std::unique_ptr<MoveStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           },
+  /*
+    | do_stm(T.MOVE(T.TEMP t,b)) = 
+	       reorder_stm([b],fn[b]=>T.MOVE(T.TEMP t,b))
+    | do_stm(T.MOVE(T.MEM e,b)) = 
+	       reorder_stm([e,b],fn[e,b]=>T.MOVE(T.MEM e,b))
+    | do_stm(T.MOVE(T.ESEQ(s,e),b)) = 
+	       do_stm(T.SEQ(s,T.MOVE(e,b)))
+*/
 
-                           [](std::unique_ptr<ExpStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           },
+  // TODO move this inside this class
+  auto visitor = overloads{
+    [](std::unique_ptr<MoveStmt> s) {
+      // TODO
+      return Stmt(std::move(s));
+    },
 
-                           [](std::unique_ptr<JumpStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           },
+    [this](std::unique_ptr<ExpStmt> s) {
+      std::list<Exp> subexps;
 
-                           [](std::unique_ptr<CJumpStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           },
+      if(std::holds_alternative<std::unique_ptr<CallExp>>(s->exp)) {
+        auto ce = std::move(std::get<std::unique_ptr<CallExp>>(s->exp));
+        std::list<Exp> subexps;
+        subexps.push_back(std::move(ce->fun));
+        std::move(ce->args.begin(), ce->args.begin(), subexps.end());
 
-                           [](std::unique_ptr<SeqStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           },
+        return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
+          auto f = std::move(l.front());
+          l.pop_front();
+          std::vector<Exp> args;
+          std::move(l.begin(), l.end(), args.begin());
+          return std::make_unique<ExpStmt>(
+            std::make_unique<CallExp>(std::move(f), std::move(args)));
+        });
+      }
 
-                           [](std::unique_ptr<LabelStmt> s) {
-                             // TODO
-                             return Stmt(std::move(s));
-                           }};
+      subexps.push_back(std::move(s->exp));
+      return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
+        auto e1 = std::move(l.front());
+        l.pop_front();
+        return std::make_unique<ExpStmt>(std::move(e1));
+      });
+    },
+
+    [this](std::unique_ptr<JumpStmt> s) {
+      std::list<Exp> subexps;
+      subexps.push_back(std::move(s->a));
+      return reorder_stmt(
+        std::move(subexps), [labs = s->labels](std::list<Exp>&& l) {
+          auto a = std::move(l.front());
+          l.pop_front();
+          return std::make_unique<JumpStmt>(std::move(a), labs);
+        });
+    },
+
+    [this](std::unique_ptr<CJumpStmt> s) {
+      std::list<Exp> subexps;
+      subexps.push_back(std::move(s->lexp));
+      subexps.push_back(std::move(s->rexp));
+      return reorder_stmt(
+        std::move(subexps),
+        [tlab = s->tlabel, flab = s->flabel, op = s->op](std::list<Exp>&& l) {
+          auto lexp = std::move(l.front());
+          l.pop_front();
+          auto rexp = std::move(l.front());
+          l.pop_front();
+          return std::make_unique<CJumpStmt>(
+            op, std::move(lexp), std::move(rexp), tlab, flab);
+        });
+    },
+
+    [this](std::unique_ptr<SeqStmt> s) {
+      return concat(do_stmt(std::move(s->stm1)), do_stmt(std::move(s->stm1)));
+    },
+
+    [](std::unique_ptr<LabelStmt> s) { return Stmt(std::move(s)); }};
 
   return std::visit(visitor, std::move(s));
 }
