@@ -351,9 +351,9 @@ Exp Translator::for_exp(const Level::Access& iax,
   auto t = TempGen::new_label();
 
   // id := low; ltest:
-  auto s1 = assign(simple_var(iax, iax.l), std::move(low));
+  auto ass = assign(simple_var(iax, iax.l), std::move(low));
   auto seq = std::make_unique<tree::SeqStmt>(
-    unnx(std::move(s1)), std::make_unique<tree::LabelStmt>(ltest));
+    unnx(std::move(ass)), std::make_unique<tree::LabelStmt>(ltest));
   // cjump(id <= high, t, lbreak)
   seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
@@ -368,6 +368,14 @@ Exp Translator::for_exp(const Level::Access& iax,
                                         std::make_unique<tree::LabelStmt>(t));
   // (body)
   seq = std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(body)));
+
+  // id := id + 1
+  auto inc = std::make_unique<tree::BinOpExp>(
+    tree::BinaryOp::plus, unex(simple_var(iax, iax.l)), constant((1)));
+
+  seq = std::make_unique<tree::SeqStmt>(
+    std::move(seq), unnx(assign(simple_var(iax, iax.l), std::move(inc))));
+
   // jump(ltest)
   seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
