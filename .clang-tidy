@@ -5,7 +5,6 @@ Checks: >
   readability-*,
   modernize-*,
   -modernize-use-trailing-return-type,
-  AllowPartialMove,
   cppcoreguidelines-*,
   clang-analyzer-*,
   misc-*,
