@@ -1,4 +1,6 @@
+#include <cstddef>
 #include <seman/types.hpp>
+#include <string>
 
 namespace seman::types
 {
@@ -51,4 +53,4 @@ std::string Name::to_string()
   return name.str();
 }
 
-} // namespace semantic::types
+} // namespace seman::types

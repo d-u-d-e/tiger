@@ -1,7 +1,9 @@
 #pragma once
 #include <ir/tree.hpp>
 #include <memory>
+#include <string>
 #include <symbol.hpp>
+#include <utility>
 #include <vector>
 
 namespace seman::types

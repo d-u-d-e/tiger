@@ -1,5 +1,9 @@
 #include <doctest/doctest.h>
+#include <filesystem>
 #include <lexer/lex.hpp>
+#include <lexer/position.hpp>
+#include <lexer/token.hpp>
+#include <string>
 
 TEST_SUITE_BEGIN("lexer");
 

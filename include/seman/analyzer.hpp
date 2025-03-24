@@ -1,7 +1,15 @@
 #pragma once
+#include <ir/level.hpp>
+#include <ir/temp.hpp>
 #include <ir/translator.hpp>
+#include <ir/tree.hpp>
+#include <lexer/position.hpp>
+#include <memory>
 #include <parser/ast.hpp>
+#include <seman/env.hpp>
+#include <seman/types.hpp>
 #include <seman/visitor.hpp>
+#include <string>
 #include <symbol.hpp>
 
 namespace seman

@@ -1,11 +1,17 @@
 #pragma once
+#include <algorithm>
 #include <arch/frame.hpp>
+#include <cassert>
+#include <cstddef>
 #include <ir/fragment.hpp>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <memory>
 #include <parser/ast.hpp>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace ir
 {
@@ -52,7 +58,7 @@ class Translator {
     return Level::Access{.l = &level, .fax = level.f.alloc_local(escape)};
   }
 
-  exp_t simple_var(const Level::Access& ax, const Level* current);
+  static exp_t simple_var(const Level::Access& ax, const Level* current);
   exp_t seq_exp(std::vector<ir::exp_t>&& exps);
   ex_t constant(size_t constant);
   exp_t call_exp(Temp::label_t name,

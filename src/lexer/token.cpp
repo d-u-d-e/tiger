@@ -1,4 +1,9 @@
+#include <cassert>
+#include <format>
 #include <lexer/token.hpp>
+#include <ostream>
+#include <string>
+#include <unordered_map>
 #include <utility>
 
 namespace lexer

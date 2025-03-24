@@ -1,7 +1,10 @@
 #pragma once
 #include <cassert>
+#include <cstddef>
+#include <format>
 #include <ir/tree.hpp>
 #include <ir/visitor.hpp>
+#include <string>
 
 namespace ir
 {

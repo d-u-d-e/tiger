@@ -1,5 +1,6 @@
 #pragma once
 #include <arch/frame.hpp>
+#include <vector>
 
 namespace ir
 {

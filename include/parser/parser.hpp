@@ -1,10 +1,15 @@
 #pragma once
 #include <functional>
 #include <lexer/lex.hpp>
+#include <lexer/token.hpp>
+#include <memory>
+#include <ostream>
 #include <parser/ast.hpp>
+#include <string>
 #include <symbol.hpp>
-
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace parser
 {

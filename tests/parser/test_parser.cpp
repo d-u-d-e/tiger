@@ -1,6 +1,9 @@
 #include <doctest/doctest.h>
+#include <filesystem>
 #include <lexer/lex.hpp>
 #include <parser/parser.hpp>
+#include <sstream>
+#include <string>
 #include <symbol.hpp>
 
 TEST_SUITE_BEGIN("parser");

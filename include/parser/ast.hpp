@@ -7,6 +7,7 @@
 #include <seman/env.hpp>
 #include <seman/types.hpp>
 #include <seman/visitor.hpp>
+#include <string>
 #include <symbol.hpp>
 #include <utility>
 #include <vector>
@@ -641,7 +642,8 @@ class VarDecl : public Declaration {
     return visitor.visit_var_decl(*this);
   }
 
-  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result
+  accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_var_decl(*this);
   }
@@ -683,12 +685,13 @@ class TypeDecl : public Declaration {
   TypeDecl(std::vector<std::unique_ptr<_TypeDecl>> decls)
     : decls(std::move(decls))
   { }
-  std::string accept(PrettyPrinterDeclVisitor& visitor) const
+  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
   {
     return visitor.visit_type_decl(*this);
   }
 
-  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result
+  accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_type_decl(*this);
   }
@@ -724,7 +727,7 @@ class RecordType : public Type {
   RecordType(std::vector<_Field> fields)
     : fields(std::move(fields))
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
   {
     return visitor.visit_record_type(*this);
   }
@@ -744,7 +747,7 @@ class ArrayType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
   {
     return visitor.visit_array_type(*this);
   }
@@ -765,7 +768,7 @@ class NameType : public Type {
     : name(name)
     , position(position)
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
   {
     return visitor.visit_name_type(*this);
   }
@@ -806,12 +809,13 @@ class FuncDecl : public Declaration {
     : decls(std::move(decls))
   { }
   std::vector<std::unique_ptr<_FuncDecl>> decls;
-  std::string accept(PrettyPrinterDeclVisitor& visitor) const
+  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
   {
     return visitor.visit_func_decl(*this);
   }
 
-  seman::types::Result accept(seman::TypeCheckerDeclVisitor& visitor) const override
+  seman::types::Result
+  accept(seman::TypeCheckerDeclVisitor& visitor) const override
   {
     return visitor.visit_func_decl(*this);
   }

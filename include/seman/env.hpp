@@ -1,14 +1,18 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
-#include <format>
+#include <cstddef>
 #include <ir/level.hpp>
+#include <ir/temp.hpp>
 #include <list>
 #include <memory>
-#include <optional>
 #include <seman/types.hpp>
 #include <stack>
+#include <string>
+#include <symbol.hpp>
+#include <utility>
 #include <variant>
+#include <vector>
 
 namespace seman::env
 {

@@ -1,7 +1,11 @@
 #pragma once
 
 #include <arch/frame.hpp>
+#include <ir/temp.hpp>
 #include <ir/tree.hpp>
+#include <memory>
+#include <string>
+#include <variant>
 
 namespace ir
 {

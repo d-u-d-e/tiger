@@ -1,6 +1,20 @@
 
+#include <cassert>
+#include <format>
+#include <functional>
+#include <lexer/position.hpp>
+#include <lexer/token.hpp>
+#include <memory>
+#include <optional>
+#include <ostream>
+#include <parser/ast.hpp>
 #include <parser/parser.hpp>
+#include <stdexcept>
+#include <string>
+#include <symbol.hpp>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace parser
 {

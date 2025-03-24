@@ -30,7 +30,6 @@ class RecordType;
 
 class PrettyPrinterExprVisitor {
   public:
-  // clang-format off
   std::string virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
   std::string virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
   std::string virtual visit_op_exp(const parser::ast::OpExp& exp) = 0;
@@ -46,34 +45,29 @@ class PrettyPrinterExprVisitor {
   std::string virtual visit_for_exp(const parser::ast::ForExp& exp) = 0;
   std::string virtual visit_call_exp(const parser::ast::CallExp& exp) = 0;
   std::string virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
-  // clang-format on
 };
 
 class PrettyPrinterDeclVisitor {
   public:
-  // clang-format off
   std::string virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
   std::string virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
   std::string virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
-  // clang-format on
 };
 
 class PrettyPrinterTypeVisitor {
   public:
-  // clang-format off
   std::string virtual visit_name_type(const parser::ast::NameType& type) = 0;
   std::string virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
-  std::string virtual visit_record_type(const parser::ast::RecordType& type) = 0;
-  // clang-format on
+  std::string virtual visit_record_type(
+    const parser::ast::RecordType& type) = 0;
 };
 
 class PrettyPrinterVarVisitor {
   public:
-  // clang-format off
   std::string virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   std::string virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
-  std::string virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
-  // clang-format on
+  std::string virtual visit_subscript_var(
+    const parser::ast::SubscriptVar& var) = 0;
 };
 
 }; // namespace parser::ast

@@ -1,8 +1,12 @@
 #pragma once
+#include <cstddef>
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/visitor.hpp>
 #include <memory>
+#include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace ir

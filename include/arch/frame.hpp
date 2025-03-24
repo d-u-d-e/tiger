@@ -1,8 +1,13 @@
 #pragma once
 #include <cassert>
+#include <cstdint>
+#include <format>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <memory>
+#include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace arch

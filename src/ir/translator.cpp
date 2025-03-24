@@ -1,8 +1,19 @@
 #include <arch/frame.hpp>
 #include <cassert>
+#include <cstddef>
+#include <format>
+#include <ir/fragment.hpp>
+#include <ir/level.hpp>
 #include <ir/pretty_printer.hpp>
+#include <ir/temp.hpp>
 #include <ir/translator.hpp>
+#include <ir/tree.hpp>
+#include <memory>
+#include <parser/ast.hpp>
+#include <string>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace ir
 {
@@ -10,16 +21,16 @@ namespace ir
 ir::exp_t Translator::simple_var(const Level::Access& var_ax,
                                  const Level* current)
 {
-  std::unique_ptr<Exp> fp = std::make_unique<TempExp>(arch::Frame::FP);
+  std::unique_ptr<Exp> fp_exp = std::make_unique<TempExp>(arch::Frame::FP);
 
   while(var_ax.l != current) {
     // first arg holds the static link
     auto slink = current->formals[0].fax;
-    fp = arch::Frame::exp(slink, std::move(fp));
+    fp_exp = arch::Frame::exp(slink, std::move(fp_exp));
     current = current->parent;
     assert(current != nullptr);
   }
-  return arch::Frame::exp(var_ax.fax, std::move(fp));
+  return arch::Frame::exp(var_ax.fax, std::move(fp_exp));
 }
 
 ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
@@ -28,7 +39,7 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
   if(0 == size) {
     return unnx(std::make_unique<ir::ConstExp>(0));
   }
-  else if(1 == size) {
+  if(1 == size) {
     return std::move(exps[0]);
   }
 
@@ -38,7 +49,7 @@ ir::exp_t Translator::seq_exp(std::vector<ir::exp_t>&& exps)
     stmt_seq = std::make_unique<ir::SeqStmt>(std::move(stmt_seq),
                                              unnx(std::move(exps[i])));
   }
-  return std::make_unique<ir::ESeqExp>(move(stmt_seq),
+  return std::make_unique<ir::ESeqExp>(std::move(stmt_seq),
                                        unex(std::move(exps[size - 1])));
 }
 

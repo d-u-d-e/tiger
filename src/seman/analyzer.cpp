@@ -1,6 +1,23 @@
-#include <iostream>
+#include <cassert>
+#include <cstddef>
+#include <format>
+#include <ir/level.hpp>
+#include <ir/temp.hpp>
+#include <ir/translator.hpp>
+#include <ir/tree.hpp>
+#include <lexer/position.hpp>
+#include <memory>
+#include <parser/ast.hpp>
 #include <seman/analyzer.hpp>
+#include <seman/env.hpp>
+#include <seman/types.hpp>
+#include <stdexcept>
+#include <string>
+#include <symbol.hpp>
 #include <unordered_set>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace seman
 {
@@ -98,7 +115,8 @@ Result Analyzer::visit_assign_exp(const parser::ast::AssignExp& exp)
 template <typename T>
 bool Analyzer::is_type(const shared_type_t& t)
 {
-  return typeid(*t) == typeid(T);
+  auto& r = *t;
+  return typeid(r) == typeid(T);
 }
 
 bool Analyzer::can_assign(const shared_type_t& tlhs, const shared_type_t& trhs)

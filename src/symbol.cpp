@@ -1,5 +1,6 @@
 #include <cassert>
 #include <format>
+#include <string>
 #include <symbol.hpp>
 
 namespace symbol

@@ -1,0 +1,17 @@
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  AllowPartialMove,
+  cppcoreguidelines-*,
+  clang-analyzer-*,
+  misc-*,
+  portability-*,
+  hicpp-*
+
+CheckOptions:
+- key: cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove
+value: true

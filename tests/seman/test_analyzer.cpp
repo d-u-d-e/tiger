@@ -1,8 +1,13 @@
+#include <array>
 #include <doctest/doctest.h>
+#include <filesystem>
 #include <ir/translator.hpp>
 #include <lexer/lex.hpp>
 #include <parser/parser.hpp>
 #include <seman/analyzer.hpp>
+#include <sstream>
+#include <string>
+#include <symbol.hpp>
 
 TEST_SUITE_BEGIN("seman_analyzer");
 

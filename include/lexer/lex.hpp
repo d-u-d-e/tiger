@@ -1,14 +1,16 @@
 #pragma once
-#include "token.hpp"
 #include <assert.h>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <lexer/position.hpp>
+#include <lexer/token.hpp>
 #include <sstream>
+#include <string>
 #include <sysexits.h>
-#include <utility>
 
 namespace lexer
 {
@@ -20,14 +22,14 @@ class Scanner {
     auto f = std::ifstream(filename);
 
     if(!f.is_open()) {
-      error(
-        std::format("Err: could not open file '{}'\n", filename.generic_string()),
-        EX_IOERR);
+      error(std::format("Err: could not open file '{}'\n",
+                        filename.generic_string()),
+            EX_IOERR);
     }
 
     std::stringstream buffer;
     buffer << f.rdbuf();
-    contents = std::move(buffer.str());
+    contents = buffer.str();
     current = row = contents.c_str();
     line = 1;
   }

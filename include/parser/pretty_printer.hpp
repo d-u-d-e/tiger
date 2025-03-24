@@ -1,5 +1,9 @@
 #pragma once
+#include <cstddef>
+#include <format>
 #include <parser/ast.hpp>
+#include <parser/visitor.hpp>
+#include <string>
 
 namespace parser::ast
 {

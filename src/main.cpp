@@ -1,4 +1,7 @@
+#include <exception>
+#include <filesystem>
 #include <iostream>
+#include <ir/tree.hpp>
 #include <lexer/lex.hpp>
 #include <parser/ast.hpp>
 #include <parser/parser.hpp>
@@ -12,10 +15,11 @@
 #include <ir/pretty_printer.hpp>
 #include <ir/translator.hpp>
 #include <seman/escape.hpp>
+#include <utility>
 
 int main(int argc, char** argv)
 {
-  if (argc != 2){
+  if(argc != 2) {
     std::cerr << "\033[1;31m";
     std::cerr << "tiger: no input files";
     std::cerr << "\033[0m";

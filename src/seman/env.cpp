@@ -1,5 +1,12 @@
+#include <arch/frame.hpp>
+#include <cassert>
+#include <cstddef>
+#include <format>
 #include <seman/env.hpp>
+#include <string>
+#include <symbol.hpp>
 #include <utility>
+#include <variant>
 
 namespace seman::env
 {

@@ -1,4 +1,10 @@
+#include <cctype>
+#include <format>
 #include <lexer/lex.hpp>
+#include <lexer/position.hpp>
+#include <lexer/token.hpp>
+#include <string>
+#include <utility>
 
 namespace lexer
 {

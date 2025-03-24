@@ -1,8 +1,12 @@
 #pragma once
+#include <cassert>
 #include <format>
+#include <memory>
 #include <seman/env.hpp>
 #include <seman/visitor.hpp>
+#include <string>
 #include <symbol.hpp>
+#include <utility>
 
 namespace seman
 {

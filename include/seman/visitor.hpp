@@ -34,7 +34,6 @@ namespace seman
 
 class TypeCheckerExprVisitor {
   public:
-  // clang-format off
   types::Result virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
   types::Result virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
   types::Result virtual visit_op_exp(const parser::ast::OpExp& exp) = 0;
@@ -50,39 +49,35 @@ class TypeCheckerExprVisitor {
   types::Result virtual visit_for_exp(const parser::ast::ForExp& exp) = 0;
   types::Result virtual visit_call_exp(const parser::ast::CallExp& exp) = 0;
   types::Result virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
-  // clang-format on
 };
 
 class TypeCheckerDeclVisitor {
   public:
-  // clang-format off
   types::Result virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
   types::Result virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
   types::Result virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
-  // clang-format on
 };
 
 class TypeCheckerTypeVisitor {
   public:
-  // clang-format off
- types::shared_type_t virtual visit_name_type(const parser::ast::NameType& type) = 0;
- types::shared_type_t virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
- types::shared_type_t virtual visit_record_type(const parser::ast::RecordType& type) = 0;
-  // clang-format on
+  types::shared_type_t virtual visit_name_type(
+    const parser::ast::NameType& type) = 0;
+  types::shared_type_t virtual visit_array_type(
+    const parser::ast::ArrayType& type) = 0;
+  types::shared_type_t virtual visit_record_type(
+    const parser::ast::RecordType& type) = 0;
 };
 
 class TypeCheckerVarVisitor {
   public:
-  // clang-format off
   types::Result virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   types::Result virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
-  types::Result virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
-  // clang-format on
+  types::Result virtual visit_subscript_var(
+    const parser::ast::SubscriptVar& var) = 0;
 };
 
 class FindEscapeExprVisitor {
   public:
-  // clang-format off
   void virtual visit_string_exp(parser::ast::StringExp& exp) = 0;
   void virtual visit_assign_exp(parser::ast::AssignExp& exp) = 0;
   void virtual visit_op_exp(parser::ast::OpExp& exp) = 0;
@@ -98,25 +93,20 @@ class FindEscapeExprVisitor {
   void virtual visit_for_exp(parser::ast::ForExp& exp) = 0;
   void virtual visit_call_exp(parser::ast::CallExp& exp) = 0;
   void virtual visit_let_exp(parser::ast::LetExp& exp) = 0;
-  // clang-format on
 };
 
 class FindEscapeDeclVisitor {
   public:
-  // clang-format off
   void virtual visit_func_decl(parser::ast::FuncDecl& decl) = 0;
   void virtual visit_var_decl(parser::ast::VarDecl& decl) = 0;
   void virtual visit_type_decl(parser::ast::TypeDecl& decl) = 0;
-  // clang-format on
 };
 
 class FindEscapeVarVisitor {
   public:
-  // clang-format off
   void virtual visit_simple_var(parser::ast::SimpleVar& var) = 0;
   void virtual visit_field_var(parser::ast::FieldVar& var) = 0;
   void virtual visit_subscript_var(parser::ast::SubscriptVar& var) = 0;
-  // clang-format on
 };
 
 }; // namespace seman
