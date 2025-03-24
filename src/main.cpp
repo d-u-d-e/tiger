@@ -65,9 +65,10 @@ int main(int argc, char** argv)
   }
 
   ir::tree::PrettyPrinter ir_pretty_printer;
-  std::cout << translator.unex(std::move(ir))->accept(ir_pretty_printer)
-            << std::endl
-            << std::endl;
+  auto c = translator.unex(std::move(ir));
+
+  std::string r = std::visit(ir_pretty_printer, c);
+  std::cout << r << std::endl << std::endl;
 
   for(auto& frag : translator.fragments()) {
     std::cout << translator.dump_fragment(frag) << std::endl;

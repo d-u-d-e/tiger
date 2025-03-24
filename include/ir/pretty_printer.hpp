@@ -3,63 +3,63 @@
 #include <cstddef>
 #include <format>
 #include <ir/tree.hpp>
-#include <ir/visitor.hpp>
 #include <string>
+#include <variant>
 
 namespace ir::tree
 {
 
-class PrettyPrinter : public PrettyPrinterExprVisitor,
-                      public PrettyPrinterStmtVisitor {
+class PrettyPrinter {
 
-  std::string visit_const_exp(const ConstExp& exp) override
+  public:
+  std::string operator()(const std::unique_ptr<ConstExp>& exp)
   {
-    return std::format("{}ConstExp({})", indent(), exp.v);
+    return std::format("{}ConstExp({})", indent(), exp->v);
   }
 
-  std::string visit_name_exp(const NameExp& exp) override
+  std::string operator()(const std::unique_ptr<NameExp>& exp)
   {
-    return std::format("{}NameExp({})", indent(), exp.label.str());
+    return std::format("{}NameExp({})", indent(), exp->label.str());
   }
 
-  std::string visit_temp_exp(const TempExp& exp) override
+  std::string operator()(const std::unique_ptr<TempExp>& exp)
   {
-    return std::format("{}TempExp(t{})", indent(), exp.temp);
+    return std::format("{}TempExp(t{})", indent(), exp->temp);
   }
 
-  std::string visit_binop_exp(const BinOpExp& exp) override
+  std::string operator()(const std::unique_ptr<BinOpExp>& exp)
   {
     std::string r = indent() + "BinOpExp(\n";
     depth++;
-    r += indent() + name(exp.op) + ",\n";
-    r += exp.left->accept(*this) + ",\n";
-    r += exp.right->accept(*this) + "\n";
+    r += indent() + name(exp->op) + ",\n";
+    r += std::visit(*this, exp->left) + ",\n";
+    r += std::visit(*this, exp->right) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_mem_exp(const MemExp& exp) override
+  std::string operator()(const std::unique_ptr<MemExp>& exp)
   {
     std::string r = indent() + "MemExp(\n";
     depth++;
-    r += exp.a->accept(*this) + "\n";
+    r += std::visit(*this, exp->a) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_call_exp(const CallExp& exp) override
+  std::string operator()(const std::unique_ptr<CallExp>& exp)
   {
     std::string r = indent() + "CallExpr(\n";
     depth++;
-    r += exp.fun->accept(*this) + ",\n";
+    r += std::visit(*this, exp->fun) + ",\n";
     r += indent() + "[\n";
-    auto size = exp.args.size();
+    auto size = exp->args.size();
     depth++;
     for(size_t i = 0; i < size; i++) {
-      auto& arg = exp.args[i];
-      r += arg->accept(*this) + ((i == size - 1) ? "\n" : ",\n");
+      auto& arg = exp->args[i];
+      r += std::visit(*this, arg) + ((i == size - 1) ? "\n" : ",\n");
     }
     depth--;
     r += indent() + "]\n";
@@ -68,47 +68,47 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     return r;
   }
 
-  std::string visit_eseq_exp(const ESeqExp& exp) override
+  std::string operator()(const std::unique_ptr<ESeqExp>& exp)
   {
     std::string r = indent() + "ESeq(\n";
     depth++;
-    r += exp.stmt->accept(*this) + ",\n";
-    r += exp.exp->accept(*this) + "\n";
+    r += std::visit(*this, exp->stmt) + ",\n";
+    r += std::visit(*this, exp->exp) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_move_stmt(const MoveStmt& stmt) override
+  std::string operator()(const std::unique_ptr<MoveStmt>& stmt)
   {
     std::string r = indent() + "MoveStmt(\n";
     depth++;
-    r += stmt.left->accept(*this) + ",\n";
-    r += stmt.right->accept(*this) + "\n";
+    r += std::visit(*this, stmt->left) + ",\n";
+    r += std::visit(*this, stmt->right) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_exp_stmt(const ExpStmt& stmt) override
+  std::string operator()(const std::unique_ptr<ExpStmt>& stmt)
   {
     std::string r = indent() + "ExpStmt(\n";
     depth++;
-    r += stmt.exp->accept(*this) + "\n";
+    r += std::visit(*this, stmt->exp) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_jump_stmt(const JumpStmt& stmt) override
+  std::string operator()(const std::unique_ptr<JumpStmt>& stmt)
   {
     std::string r = indent() + "JumpStmt(\n";
     depth++;
-    r += stmt.a->accept(*this) + ",\n";
+    r += std::visit(*this, stmt->a) + ",\n";
     r += indent() + "[";
-    auto size = stmt.labels.size();
+    auto size = stmt->labels.size();
     for(size_t i = 0; i < size; i++) {
-      auto& l = stmt.labels[i];
+      auto& l = stmt->labels[i];
       r += l.str() + ((i == size - 1) ? "]\n" : ", ");
     }
     depth--;
@@ -116,34 +116,34 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
     return r;
   }
 
-  std::string visit_cjump_stmt(const CJumpStmt& stmt) override
+  std::string operator()(const std::unique_ptr<CJumpStmt>& stmt)
   {
     std::string r = indent() + "CondJumpStmt(\n";
     depth++;
-    r += indent() + name(stmt.op) + ",\n";
-    r += indent() + stmt.tlabel.str() + ",\n";
-    r += indent() + stmt.flabel.str() + ",\n";
-    r += stmt.lexp->accept(*this) + ",\n";
-    r += stmt.rexp->accept(*this) + "\n";
+    r += indent() + name(stmt->op) + ",\n";
+    r += indent() + stmt->tlabel.str() + ",\n";
+    r += indent() + stmt->flabel.str() + ",\n";
+    r += std::visit(*this, stmt->lexp) + ",\n";
+    r += std::visit(*this, stmt->rexp) + "\n";
     depth--;
     r += indent() + ")";
     return r;
   }
 
-  std::string visit_seq_stmt(const SeqStmt& stmt) override
+  std::string operator()(const std::unique_ptr<SeqStmt>& stmt)
   {
     std::string r = indent() + "SeqStmt[\n";
     depth++;
-    r += stmt.stm1->accept(*this) + ",\n";
-    r += stmt.stm2->accept(*this) + "\n";
+    r += std::visit(*this, stmt->stm1) + ",\n";
+    r += std::visit(*this, stmt->stm2) + "\n";
     depth--;
     r += indent() + "]";
     return r;
   }
 
-  std::string visit_label_stmt(const LabelStmt& stmt) override
+  std::string operator()(const std::unique_ptr<LabelStmt>& stmt)
   {
-    return std::format("{}LabelStmt({})", indent(), stmt.label.str());
+    return std::format("{}LabelStmt({})", indent(), stmt->label.str());
   }
 
   private:
