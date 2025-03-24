@@ -546,8 +546,6 @@ std::string Translator::dump_fragment(const Fragment& f) const
   };
 
   return std::visit(overloads{dump_proc_frag, dump_string_frag}, f);
-  (void)f;
-  return "";
 }
 
 } // namespace ir
