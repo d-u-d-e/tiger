@@ -14,7 +14,7 @@ class Canon {
   public:
   std::list<Stmt> linearize(Stmt&& s)
   {
-    return linear(std::move(s), {});
+    return linear(do_stmt(std::move(s)), {});
   }
 
   // do_exp
@@ -50,6 +50,23 @@ class Canon {
 
   Stmt concat(Stmt&& s1, Stmt&& s2)
   {
+    auto throw_stmt = [](const Stmt& s) {
+      if(std::holds_alternative<std::unique_ptr<ExpStmt>>(s)) {
+        if(std::holds_alternative<std::unique_ptr<ConstExp>>(
+             std::get<std::unique_ptr<ExpStmt>>(s)->exp)) {
+          // s1 is useless
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if(throw_stmt(s1)) {
+      return std::move(s2);
+    }
+    else if(throw_stmt(s2)) {
+      return std::move(s1);
+    }
     return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
   }
 
