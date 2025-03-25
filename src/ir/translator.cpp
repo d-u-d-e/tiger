@@ -534,14 +534,12 @@ std::string Translator::dump_fragment(const Fragment& f) const
                               pf.frame.formals().size(),
                               pf.frame.locals_count());
     auto ir_str = std::visit(printer, pf.body) + "\n";
-    result += ir_str + "------------------------------";
-    return result;
+    return ir_str;
   };
 
   auto dump_string_frag = [](const StringFragment& sf) -> std::string {
     auto result =
       std::format("frag string: {}, value: \"{}\"\n", sf.label.str(), sf.lit);
-    result += "------------------------------";
     return result;
   };
 

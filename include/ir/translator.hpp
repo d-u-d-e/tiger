@@ -9,6 +9,7 @@
 #include <ir/tree.hpp>
 #include <memory>
 #include <parser/ast.hpp>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,9 +49,12 @@ class Translator {
     return std::make_unique<Level>(parent, arch::Frame(label, with_slink));
   }
 
-  static const std::vector<Level::Access>& formals(const Level& level)
+  static auto formals(const Level& level)
   {
-    return level.formals;
+    // return a view of accesses without the static link, to be used by the analyzer
+    // which is not aware of it
+    return std::ranges::subrange(level.formals.begin() + 1,
+                                 level.formals.end());
   }
 
   static Level::Access alloc_local(Level& level, bool escape)
@@ -94,7 +98,7 @@ class Translator {
     fragments_.emplace_back(std::move(f));
   }
 
-  const std::vector<Fragment>& fragments() const
+  std::vector<Fragment>& fragments()
   {
     return fragments_;
   }
