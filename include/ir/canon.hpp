@@ -1,10 +1,12 @@
 #pragma once
 
+#include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <list>
 #include <memory>
 #include <utility>
+#include <variant>
 
 namespace ir::tree
 {

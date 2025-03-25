@@ -1,4 +1,12 @@
+#include <algorithm>
+#include <functional>
+#include <ir/tree.hpp>
 #include <ir/canon.hpp>
+#include <list>
+#include <memory>
+#include <utility>
+#include <variant>
+#include <vector>
 
 template <class... Ts>
 struct overloads : Ts... {
@@ -29,25 +37,25 @@ std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
   // TODO move this inside this class
 
   auto visitor = overloads{
-    [&exp](std::unique_ptr<ConstExp> e) {
+    [](std::unique_ptr<ConstExp> e) {
       // nothing to do
       return std::make_pair<Stmt, Exp>(
         std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)), std::move(e));
     },
 
-    [&exp](std::unique_ptr<NameExp> e) {
+    [](std::unique_ptr<NameExp> e) {
       // nothing to do
       return std::make_pair<Stmt, Exp>(
         std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)), std::move(e));
     },
 
-    [&exp](std::unique_ptr<TempExp> e) {
+    [](std::unique_ptr<TempExp> e) {
       // nothing to do
       return std::make_pair<Stmt, Exp>(
         std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)), std::move(e));
     },
 
-    [&exp, this](std::unique_ptr<BinOpExp> e) {
+    [this](std::unique_ptr<BinOpExp> e) {
       std::list<Exp> subexps;
       subexps.push_back(std::move(e->left));
       subexps.push_back(std::move(e->right));
@@ -61,7 +69,7 @@ std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
       });
     },
 
-    [&exp, this](std::unique_ptr<MemExp> e) {
+    [this](std::unique_ptr<MemExp> e) {
       std::list<Exp> subexps;
       subexps.push_back(std::move(e->a));
 
@@ -72,7 +80,7 @@ std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
       });
     },
 
-    [&exp, this](std::unique_ptr<CallExp> e) {
+    [this](std::unique_ptr<CallExp> e) {
       std::list<Exp> subexps;
       subexps.push_back(std::move(e->fun));
       std::move(e->args.begin(), e->args.end(), subexps.end());
@@ -86,7 +94,7 @@ std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
       });
     },
 
-    [&exp, this](std::unique_ptr<ESeqExp> e) {
+    [this](std::unique_ptr<ESeqExp> e) {
       Stmt s = do_stmt(std::move(e->stmt));
       auto [stmt, e_] = do_exp(std::move(e->exp));
       return std::make_pair(concat(std::move(s), std::move(stmt)),
