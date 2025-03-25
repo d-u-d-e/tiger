@@ -4,6 +4,7 @@
 #include <ir/canon.hpp>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <utility>
@@ -96,13 +97,13 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(e->fun));
-  std::move(e->args.begin(), e->args.end(), subexps.end());
+  std::move(e->args.begin(), e->args.end(), std::back_inserter(subexps));
 
   return reorder_exp(std::move(subexps), [](std::list<Exp>&& l) {
     auto f = std::move(l.front());
     l.pop_front();
     std::vector<Exp> args;
-    std::move(l.begin(), l.end(), args.begin());
+    std::move(l.begin(), l.end(), std::back_inserter(args));
     return std::make_unique<CallExp>(std::move(f), std::move(args));
   });
 }
@@ -122,13 +123,13 @@ Stmt Canon::operator()(std::unique_ptr<ExpStmt> s)
     auto ce = std::move(std::get<std::unique_ptr<CallExp>>(s->exp));
     std::list<Exp> subexps;
     subexps.push_back(std::move(ce->fun));
-    std::move(ce->args.begin(), ce->args.begin(), subexps.end());
+    std::move(ce->args.begin(), ce->args.begin(), std::back_inserter(subexps));
 
     return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
       auto f = std::move(l.front());
       l.pop_front();
       std::vector<Exp> args;
-      std::move(l.begin(), l.end(), args.begin());
+      std::move(l.begin(), l.end(), std::back_inserter(args));
       return std::make_unique<ExpStmt>(
         std::make_unique<CallExp>(std::move(f), std::move(args)));
     });
