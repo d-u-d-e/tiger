@@ -1,7 +1,8 @@
 #include <algorithm>
+#include <cassert>
 #include <functional>
-#include <ir/tree.hpp>
 #include <ir/canon.hpp>
+#include <ir/tree.hpp>
 #include <list>
 #include <memory>
 #include <utility>
@@ -119,9 +120,32 @@ Stmt Canon::do_stmt(Stmt&& s)
 
   // TODO move this inside this class
   auto visitor = overloads{
-    [](std::unique_ptr<MoveStmt> s) {
-      // TODO
-      return Stmt(std::move(s));
+    [this](std::unique_ptr<MoveStmt> s) {
+      if(std::holds_alternative<std::unique_ptr<TempExp>>(s->left)) {
+        // moving to a temporary TODO
+        return Stmt(std::move(s));
+      }
+      else if(std::holds_alternative<std::unique_ptr<MemExp>>(s->left)) {
+        // moving to a memory location
+        auto& mem_exp = std::get<std::unique_ptr<MemExp>>(s->left);
+        std::list<Exp> subexps;
+        subexps.push_front(std::move(mem_exp->a));
+        subexps.push_front(std::move(s->right));
+        return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
+          auto a = std::move(l.front());
+          l.pop_front();
+          auto right = std::move(l.front());
+          l.pop_front();
+          return std::make_unique<MoveStmt>(
+            std::make_unique<MemExp>(std::move(a)), std::move(right));
+        });
+      }
+
+      assert(std::holds_alternative<std::unique_ptr<ESeqExp>>(s->left));
+      auto& eseq = std::get<std::unique_ptr<ESeqExp>>(s->left);
+      return do_stmt(std::make_unique<SeqStmt>(
+        std::move(eseq->stmt),
+        std::make_unique<MoveStmt>(std::move(eseq->exp), std::move(s->right))));
     },
 
     [this](std::unique_ptr<ExpStmt> s) {
