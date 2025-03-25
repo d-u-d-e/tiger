@@ -18,6 +18,23 @@ class Canon {
     return linear(std::move(s), {});
   }
 
+  // do_exp
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<ConstExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<NameExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<TempExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<BinOpExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<MemExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<CallExp> e);
+  std::pair<Stmt, Exp> operator()(std::unique_ptr<ESeqExp> e);
+
+  // do_stmt
+  Stmt operator()(std::unique_ptr<ExpStmt> s);
+  Stmt operator()(std::unique_ptr<MoveStmt> s);
+  Stmt operator()(std::unique_ptr<JumpStmt> s);
+  Stmt operator()(std::unique_ptr<CJumpStmt> s);
+  Stmt operator()(std::unique_ptr<SeqStmt> s);
+  Stmt operator()(std::unique_ptr<LabelStmt> s);
+
   private:
   std::list<Stmt> linear(Stmt&& s, std::list<Stmt>&& l)
   {
@@ -110,6 +127,8 @@ class Canon {
       return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
     }
   }
+
+  // do_exp
 };
 
 } // namespace ir::tree
