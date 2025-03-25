@@ -1,3 +1,4 @@
+#include <ir/fragment.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -71,12 +72,27 @@ int main(int argc, char** argv)
   ir::tree::PrettyPrinter ir_pretty_printer;
   auto c = translator.unex(std::move(ir));
 
-  std::string r = std::visit(ir_pretty_printer, c);
-  std::cout << r << std::endl << std::endl;
+  auto sep = "-----------------------------";
+  std::cout << "IR: main expression" << std::endl;
+  std::cout << std::visit(ir_pretty_printer, c) << std::endl << sep << std::endl;
+  ir::tree::Canon canon;
 
+  // dump procedure fragments
+  // procedure fragments are shown before and after canonicalization
   for(auto& frag : translator.fragments()) {
-    std::cout << translator.dump_fragment(frag) << std::endl;
-  }
+    if(std::holds_alternative<ir::ProcedureFragment>(frag)) {
+      auto& pf = std::get<ir::ProcedureFragment>(frag);
 
+      std::cout << "IR: proc fragment" << std::endl;
+      std::cout << translator.dump_fragment(frag) << std::endl << sep << std::endl;
+      auto list = canon.linearize(std::move(pf.body));
+      std::cout << "IR: proc fragment reduced" << std::endl;
+      for(auto& s : list) {
+        std::string reduced = std::visit(ir_pretty_printer, s);
+        std::cout << reduced << std::endl;
+      }
+      std::cout << sep << std::endl;
+    }
+  }
   return EX_OK;
 }
