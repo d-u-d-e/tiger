@@ -182,19 +182,17 @@ Stmt Canon::operator()(std::unique_ptr<LabelStmt> s)
 
 Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
 {
-
-  /*
-    | do_stm(T.MOVE(T.TEMP t,b)) = 
-	       reorder_stm([b],fn[b]=>T.MOVE(T.TEMP t,b))
-    | do_stm(T.MOVE(T.MEM e,b)) = 
-	       reorder_stm([e,b],fn[e,b]=>T.MOVE(T.MEM e,b))
-    | do_stm(T.MOVE(T.ESEQ(s,e),b)) = 
-	       do_stm(T.SEQ(s,T.MOVE(e,b)))
-  */
-
   if(std::holds_alternative<std::unique_ptr<TempExp>>(s->left)) {
-    // moving to a temporary TODO
-    return Stmt(std::move(s));
+    // moving to a temporary
+    auto temp = std::get<std::unique_ptr<TempExp>>(s->left)->temp;
+    std::list<Exp> subexps;
+    subexps.push_front(std::move(s->right));
+    return reorder_stmt(std::move(subexps), [temp](std::list<Exp>&& l) {
+      auto right = std::move(l.front());
+      l.pop_front();
+      return std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                        std::move(right));
+    });
   }
   else if(std::holds_alternative<std::unique_ptr<MemExp>>(s->left)) {
     // moving to a memory location
@@ -211,6 +209,7 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
                                         std::move(right));
     });
   }
+  // moving to an eseq expression
   assert(std::holds_alternative<std::unique_ptr<ESeqExp>>(s->left));
   auto& eseq = std::get<std::unique_ptr<ESeqExp>>(s->left);
   return do_stmt(std::make_unique<SeqStmt>(

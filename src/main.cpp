@@ -9,6 +9,7 @@
 
 #include <seman/analyzer.hpp>
 #include <seman/env.hpp>
+#include <string>
 #include <symbol.hpp>
 #include <sysexits.h>
 
@@ -18,6 +19,7 @@
 #include <utility>
 
 #include <ir/canon.hpp>
+#include <variant>
 
 int main(int argc, char** argv)
 {
