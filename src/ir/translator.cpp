@@ -398,7 +398,10 @@ Exp Translator::assign(Exp&& left, Exp&& right)
 
 void Translator::proc_entry_exit(const Level& level, Exp&& body)
 {
-  add_fragment(ProcedureFragment{unnx(std::move(body)), level.f});
+  auto rv = std::make_unique<tree::MoveStmt>(
+    std::make_unique<tree::TempExp>(arch::Frame::RV), unex(std::move(body)));
+
+  add_fragment(ProcedureFragment{std::move(rv), level.f});
 }
 
 Exp Translator::call_exp(TempGen::Label name,
