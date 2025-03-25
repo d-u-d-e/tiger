@@ -40,6 +40,26 @@ class Canon {
     return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
   }
 
+  bool commute(const Stmt& stmt, const Exp& exp)
+  {
+    if(std::holds_alternative<std::unique_ptr<ExpStmt>>(stmt)) {
+      auto& exp_stmt = std::get<std::unique_ptr<ExpStmt>>(stmt);
+      if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp_stmt->exp)) {
+        // an expression statement containing a constant commute with any expression
+        return true;
+      }
+    }
+    else if(std::holds_alternative<std::unique_ptr<NameExp>>(exp)) {
+      // a name expression commutes with any statement
+      return true;
+    }
+    else if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp)) {
+      // a constant expression commutes with any statement
+      return true;
+    }
+    return false;
+  }
+
   std::pair<Stmt, Exp>
   reorder_exp(std::list<Exp>&& el,
               std::function<Exp(std::list<Exp>&&)> build_fn);
@@ -75,14 +95,20 @@ class Canon {
     // reorder the rest
     auto [stmt_, el_] = reorder(std::move(el));
 
-    // TODO: if stmt_ can commute, we can avoid moving to a temporary
-    auto temp = ir::TempGen::new_temp();
-    auto a = concat(std::move(stmt),
-                    std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                               std::move(e)));
+    // if stmt_ can commute, we can avoid moving to a temporary
+    if(commute(stmt_, e)) {
+      el_.push_front(std::move(e));
+      return {concat(std::move(stmt), std::move(stmt_)), std::move(el_)};
+    }
+    else {
+      auto temp = ir::TempGen::new_temp();
+      auto a = concat(std::move(stmt),
+                      std::make_unique<MoveStmt>(
+                        std::make_unique<TempExp>(temp), std::move(e)));
 
-    el_.push_front(std::make_unique<TempExp>(temp));
-    return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
+      el_.push_front(std::make_unique<TempExp>(temp));
+      return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
+    }
   }
 };
 
