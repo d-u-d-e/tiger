@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <list>
 #include <memory>
@@ -49,9 +48,6 @@ class Canon {
     }
   }
 
-  std::pair<Stmt, Exp> do_exp(Exp&& e);
-  Stmt do_stmt(Stmt&& s);
-
   Stmt concat(Stmt&& s1, Stmt&& s2)
   {
     return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
@@ -77,58 +73,14 @@ class Canon {
     return false;
   }
 
+  std::pair<Stmt, Exp> do_exp(Exp&& e);
+  Stmt do_stmt(Stmt&& s);
   std::pair<Stmt, Exp>
   reorder_exp(std::list<Exp>&& el,
               std::function<Exp(std::list<Exp>&&)> build_fn);
-
   Stmt reorder_stmt(std::list<Exp>&& l,
                     std::function<Stmt(std::list<Exp>&&)> build_fn);
-
-  std::pair<Stmt, std::list<Exp>> reorder(std::list<Exp>&& el)
-  {
-    // base
-    if(el.empty()) {
-      return std::make_pair(
-        std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)),
-        std::list<Exp>{});
-    }
-
-    auto front = std::move(el.front());
-    el.pop_front();
-
-    if(std::holds_alternative<std::unique_ptr<CallExp>>(front)) {
-      // all call expressions should put the result in a temporary
-      auto t = TempGen::new_temp();
-      el.push_front(std::make_unique<ESeqExp>(
-        std::make_unique<MoveStmt>(std::make_unique<TempExp>(t),
-                                   std::move(front)),
-        std::make_unique<TempExp>(t)));
-
-      return reorder(std::move(el));
-    }
-
-    auto [stmt, e] = do_exp(std::move(front));
-
-    // reorder the rest
-    auto [stmt_, el_] = reorder(std::move(el));
-
-    // if stmt_ can commute, we can avoid moving to a temporary
-    if(commute(stmt_, e)) {
-      el_.push_front(std::move(e));
-      return {concat(std::move(stmt), std::move(stmt_)), std::move(el_)};
-    }
-    else {
-      auto temp = ir::TempGen::new_temp();
-      auto a = concat(std::move(stmt),
-                      std::make_unique<MoveStmt>(
-                        std::make_unique<TempExp>(temp), std::move(e)));
-
-      el_.push_front(std::make_unique<TempExp>(temp));
-      return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
-    }
-  }
-
-  // do_exp
+  std::pair<Stmt, std::list<Exp>> reorder(std::list<Exp>&& el);
 };
 
 } // namespace ir::tree

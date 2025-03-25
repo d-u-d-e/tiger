@@ -2,6 +2,7 @@
 #include <cassert>
 #include <functional>
 #include <ir/canon.hpp>
+#include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <list>
 #include <memory>
@@ -215,6 +216,50 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
   return do_stmt(std::make_unique<SeqStmt>(
     std::move(eseq->stmt),
     std::make_unique<MoveStmt>(std::move(eseq->exp), std::move(s->right))));
+}
+
+std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
+{
+  // base
+  if(el.empty()) {
+    return std::make_pair(
+      std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)),
+      std::list<Exp>{});
+  }
+
+  auto front = std::move(el.front());
+  el.pop_front();
+
+  if(std::holds_alternative<std::unique_ptr<CallExp>>(front)) {
+    // all call expressions should put the result in a temporary
+    auto t = TempGen::new_temp();
+    el.push_front(std::make_unique<ESeqExp>(
+      std::make_unique<MoveStmt>(std::make_unique<TempExp>(t),
+                                 std::move(front)),
+      std::make_unique<TempExp>(t)));
+
+    return reorder(std::move(el));
+  }
+
+  auto [stmt, e] = do_exp(std::move(front));
+
+  // reorder the rest
+  auto [stmt_, el_] = reorder(std::move(el));
+
+  // if stmt_ can commute, we can avoid moving to a temporary
+  if(commute(stmt_, e)) {
+    el_.push_front(std::move(e));
+    return {concat(std::move(stmt), std::move(stmt_)), std::move(el_)};
+  }
+  else {
+    auto temp = ir::TempGen::new_temp();
+    auto a = concat(std::move(stmt),
+                    std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                               std::move(e)));
+
+    el_.push_front(std::make_unique<TempExp>(temp));
+    return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
+  }
 }
 
 } // namespace ir::tree
