@@ -14,6 +14,7 @@ class Canon {
   public:
   struct BasicBlock {
     std::list<Stmt> stmts;
+    bool visited{false};
   };
 
   std::list<Stmt> linearize(Stmt&& s)
@@ -24,8 +25,8 @@ class Canon {
   std::pair<std::vector<BasicBlock>, TempGen::Label>
   basic_blocks(std::list<Stmt>&& l);
 
-  std::list<Stmt> trace_schedule(std::vector<BasicBlock>&& blocks,
-                                 const TempGen::Label& ldone);
+  std::list<BasicBlock> trace_schedule(std::vector<BasicBlock>&& blocks,
+                                       const TempGen::Label& ldone);
 
   // do_exp
   std::pair<Stmt, Exp> operator()(std::unique_ptr<ConstExp> e);
