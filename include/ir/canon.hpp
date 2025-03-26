@@ -12,10 +12,17 @@ namespace ir::tree
 
 class Canon {
   public:
+  struct BasicBlock {
+    std::list<Stmt> stmts;
+  };
+
   std::list<Stmt> linearize(Stmt&& s)
   {
     return linear(do_stmt(std::move(s)), {});
   }
+
+  std::pair<std::vector<BasicBlock>, TempGen::Label>
+  basic_blocks(std::list<Stmt>&& l);
 
   // do_exp
   std::pair<Stmt, Exp> operator()(std::unique_ptr<ConstExp> e);

@@ -263,4 +263,60 @@ std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
   }
 }
 
+std::pair<std::vector<Canon::BasicBlock>, TempGen::Label>
+Canon::basic_blocks(std::list<Stmt>&& l)
+{
+  /*
+  From a list of cleaned trees, produce a list of
+  basic blocks satisfying the following properties:
+    1.  No SEQ's or ESEQ's
+    2.  The parent of every CALL is an EXP(..) or a MOVE(TEMP t,..)
+    3.  Every block begins with a LABEL;
+    4.  A LABEL appears only at the beginning of a block;
+    5.  Any JUMP or CJUMP is the last stm in a block;
+    6.  Every block ends with a JUMP or CJUMP;
+    Also produce the "label" to which control will be passed
+    upon exit.
+  */
+
+  std::vector<BasicBlock> blocks;
+  auto i = l.begin();
+
+  while(i != l.end()) {
+    // start a new block
+    BasicBlock b;
+
+    // the new block must start with a label, create it if necessary
+    if(!std::holds_alternative<std::unique_ptr<LabelStmt>>(*i)) {
+      b.stmts.emplace_back(std::make_unique<LabelStmt>(TempGen::new_label()));
+    }
+    else {
+      b.stmts.emplace_back(std::move(*i));
+      ++i;
+    }
+
+    // keep adding statements to the block until a new label is found or a jump/cjump is encountered
+    while(i != l.end() &&
+          !std::holds_alternative<std::unique_ptr<LabelStmt>>(*i)) {
+      auto& s = *i;
+      bool end_block = std::holds_alternative<std::unique_ptr<JumpStmt>>(s) ||
+                       std::holds_alternative<std::unique_ptr<CJumpStmt>>(s);
+      ++i;
+      b.stmts.emplace_back(std::move(s));
+      if(end_block) {
+        blocks.push_back(std::move(b));
+        break;
+      }
+    }
+
+    if (i == l.end()){
+      blocks.push_back(std::move(b));
+      break;
+    }
+  }
+
+  auto ldone = TempGen::new_label();
+  return std::make_pair(std::move(blocks), ldone);
+}
+
 } // namespace ir::tree

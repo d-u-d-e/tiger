@@ -1,7 +1,7 @@
-#include <ir/fragment.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
+#include <ir/fragment.hpp>
 #include <ir/tree.hpp>
 #include <lexer/lex.hpp>
 #include <parser/ast.hpp>
@@ -74,7 +74,8 @@ int main(int argc, char** argv)
 
   auto sep = "-----------------------------";
   std::cout << "IR: main expression" << std::endl;
-  std::cout << std::visit(ir_pretty_printer, c) << std::endl << sep << std::endl;
+  std::cout << std::visit(ir_pretty_printer, c) << std::endl
+            << sep << std::endl;
   ir::tree::Canon canon;
 
   // dump procedure fragments
@@ -83,13 +84,28 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag)) {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
 
-      std::cout << "IR: proc fragment" << std::endl;
-      std::cout << translator.dump_fragment(frag) << std::endl << sep << std::endl;
+      /*std::cout << "IR: proc fragment" << std::endl;
+      std::cout << translator.dump_fragment(frag) << std::endl
+                << sep << std::endl;*/
+
       auto list = canon.linearize(std::move(pf.body));
       std::cout << "IR: proc fragment reduced" << std::endl;
       for(auto& s : list) {
         std::string reduced = std::visit(ir_pretty_printer, s);
         std::cout << reduced << std::endl;
+      }
+      std::cout << sep << std::endl;
+
+      std::cout << "IR: proc fragment basic blocks" << std::endl;
+      auto [blocks, ldone] = canon.basic_blocks(std::move(list));
+
+      for(auto& b : blocks) {
+        std::cout << "<<<< block start" << std::endl;
+        for(auto& s : b.stmts) {
+          std::string irstr = std::visit(ir_pretty_printer, s);
+          std::cout << irstr << std::endl;
+        }
+        std::cout << ">>>> block end" << std::endl << std::endl;
       }
       std::cout << sep << std::endl;
     }
