@@ -309,7 +309,7 @@ Canon::basic_blocks(std::list<Stmt>&& l)
       }
     }
 
-    if (i == l.end()){
+    if(i == l.end()) {
       blocks.push_back(std::move(b));
       break;
     }
@@ -317,6 +317,15 @@ Canon::basic_blocks(std::list<Stmt>&& l)
 
   auto ldone = TempGen::new_label();
   return std::make_pair(std::move(blocks), ldone);
+}
+
+std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
+                                      const TempGen::Label& ldone)
+{
+  // TODO
+  (void)blocks;
+  (void)ldone;
+  return {};
 }
 
 } // namespace ir::tree
