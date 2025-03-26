@@ -54,7 +54,7 @@ class Canon {
       if(std::holds_alternative<std::unique_ptr<ExpStmt>>(s)) {
         if(std::holds_alternative<std::unique_ptr<ConstExp>>(
              std::get<std::unique_ptr<ExpStmt>>(s)->exp)) {
-          // s1 is useless
+          // s is useless
           return true;
         }
       }
