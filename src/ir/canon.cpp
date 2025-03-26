@@ -174,7 +174,7 @@ Stmt Canon::operator()(std::unique_ptr<CJumpStmt> s)
 
 Stmt Canon::operator()(std::unique_ptr<SeqStmt> s)
 {
-  return concat(do_stmt(std::move(s->stm1)), do_stmt(std::move(s->stm1)));
+  return concat(do_stmt(std::move(s->stm1)), do_stmt(std::move(s->stm2)));
 }
 
 Stmt Canon::operator()(std::unique_ptr<LabelStmt> s)
