@@ -279,7 +279,9 @@ Canon::basic_blocks(std::list<Stmt>&& l)
     upon exit.
   */
 
+  assert(l.size() > 0);
   std::vector<BasicBlock> blocks;
+  auto ldone = TempGen::new_label();
   auto i = l.begin();
 
   while(i != l.end()) {
@@ -296,26 +298,35 @@ Canon::basic_blocks(std::list<Stmt>&& l)
     }
 
     // keep adding statements to the block until a new label is found or a jump/cjump is encountered
-    while(i != l.end() &&
-          !std::holds_alternative<std::unique_ptr<LabelStmt>>(*i)) {
-      auto& s = *i;
-      bool end_block = std::holds_alternative<std::unique_ptr<JumpStmt>>(s) ||
-                       std::holds_alternative<std::unique_ptr<CJumpStmt>>(s);
-      ++i;
-      b.stmts.emplace_back(std::move(s));
-      if(end_block) {
+    while(true) {
+      if(i == l.end()) {
+        // no jump at the end
+        b.stmts.push_back(std::make_unique<JumpStmt>(
+          std::make_unique<NameExp>(ldone), std::vector{ldone}));
         blocks.push_back(std::move(b));
         break;
       }
+      else if(std::holds_alternative<std::unique_ptr<JumpStmt>>(*i) ||
+              std::holds_alternative<std::unique_ptr<CJumpStmt>>(*i)) {
+        // found jump, end block and advance iterator
+        b.stmts.emplace_back(std::move(*i));
+        blocks.push_back(std::move(b));
+        i++;
+        break;
+      }
+      else if(std::holds_alternative<std::unique_ptr<LabelStmt>>(*i)) {
+        // end block by adding missing jump statement to current label statement
+        auto lnext = std::get<std::unique_ptr<LabelStmt>>(*i)->label;
+        b.stmts.push_back(std::make_unique<JumpStmt>(
+          std::make_unique<NameExp>(lnext), std::vector{lnext}));
+        blocks.push_back(std::move(b));
+        break;
+      }
+      b.stmts.emplace_back(std::move(*i));
+      ++i;
     }
+  };
 
-    if(i == l.end()) {
-      blocks.push_back(std::move(b));
-      break;
-    }
-  }
-
-  auto ldone = TempGen::new_label();
   return std::make_pair(std::move(blocks), ldone);
 }
 
@@ -332,7 +343,7 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
     in this reordering as many JUMP(T.NAME(lab)) statements
     as possible are eliminated by falling through into T.LABEL(lab).
   */
- 
+
   // TODO
   (void)blocks;
   (void)ldone;
