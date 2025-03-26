@@ -322,6 +322,17 @@ Canon::basic_blocks(std::list<Stmt>&& l)
 std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
                                       const TempGen::Label& ldone)
 {
+  /*
+  From a list of basic blocks satisfying properties 1-6 above, 
+  along with an "exit" label, produce a list of stms such that:
+
+    1. and 2. as above;
+    7. Every CJUMP(_,t,f) is immediately followed by LABEL f.
+    The blocks are reordered to satisfy property 7; also
+    in this reordering as many JUMP(T.NAME(lab)) statements
+    as possible are eliminated by falling through into T.LABEL(lab).
+  */
+ 
   // TODO
   (void)blocks;
   (void)ldone;
