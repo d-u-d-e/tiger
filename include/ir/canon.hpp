@@ -25,7 +25,7 @@ class Canon {
   std::pair<std::vector<BasicBlock>, TempGen::Label>
   basic_blocks(std::list<Stmt>&& l);
 
-  std::list<BasicBlock> trace_schedule(std::vector<BasicBlock>&& blocks,
+  std::list<Stmt> trace_schedule(std::vector<BasicBlock>&& blocks,
                                        const TempGen::Label& ldone);
 
   // do_exp

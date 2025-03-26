@@ -331,9 +331,8 @@ Canon::basic_blocks(std::list<Stmt>&& l)
   return std::make_pair(std::move(blocks), ldone);
 }
 
-std::list<Canon::BasicBlock>
-Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
-                      const TempGen::Label& ldone)
+std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
+                                      const TempGen::Label& ldone)
 {
   /*
   From a list of basic blocks satisfying properties 1-6 above, 
@@ -345,7 +344,7 @@ Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
     in this reordering as many JUMP(T.NAME(lab)) statements
     as possible are eliminated by falling through into T.LABEL(lab).
   */
-  std::list<BasicBlock> schedule;
+  std::list<Stmt> schedule;
 
   for(auto i = blocks.begin(); i != blocks.end(); i++) {
     auto& b = *i;
@@ -360,19 +359,18 @@ Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
         auto& cjump = std::get<std::unique_ptr<CJumpStmt>>(back);
         (void)cjump; // TODO
       }
-      assert(std::holds_alternative<std::unique_ptr<JumpStmt>>(back));
-      auto& jump = std::get<std::unique_ptr<JumpStmt>>(back);
-      (void)jump; // TODO
-
-      // append b to the trace
-      schedule.push_back(std::move(b));
+      else {
+        assert(std::holds_alternative<std::unique_ptr<JumpStmt>>(back));
+        auto& jump = std::get<std::unique_ptr<JumpStmt>>(back);
+        (void)jump; // TODO
+      }
     }
+    // append b to the trace
+    std::move(b.stmts.begin(), b.stmts.end(), std::back_inserter(schedule));
   }
 
   // ldone is where the epilogue starts
-  BasicBlock last;
-  last.stmts.emplace_back(std::make_unique<LabelStmt>(ldone));
-  schedule.push_back(std::move(last));
+  schedule.push_back(std::make_unique<LabelStmt>(ldone));
   return schedule;
 }
 
