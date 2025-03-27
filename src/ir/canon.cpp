@@ -12,11 +12,6 @@
 #include <variant>
 #include <vector>
 
-template <class... Ts>
-struct overloads : Ts... {
-  using Ts::operator()...;
-};
-
 namespace ir::tree
 {
 
@@ -357,7 +352,6 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
   }
 
   for(auto& b : blocks) {
-
     if(b.visited) {
       continue;
     }
