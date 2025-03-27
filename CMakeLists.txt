@@ -25,6 +25,7 @@ add_executable(
     tiger
     src/main.cpp
     src/ir/canon.cpp
+    src/ir/tree.cpp
     ${sources_common}
 )
 target_include_directories(tiger PRIVATE include)

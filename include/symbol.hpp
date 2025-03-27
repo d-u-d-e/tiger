@@ -1,4 +1,6 @@
 #pragma once
+#include <cstddef>
+#include <functional>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
@@ -48,3 +50,14 @@ class StringTable {
 };
 
 } // namespace symbol
+
+namespace std
+{
+template <>
+struct hash<symbol::Symbol> {
+  size_t operator()(const symbol::Symbol& s) const
+  {
+    return s.id();
+  }
+};
+} // namespace std

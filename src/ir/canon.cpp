@@ -7,7 +7,7 @@
 #include <iterator>
 #include <list>
 #include <memory>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -344,29 +344,95 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
     in this reordering as many JUMP(T.NAME(lab)) statements
     as possible are eliminated by falling through into T.LABEL(lab).
   */
+ 
   std::list<Stmt> schedule;
+  std::unordered_map<TempGen::Label, BasicBlock*> map;
 
-  for(auto i = blocks.begin(); i != blocks.end(); i++) {
-    auto& b = *i;
+  // add all blocks to the map
+  for(auto& b : blocks) {
+    auto& front = b.stmts.front();
+    assert(std::holds_alternative<std::unique_ptr<LabelStmt>>(front));
+    auto& lfront = std::get<std::unique_ptr<LabelStmt>>(front);
+    map.emplace(lfront->label, &b);
+  }
+
+  for(auto& b : blocks) {
+
     if(b.visited) {
       continue;
     }
     // start a trace at b
-    while(!b.visited) {
-      b.visited = true;
-      auto& back = b.stmts.back();
+    BasicBlock* bp = &b;
+
+    while(bp) {
+      BasicBlock* next{nullptr};
+      bp->visited = true;
+      auto& back = bp->stmts.back();
+      auto& lfront =
+        std::get<std::unique_ptr<LabelStmt>>(bp->stmts.front())->label;
+      map.erase(lfront);
+
       if(std::holds_alternative<std::unique_ptr<CJumpStmt>>(back)) {
         auto& cjump = std::get<std::unique_ptr<CJumpStmt>>(back);
-        (void)cjump; // TODO
+        auto tb_iter = map.find(cjump->tlabel);
+        auto fb_iter = map.find(cjump->flabel);
+
+        if(fb_iter != map.end()) {
+          // the false block does not belong to any trace, follow it
+          next = fb_iter->second;
+        }
+        else if(tb_iter != map.end()) {
+          // the true block does not belong to any trace
+          // replace the current cjump with a cjump to the false label by inverting the rel op
+          auto cjump_ = std::make_unique<CJumpStmt>(not_relop(cjump->op),
+                                                    std::move(cjump->lexp),
+                                                    std::move(cjump->rexp),
+                                                    cjump->flabel,
+                                                    cjump->tlabel);
+          bp->stmts.pop_back(); // pop last cjump
+          bp->stmts.push_back(std::move(cjump_));
+          next = tb_iter->second;
+        }
+        else {
+          // the true/false blocks belong to some trace
+          // create a false label, and a new jump statement
+          auto lfalse = TempGen::new_label();
+          auto cjump_ = std::make_unique<CJumpStmt>(cjump->op,
+                                                    std::move(cjump->lexp),
+                                                    std::move(cjump->rexp),
+                                                    cjump->tlabel,
+                                                    lfalse);
+          auto lstmt = std::make_unique<LabelStmt>(lfalse);
+          auto jump =
+            std::make_unique<JumpStmt>(std::make_unique<NameExp>(cjump->flabel),
+                                       std::vector{cjump->flabel});
+          bp->stmts.pop_back(); // pop current cjump
+          bp->stmts.push_front(std::move(cjump_));
+          bp->stmts.push_front(std::move(lstmt));
+          bp->stmts.push_front(std::move(jump));
+          // cannot continue
+        }
       }
       else {
         assert(std::holds_alternative<std::unique_ptr<JumpStmt>>(back));
         auto& jump = std::get<std::unique_ptr<JumpStmt>>(back);
-        (void)jump; // TODO
+
+        if(std::holds_alternative<std::unique_ptr<NameExp>>(jump->a)) {
+          // jump to a label
+          auto ljump = std::get<std::unique_ptr<NameExp>>(jump->a)->label;
+          auto iter = map.find(ljump);
+          if(iter != map.end()) {
+            // throw away the jump statement, as we put the jump label next to it
+            bp->stmts.pop_back();
+            next = iter->second;
+          }
+        }
       }
+      // add b to the trace
+      std::move(
+        bp->stmts.begin(), bp->stmts.end(), std::back_inserter(schedule));
+      bp = next;
     }
-    // append b to the trace
-    std::move(b.stmts.begin(), b.stmts.end(), std::back_inserter(schedule));
   }
 
   // ldone is where the epilogue starts

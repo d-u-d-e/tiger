@@ -89,12 +89,13 @@ int main(int argc, char** argv)
                 << sep << std::endl;*/
 
       auto list = canon.linearize(std::move(pf.body));
-      std::cout << "IR: proc fragment reduced" << std::endl;
+
+      /*std::cout << "IR: proc fragment reduced" << std::endl;
       for(auto& s : list) {
         std::string reduced = std::visit(ir_pretty_printer, s);
         std::cout << reduced << std::endl;
       }
-      std::cout << sep << std::endl;
+      std::cout << sep << std::endl;*/
 
       std::cout << "IR: proc fragment basic blocks" << std::endl;
       auto [blocks, ldone] = canon.basic_blocks(std::move(list));
@@ -106,6 +107,15 @@ int main(int argc, char** argv)
           std::cout << irstr << std::endl;
         }
         std::cout << ">>>> block end" << std::endl << std::endl;
+      }
+      std::cout << sep << std::endl;
+
+      // print the traces
+      auto sched = canon.trace_schedule(std::move(blocks), ldone);
+      std::cout << "IR: trace" << std::endl;
+      for(auto& s: sched){
+        std::string irstr = std::visit(ir_pretty_printer, s);
+        std::cout << irstr << std::endl;
       }
       std::cout << sep << std::endl;
     }

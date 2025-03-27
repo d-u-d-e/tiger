@@ -81,6 +81,8 @@ enum class RelOp
   uge
 };
 
+RelOp not_relop(RelOp op);
+
 struct ConstExp {
   ConstExp(size_t v)
     : v(v)
