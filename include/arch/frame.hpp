@@ -33,12 +33,32 @@ class Frame {
 
   public:
   using Access = std::variant<std::monostate, InReg, InFrame>;
-  static inline constexpr uint8_t word_size = 4;
+  static inline constexpr uint8_t word_size = 8;
 
-  // TODO: map this to rbp?
+  // cdecl calling convention
+  // rax, rcx, and rdx are caller-saved, and the rest are callee-saved
   static inline auto FP = ir::TempGen::new_temp();
-  // TODO: map this to rax?
   static inline auto RV = ir::TempGen::new_temp();
+  static inline auto SP = ir::TempGen::new_temp();
+
+  static inline std::unordered_map<ir::TempGen::Temp, std::string> special_regs{
+    {FP, "rbp"}, {RV, "rax"}, {SP, "rsp"}};
+
+  static inline std::unordered_map<ir::TempGen::Temp, std::string> caller_saved{
+    {ir::TempGen::new_temp(), "rcx"}, {ir::TempGen::new_temp(), "rdx"}};
+
+  static inline std::unordered_map<ir::TempGen::Temp, std::string> callee_saved{
+    {ir::TempGen::new_temp(), "rbx"},
+    {ir::TempGen::new_temp(), "rsi"},
+    {ir::TempGen::new_temp(), "rdi"},
+    {ir::TempGen::new_temp(), "r8"},
+    {ir::TempGen::new_temp(), "r9"},
+    {ir::TempGen::new_temp(), "r10"},
+    {ir::TempGen::new_temp(), "r11"},
+    {ir::TempGen::new_temp(), "r12"},
+    {ir::TempGen::new_temp(), "r13"},
+    {ir::TempGen::new_temp(), "r14"},
+    {ir::TempGen::new_temp(), "r15"}};
 
   Frame(ir::TempGen::Label label, const std::vector<bool>& formals)
     : label(label)
@@ -63,6 +83,20 @@ class Frame {
   ir::TempGen::Label name() const
   {
     return label;
+  }
+
+  static std::optional<std::string> map_temp(const ir::TempGen::Temp& t)
+  {
+    if(auto i = special_regs.find(t); i != special_regs.end()) {
+      return i->second;
+    }
+    if(auto i = callee_saved.find(t); i != callee_saved.end()) {
+      return i->second;
+    }
+    if(auto i = caller_saved.find(t); i != caller_saved.end()) {
+      return i->second;
+    }
+    return std::nullopt;
   }
 
   Access alloc_local(bool escape)
@@ -111,11 +145,11 @@ class Frame {
   }
 
   static ir::Ex external_call(ir::TempGen::Label label,
-                                std::vector<ir::Ex>&& args)
+                              std::vector<ir::Ex>&& args)
   {
     // no need to do anything
-    return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
-                                         std::move(args));
+    return std::make_unique<ir::tree::CallExp>(
+      std::make_unique<ir::tree::NameExp>(label), std::move(args));
   }
 
   private:

@@ -401,6 +401,19 @@ void Translator::proc_entry_exit(const Level& level, Exp&& body)
   auto rv = std::make_unique<tree::MoveStmt>(
     std::make_unique<tree::TempExp>(arch::Frame::RV), unex(std::move(body)));
 
+  // TODO: apply Frame::proc_entry_exit1 to the body
+  // proc_entry_exit1 does the following:
+  // - move incoming register formal params to the place expected by the function
+  // - save callee saved registers
+  // - restore callee saved registers
+  // callee saved regs should be saved to the frame depending whether the reg allocator implements spilling
+
+  // TODO: apply Frame::proc_entry_exit2 to the body
+  // proc_entry_exit2 appends a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
+
+  // TODO: apply Frame::proc_entry_exit3 to the body
+  // proc_entry_exit3 implements the prologue/epilogue
+
   add_fragment(ProcedureFragment{std::move(rv), level.f});
 }
 
