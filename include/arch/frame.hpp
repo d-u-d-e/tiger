@@ -147,7 +147,10 @@ class Frame {
   static ir::Ex external_call(ir::TempGen::Label label,
                               std::vector<ir::Ex>&& args)
   {
-    // no need to do anything
+    // TODO: external calls on Linux will use the system V abi
+    // runtime functions are called using system V abi, unless
+    // function attributes (cdecl) are specified
+
     return std::make_unique<ir::tree::CallExp>(
       std::make_unique<ir::tree::NameExp>(label), std::move(args));
   }
