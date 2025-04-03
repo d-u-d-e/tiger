@@ -12,7 +12,7 @@ struct Oper {
   std::string assem;
   std::vector<ir::TempGen::Temp> dst;
   std::vector<ir::TempGen::Temp> src;
-  std::optional<std::vector<ir::TempGen::Label>> jump;
+  std::optional<std::vector<ir::TempGen::Label>> jmp;
 };
 
 struct Label {

@@ -133,7 +133,10 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 
 #pragma once
 #include <codegen/generator.hpp>
+#include <functional>
+#include <ir/temp.hpp>
 #include <ir/tree.hpp>
+#include <optional>
 
 namespace arch::codegen
 {
@@ -150,6 +153,8 @@ class MuxMunchGen : public ::codegen::Generator {
   std::vector<::codegen::assem::Instruction> list;
 };
 
-std::string format(const ::codegen::assem::Instruction& ins);
+std::string format(
+  std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,
+  const ::codegen::assem::Instruction& ins);
 
 } // namespace arch::codegen
