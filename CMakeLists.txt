@@ -27,6 +27,7 @@ add_executable(
     src/ir/canon.cpp
     src/ir/tree.cpp
     src/codegen/assem.cpp
+    src/codegen/arch/isel.cpp
     ${sources_common}
 )
 target_include_directories(tiger PRIVATE include)
