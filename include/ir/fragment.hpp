@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arch/frame.hpp>
+#include <codegen/arch/frame.hpp>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <string>

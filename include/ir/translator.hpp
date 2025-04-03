@@ -1,6 +1,6 @@
 #pragma once
 #include <algorithm>
-#include <arch/frame.hpp>
+#include <codegen/arch/frame.hpp>
 #include <cassert>
 #include <cstddef>
 #include <ir/fragment.hpp>
