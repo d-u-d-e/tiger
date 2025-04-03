@@ -142,7 +142,7 @@ Token Scanner::integer_literal()
   }
   return {TokenType::integer_literal,
           std::string(start, current),
-          Position(line, int(current - row))};
+          Position(line, int(start - row) + 1)};
 }
 
 Token Scanner::string_literal()

@@ -200,7 +200,15 @@ Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
 
 std::unique_ptr<ast::IntExp> Parser::integer_literal()
 {
-  return std::make_unique<ast::IntExp>(std::stoi(previous.value));
+  size_t constant;
+  std::istringstream iss(previous.value);
+  iss >> constant;
+  if(iss.fail()) {
+    error_at(previous,
+             std::format("integer literal exceeds maximum {}",
+                         std::numeric_limits<size_t>::max()));
+  }
+  return std::make_unique<ast::IntExp>(constant);
 }
 
 std::unique_ptr<ast::StringExp> Parser::string_literal()

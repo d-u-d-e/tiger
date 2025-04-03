@@ -228,7 +228,7 @@ class NilExp : public Expression {
 
 class IntExp : public Expression {
   public:
-  IntExp(int value)
+  IntExp(size_t value)
     : value(value)
   { }
   std::string accept(PrettyPrinterExprVisitor& visitor) const override
@@ -247,7 +247,7 @@ class IntExp : public Expression {
     return visitor.visit_int_exp(*this);
   }
 
-  int value;
+  size_t value;
 };
 
 class StringExp : public Expression {
