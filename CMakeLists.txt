@@ -26,7 +26,6 @@ add_executable(
     src/main.cpp
     src/ir/canon.cpp
     src/ir/tree.cpp
-    src/codegen/assem.cpp
     src/codegen/arch/isel.cpp
     ${sources_common}
 )

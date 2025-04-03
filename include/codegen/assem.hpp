@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <ir/temp.hpp>
 #include <string>
 #include <vector>
@@ -27,8 +27,6 @@ struct Move {
 };
 
 using Instruction = std::variant<Oper, Label, Move>;
-
-std::string format(const Instruction& ins);
 
 } // namespace assem
 } // namespace codegen

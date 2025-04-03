@@ -25,4 +25,11 @@ void MuxMunchGen::munch_stmt(const ir::tree::Stmt& stmt)
   (void)stmt;
 }
 
+std::string format(const ::codegen::assem::Instruction& ins)
+{
+  // TODO
+  (void)ins;
+  return "?";
+}
+
 } // namespace arch::codegen

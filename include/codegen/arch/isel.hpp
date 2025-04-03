@@ -150,4 +150,6 @@ class MuxMunchGen : public ::codegen::Generator {
   std::vector<::codegen::assem::Instruction> list;
 };
 
+std::string format(const ::codegen::assem::Instruction& ins);
+
 } // namespace arch::codegen
