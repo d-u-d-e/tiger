@@ -1,13 +1,18 @@
-#include "codegen/arch/frame.hpp"
+#include <cassert>
+#include <codegen/arch/frame.hpp>
 #include <codegen/arch/isel.hpp>
 #include <codegen/assem.hpp>
+#include <cstdint>
 #include <format>
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -25,17 +30,6 @@ MuxMunchGen::gen(const ir::tree::Stmt& stmt)
 
 ir::TempGen::Temp MuxMunchGen::munch_exp(const ir::tree::Exp& exp)
 {
-  /*
-  MemExp(BinOpExp(ConstExp(const32), reg1), plus))    -> move new_reg, [reg1 + const32]
-  MemExp(BinOpExp(reg1, ConstExp(const32), plus))   	-> move new_reg, [reg1 + const32]
-  MemExp(BinOpExp(reg1, reg2, plus))   	              -> move new_reg, [reg1 + reg2]
-  MemExp(ConstExp(const32))                           -> move new_reg, [const32]
-  MemExp(reg1) 	                                      -> move new_reg, [reg1]
-
-  CallExp(NameExp(label),  reg_list)  -> call label;  move new_reg, eax
-  CallExp(reg1, reg_list)             -> call reg1; move new_reg, eax
-  */
-
   if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(exp)) {
     // ConstExp(const) -> move new_reg, const
     auto result = ir::TempGen::new_temp();
@@ -64,87 +58,185 @@ ir::TempGen::Temp MuxMunchGen::munch_exp(const ir::tree::Exp& exp)
     return std::get<std::unique_ptr<ir::tree::TempExp>>(exp)->temp;
   }
   else if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(exp)) {
-    auto& binop = std::get<std::unique_ptr<ir::tree::BinOpExp>>(exp);
-    auto left = munch_exp(binop->left);
-    auto right = munch_exp(binop->right);
+    return munch_binop_exp(*std::get<std::unique_ptr<ir::tree::BinOpExp>>(exp));
+  }
+  else if(std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(exp)) {
+    return munch_mem_exp(*std::get<std::unique_ptr<ir::tree::MemExp>>(exp));
+  }
+  else if(std::holds_alternative<std::unique_ptr<ir::tree::CallExp>>(exp)) {
+    return munch_call_exp(*std::get<std::unique_ptr<ir::tree::CallExp>>(exp));
+  }
+  assert(false);
+  std::unreachable();
+}
+
+ir::TempGen::Temp MuxMunchGen::munch_mem_exp(const ir::tree::MemExp& exp)
+{
+  if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(exp.a)) {
+    // MemExp(ConstExp(const32)) -> move new_reg, [const32]
     auto result = ir::TempGen::new_temp();
-    if(binop->op == ir::tree::BinaryOp::plus) {
-      // BinOpExp(reg1, reg2, plus) -> move new_reg, reg1; add new_reg, reg2
+    auto const32 = std::get<std::unique_ptr<ir::tree::ConstExp>>(exp.a)->v;
+    if(const32 <= std::numeric_limits<uint32_t>::max()) {
+      // a true const32
       list.emplace_back(::codegen::assem::Oper{
-        .assem{std::format("move `d0, `s0")},
-        .dst{result},
-        .src{left},
-        .jmp{},
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem{std::format("add `d0, `s0")},
-        .dst{result},
-        .src{right},
-        .jmp{},
-      });
-    }
-    else if(binop->op == ir::tree::BinaryOp::minus) {
-      // BinOpExp(reg1, reg2, plus)  -> move new_reg, reg1; add new_reg, reg2
-      list.emplace_back(::codegen::assem::Oper{
-        .assem{std::format("move `d0, `s0")},
-        .dst{result},
-        .src{left},
-        .jmp{},
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem{std::format("sub `d0, `s0")},
-        .dst{result},
-        .src{right},
-        .jmp{},
-      });
-    }
-    else if(binop->op == ir::tree::BinaryOp::mul) {
-      // BinOpExp(reg1, reg2, mul) -> move rax, reg1; imul reg2; move new_reg, rax
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("move `d0, `s0"),
-        .dst = {arch::Frame::RAX},
-        .src = {left},
-        .jmp = std::nullopt,
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("imul `s0"),
-        .dst = {arch::Frame::RAX, arch::Frame::RDX},
-        .src = {right},
-        .jmp = std::nullopt,
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("move `d0, `s0"),
+        .assem = std::format("move `d0, [{}]", const32),
         .dst = {result},
-        .src = {arch::Frame::RAX},
+        .src = {},
         .jmp = std::nullopt,
       });
+      return result;
     }
-    else if(binop->op == ir::tree::BinaryOp::div) {
-      // BinOpExp(reg1, reg2, div) -> move rax, reg1; idiv reg2; move new_reg, rax
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("move `d0, `s0"),
-        .dst = {arch::Frame::RAX},
-        .src = {left},
-        .jmp = std::nullopt,
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("idiv `s0"),
-        .dst = {arch::Frame::RAX, arch::Frame::RDX},
-        .src = {right},
-        .jmp = std::nullopt,
-      });
-      list.emplace_back(::codegen::assem::Oper{
-        .assem = std::format("move `d0, `s0"),
-        .dst = {result},
-        .src = {arch::Frame::RAX},
-        .jmp = std::nullopt,
-      });
+  }
+  else if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(exp.a)) {
+    auto& binexp = std::get<std::unique_ptr<ir::tree::BinOpExp>>(exp.a);
+    if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+         binexp->left)) {
+      // MemExp(BinOpExp(ConstExp(const32), reg1), plus)) -> move new_reg, [reg1 + const32]
+      // TODO
     }
+    else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+              binexp->right)) {
+      // MemExp(BinOpExp(reg1, ConstExp(const32), plus)) -> move new_reg, [reg1 + const32]
+      // TODO
+    }
+    else {
+      // MemExp(BinOpExp(reg1, reg2, plus)) -> move new_reg, [reg1 + reg2]
+      // TODO
+    }
+  }
+
+  // MemExp(reg1) -> move new_reg, [reg1]
+  auto reg1 = munch_exp(exp.a);
+  auto result = ir::TempGen::new_temp();
+  list.emplace_back(::codegen::assem::Oper{
+    .assem = "move `d0, [`s0]",
+    .dst = {result},
+    .src = {reg1},
+    .jmp = std::nullopt,
+  });
+  return result;
+}
+
+ir::TempGen::Temp MuxMunchGen::munch_binop_exp(const ir::tree::BinOpExp& exp)
+{
+  auto left = munch_exp(exp.left);
+  auto right = munch_exp(exp.right);
+  auto result = ir::TempGen::new_temp();
+  if(exp.op == ir::tree::BinaryOp::plus) {
+    // BinOpExp(reg1, reg2, plus) -> move new_reg, reg1; add new_reg, reg2
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, `s0"},
+      .dst{result},
+      .src{left},
+      .jmp{},
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"add `d0, `s0"},
+      .dst{result},
+      .src{right},
+      .jmp{},
+    });
+  }
+  else if(exp.op == ir::tree::BinaryOp::minus) {
+    // BinOpExp(reg1, reg2, plus)  -> move new_reg, reg1; add new_reg, reg2
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{std::format("move `d0, `s0")},
+      .dst{result},
+      .src{left},
+      .jmp{},
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{std::format("sub `d0, `s0")},
+      .dst{result},
+      .src{right},
+      .jmp{},
+    });
+  }
+  else if(exp.op == ir::tree::BinaryOp::mul) {
+    // BinOpExp(reg1, reg2, mul) -> move rax, reg1; imul reg2; move new_reg, rax
+    list.emplace_back(::codegen::assem::Oper{
+      .assem = std::format("move `d0, `s0"),
+      .dst = {arch::Frame::RAX},
+      .src = {left},
+      .jmp = std::nullopt,
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem = std::format("imul `s0"),
+      .dst = {arch::Frame::RAX, arch::Frame::RDX},
+      .src = {right},
+      .jmp = std::nullopt,
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem = std::format("move `d0, `s0"),
+      .dst = {result},
+      .src = {arch::Frame::RAX},
+      .jmp = std::nullopt,
+    });
+  }
+  else if(exp.op == ir::tree::BinaryOp::div) {
+    // BinOpExp(reg1, reg2, div) -> move rax, reg1; idiv reg2; move new_reg, rax
+    list.emplace_back(::codegen::assem::Oper{
+      .assem = std::format("move `d0, `s0"),
+      .dst = {arch::Frame::RAX},
+      .src = {left},
+      .jmp = std::nullopt,
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"idiv `s0"},
+      .dst = {arch::Frame::RAX, arch::Frame::RDX},
+      .src = {right},
+      .jmp = std::nullopt,
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, `s0"},
+      .dst = {result},
+      .src = {arch::Frame::RAX},
+      .jmp = std::nullopt,
+    });
+  }
+  else {
+    // there are other binops that should be handled, but our frontend will not generate them
+    assert(false);
+  }
+  return result;
+}
+
+ir::TempGen::Temp MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
+{
+  std::vector<ir::TempGen::Temp> args;
+  for(auto& arg : exp.args) {
+    args.push_back(munch_exp(arg));
+  }
+  auto result = ir::TempGen::new_temp();
+  auto trashed =
+    std::vector(std::views::keys(arch::Frame::special_regs).begin(),
+                std::views::keys(arch::Frame::special_regs).end());
+  trashed.insert(trashed.end(),
+                 std::views::keys(arch::Frame::caller_saved).begin(),
+                 std::views::keys(arch::Frame::caller_saved).end());
+
+  if(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun)) {
+    // CallExp(NameExp(label),  reg_list) -> call label;  move new_reg, rax
+    auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
+    list.emplace_back(::codegen::assem::Oper{
+      .assem = std::format("call {}", ljmp.str()),
+      .dst{std::move(trashed)},
+      .src{std::move(args)},
+      .jmp{std::vector{ljmp}},
+    });
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, `s0"}, .dst{result}, .src{arch::Frame::RAX}, .jmp{}});
     return result;
   }
 
-  // TODO
-  return ir::TempGen::new_temp();
+  // CallExp(reg1, reg_list) -> call reg1; move new_reg, rax
+  list.emplace_back(::codegen::assem::Oper{.assem{"call `s0"},
+                                           .dst{std::move(trashed)},
+                                           .src{std::move(args)},
+                                           .jmp{}});
+  list.emplace_back(::codegen::assem::Oper{
+    .assem{"move `d0, `s0"}, .dst{result}, .src{arch::Frame::RAX}, .jmp{}});
+  return result;
 }
 
 void MuxMunchGen::munch_stmt(const ir::tree::Stmt& stmt)

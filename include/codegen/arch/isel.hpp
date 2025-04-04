@@ -54,8 +54,8 @@ reg : MemExp(a1)   	:: move new_reg, [a1.reg1 + a1.reg2] :: 0.5
 reg : MemExp(a2)  	:: move new_reg, [a2.reg + a2.const32] :: 0.5
 reg : MemExp(a3)   	:: move new_reg, [const32] :: 0.5
 
-reg : CallExp(reg1, reg_list) 	:: call reg1;             move new_reg, eax :: 2 + 0.25 = 2.25
-reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  move new_reg, eax :: 2 + 0.25 = 2.25
+reg : CallExp(reg1, reg_list) 	:: call reg1;             move new_reg, rax :: 2 + 0.25 = 2.25
+reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  move new_reg, rax :: 2 + 0.25 = 2.25
 
 stmt : MoveStmt(reg1, reg2) :: move reg1, reg2 :: 0.25
 stmt : MoveStmt(reg1, a1) 	:: move reg1, [a1.reg1 + a1.reg2] :: 0.5
@@ -101,8 +101,8 @@ MemExp(BinOpExp(reg1, reg2, plus))   	              -> move new_reg, [reg1 + reg
 MemExp(ConstExp(const32))                           -> move new_reg, [const32]
 MemExp(reg1) 	                                      -> move new_reg, [reg1]
 
-CallExp(NameExp(label),  reg_list)  -> call label;  move new_reg, eax
-CallExp(reg1, reg_list)             -> call reg1; move new_reg, eax
+CallExp(NameExp(label),  reg_list)  -> call label;  move new_reg, rax
+CallExp(reg1, reg_list)             -> call reg1; move new_reg, rax
 
 MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1), plus)), reg2)    -> move QWORD PTR [reg1 + const32], reg2
 MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)   	-> move QWORD PTR [reg1 + const32], reg2
@@ -152,6 +152,9 @@ class MuxMunchGen : public ::codegen::Generator {
   private:
   ir::TempGen::Temp munch_exp(const ir::tree::Exp& exp);
   void munch_stmt(const ir::tree::Stmt& stmt);
+  ir::TempGen::Temp munch_mem_exp(const ir::tree::MemExp& exp);
+  ir::TempGen::Temp munch_binop_exp(const ir::tree::BinOpExp& exp);
+  ir::TempGen::Temp munch_call_exp(const ir::tree::CallExp& exp);
 
   std::vector<::codegen::assem::Instruction> list;
 };
