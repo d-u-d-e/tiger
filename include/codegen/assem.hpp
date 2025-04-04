@@ -1,6 +1,8 @@
 #pragma once
 #include <ir/temp.hpp>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace codegen

@@ -10,15 +10,16 @@
 
 #include <seman/analyzer.hpp>
 #include <seman/env.hpp>
-#include <string>
 #include <symbol.hpp>
 #include <sysexits.h>
 
 #include <ir/pretty_printer.hpp>
 #include <ir/translator.hpp>
 #include <seman/escape.hpp>
+#include <string>
 #include <utility>
 
+#include <codegen/arch/isel.hpp>
 #include <ir/canon.hpp>
 #include <variant>
 
@@ -97,9 +98,9 @@ int main(int argc, char** argv)
       }
       std::cout << sep << std::endl;*/
 
-      std::cout << "IR: proc fragment basic blocks" << std::endl;
       auto [blocks, ldone] = canon.basic_blocks(std::move(list));
 
+      /*std::cout << "IR: proc fragment basic blocks" << std::endl;
       for(auto& b : blocks) {
         std::cout << "<<<< block start" << std::endl;
         for(auto& s : b.stmts) {
@@ -108,17 +109,19 @@ int main(int argc, char** argv)
         }
         std::cout << ">>>> block end" << std::endl << std::endl;
       }
-      std::cout << sep << std::endl;
+      std::cout << sep << std::endl;*/
 
       // print the traces
       auto sched = canon.trace_schedule(std::move(blocks), ldone);
       std::cout << "IR: trace" << std::endl;
-      for(auto& s: sched){
+      for(auto& s : sched) {
         std::string irstr = std::visit(ir_pretty_printer, s);
         std::cout << irstr << std::endl;
       }
       std::cout << sep << std::endl;
     }
   }
+
+  // print output of codegen
   return EX_OK;
 }

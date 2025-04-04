@@ -132,11 +132,14 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 */
 
 #pragma once
+#include <codegen/assem.hpp>
 #include <codegen/generator.hpp>
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace arch::codegen
 {

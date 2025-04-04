@@ -5,7 +5,9 @@
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <memory>
+#include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -40,15 +42,19 @@ class Frame {
   static inline auto FP = ir::TempGen::new_temp();
   static inline auto RV = ir::TempGen::new_temp();
   static inline auto SP = ir::TempGen::new_temp();
+  static inline auto RAX = RV;
+  static inline auto RBX = ir::TempGen::new_temp();
+  static inline auto RCX = ir::TempGen::new_temp();
+  static inline auto RDX = ir::TempGen::new_temp();
 
   static inline std::unordered_map<ir::TempGen::Temp, std::string> special_regs{
     {FP, "rbp"}, {RV, "rax"}, {SP, "rsp"}};
 
   static inline std::unordered_map<ir::TempGen::Temp, std::string> caller_saved{
-    {ir::TempGen::new_temp(), "rcx"}, {ir::TempGen::new_temp(), "rdx"}};
+    {RCX, "rcx"}, {RDX, "rdx"}};
 
   static inline std::unordered_map<ir::TempGen::Temp, std::string> callee_saved{
-    {ir::TempGen::new_temp(), "rbx"},
+    {RBX, "rbx"},
     {ir::TempGen::new_temp(), "rsi"},
     {ir::TempGen::new_temp(), "rdi"},
     {ir::TempGen::new_temp(), "r8"},
