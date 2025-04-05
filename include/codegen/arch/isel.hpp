@@ -151,9 +151,16 @@ class MuxMunchGen : public ::codegen::Generator {
   void munch_move_stmt(const ir::tree::MoveStmt& stmt);
   void munch_cjump_stmt(const ir::tree::CJumpStmt& stmt);
   ir::TempGen::Temp munch_mem_exp(const ir::tree::MemExp& exp);
+  bool maybe_munch_store(const ir::tree::MoveStmt& stmt);
+  bool maybe_munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
   ir::TempGen::Temp munch_binop_exp(const ir::tree::BinOpExp& exp);
   std::vector<::codegen::assem::Instruction> list;
+
+  bool is_const32(size_t constant)
+  {
+    return constant <= std::numeric_limits<uint32_t>::max();
+  }
 };
 
 std::string format(

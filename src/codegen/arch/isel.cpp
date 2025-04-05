@@ -144,6 +144,84 @@ ir::TempGen::Temp MuxMunchGen::munch_mem_exp(const ir::tree::MemExp& exp)
   return result;
 }
 
+bool MuxMunchGen::maybe_munch_store(const ir::tree::MoveStmt& stmt)
+{
+  if(!std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt.left)) {
+    return false;
+  }
+  auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.left);
+
+  if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a) &&
+     std::get<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a)->op ==
+       ir::tree::BinaryOp::plus) {
+    auto& binopexp = std::get<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a);
+    // MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1), plus)), reg2) -> move QWORD PTR [reg1 + const32], reg2
+    // MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)  -> move QWORD PTR [reg1 + const32], reg2
+    if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+         binopexp->left) &&
+       is_const32(
+         std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v)) {
+      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v;
+      auto reg1 = munch_exp(binopexp->right);
+      auto reg2 = munch_exp(stmt.right);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{std::format("move QWORD PTR [`s0 + {}], `s1", c)},
+        .dst{},
+        .src{reg1, reg2},
+        .jmp{},
+      });
+      return true;
+    }
+    else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+              binopexp->right) &&
+            is_const32(
+              std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)
+                ->v)) {
+      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v;
+      auto reg1 = munch_exp(binopexp->left);
+      auto reg2 = munch_exp(stmt.right);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{std::format("move QWORD PTR [`s0 + {}], `s1", c)},
+        .dst{},
+        .src{reg1, reg2},
+        .jmp{},
+      });
+      return true;
+    }
+  }
+  else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+            memexp->a) &&
+          is_const32(
+            std::get<std::unique_ptr<ir::tree::ConstExp>>(memexp->a)->v)) {
+    // MoveStmt(MemExp(ConstExp(const32)), reg1) -> move QWORD PTR [const32], reg1
+    auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(memexp->a)->v;
+    auto reg1 = munch_exp(stmt.right);
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{std::format("move QWORD PTR [{}], `s0", c)},
+      .dst{},
+      .src{reg1},
+      .jmp{},
+    });
+    return true;
+  }
+  return false;
+}
+
+bool MuxMunchGen::maybe_munch_load(const ir::tree::MoveStmt& stmt)
+{
+  /*
+  MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2), plus)))    -> move reg1, [reg2 + const32]
+  MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32)), plus)))    -> move reg1, [reg2 + const32]
+  MoveStmt(reg1, MemExp(ConstExp(0)))   	                            -> xor reg1, reg1
+  MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> move reg1, [const32]
+  MoveStmt(reg1, reg2)   	                                            -> move reg1, reg2
+  */
+
+  // TODO
+  (void)stmt;
+  return false;
+}
+
 ir::TempGen::Temp MuxMunchGen::munch_binop_exp(const ir::tree::BinOpExp& exp)
 {
   auto left = munch_exp(exp.left);
@@ -306,21 +384,31 @@ void MuxMunchGen::munch_stmt(const ir::tree::Stmt& stmt)
 
 void MuxMunchGen::munch_move_stmt(const ir::tree::MoveStmt& stmt)
 {
-  /*
-  MoveStmt(TempExp(temp), CallExp(NameExp(label), reg_list))          -> call rel32 label; move temp, rax
-  MoveStmt(TempExp(temp), CallExp(reg, reg_list))                     -> call reg;   move temp, rax
-  MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1), plus)), reg2)    -> move QWORD PTR [reg1 + const32], reg2
-  MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)   	-> move QWORD PTR [reg1 + const32], reg2
-  MoveStmt(MemExp(ConstExp(const32)), reg1)   	                      -> move QWORD PTR [const32], reg1
-  MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2), plus)))    -> move reg1, [reg2 + const32]
-  MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32)), plus)))    -> move reg1, [reg2 + const32]
-  MoveStmt(reg1, MemExp(ConstExp(0)))   	                            -> xor reg1, reg1
-  MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> move reg1, [const32]
-  MoveStmt(reg1, reg2)   	                                            -> move reg1, reg2
-  */
- 
-  (void)stmt;
-  // TODO
+  if(std::holds_alternative<std::unique_ptr<ir::tree::TempExp>>(stmt.left) &&
+     std::holds_alternative<std::unique_ptr<ir::tree::CallExp>>(stmt.right)) {
+    // MoveStmt(TempExp(temp), CallExp(NameExp(label), reg_list)) -> call rel32 label; move temp, rax
+    // MoveStmt(TempExp(temp), CallExp(reg, reg_list)) -> call reg; move temp, rax
+    auto temp = std::get<std::unique_ptr<ir::tree::TempExp>>(stmt.left)->temp;
+    auto& callexp = std::get<std::unique_ptr<ir::tree::CallExp>>(stmt.right);
+    munch_call_exp(*callexp);
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, `s0"},
+      .dst{temp},
+      .src{arch::Frame::RAX},
+      .jmp{},
+    });
+  }
+  else if(!maybe_munch_store(stmt) && !maybe_munch_load(stmt)) {
+    // MoveStmt(reg1, reg2) -> move reg1, reg2
+    auto reg1 = munch_exp(stmt.left);
+    auto reg2 = munch_exp(stmt.right);
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, `s0"},
+      .dst{reg1},
+      .src{reg2},
+      .jmp{},
+    });
+  }
 }
 
 void MuxMunchGen::munch_cjump_stmt(const ir::tree::CJumpStmt& stmt)
