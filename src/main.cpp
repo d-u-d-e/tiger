@@ -49,11 +49,11 @@ int main(int argc, char** argv)
   /*
   // pretty print the ast
   parser::ast::PrettyPrinter pretty_printer;
-  std::cout << exp->accept(pretty_printer) << std::endl << std::endl;
+  std::cout << exp->accept(pretty_printer) << "\n" << "\n";
 
   // dump the string table
-  std::cout << "string table:" << std::endl;
-  std::cout << string_table.dump() << std::endl;*/
+  std::cout << "string table:" << "\n";
+  std::cout << string_table.dump() << "\n";*/
 
   // find escape variables
   seman::EscapeFinder esc_finder;
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
     ir = type_checker.type_check(*exp);
   }
   catch(std::exception& e) {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << std::endl;
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
     return EX_DATAERR;
   }
 
@@ -74,9 +74,8 @@ int main(int argc, char** argv)
   auto c = translator.unex(std::move(ir));
 
   auto sep = "-----------------------------";
-  std::cout << "IR: main expression" << std::endl;
-  std::cout << std::visit(ir_pretty_printer, c) << std::endl
-            << sep << std::endl;
+  std::cout << "IR: main expression" << "\n";
+  std::cout << std::visit(ir_pretty_printer, c) << "\n" << sep << "\n";
   ir::tree::Canon canon;
 
   // dump procedure fragments
@@ -85,40 +84,51 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag)) {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
 
-      /*std::cout << "IR: proc fragment" << std::endl;
-      std::cout << translator.dump_fragment(frag) << std::endl
-                << sep << std::endl;*/
+      /*std::cout << "IR: proc fragment" << "\n";
+      std::cout << translator.dump_fragment(frag) << "\n"
+                << sep << "\n";*/
 
       auto list = canon.linearize(std::move(pf.body));
 
-      /*std::cout << "IR: proc fragment reduced" << std::endl;
+      /*std::cout << "IR: proc fragment reduced" << "\n";
       for(auto& s : list) {
         std::string reduced = std::visit(ir_pretty_printer, s);
-        std::cout << reduced << std::endl;
+        std::cout << reduced << "\n";
       }
-      std::cout << sep << std::endl;*/
+      std::cout << sep << "\n";*/
 
       auto [blocks, ldone] = canon.basic_blocks(std::move(list));
 
-      /*std::cout << "IR: proc fragment basic blocks" << std::endl;
+      /*std::cout << "IR: proc fragment basic blocks" << "\n";
       for(auto& b : blocks) {
-        std::cout << "<<<< block start" << std::endl;
+        std::cout << "<<<< block start" << "\n";
         for(auto& s : b.stmts) {
           std::string irstr = std::visit(ir_pretty_printer, s);
-          std::cout << irstr << std::endl;
+          std::cout << irstr << "\n";
         }
-        std::cout << ">>>> block end" << std::endl << std::endl;
+        std::cout << ">>>> block end" << "\n" << "\n";
       }
-      std::cout << sep << std::endl;*/
+      std::cout << sep << "\n";*/
 
       // print the traces
       auto sched = canon.trace_schedule(std::move(blocks), ldone);
-      std::cout << "IR: trace" << std::endl;
+      std::cout << "IR: trace" << "\n";
       for(auto& s : sched) {
         std::string irstr = std::visit(ir_pretty_printer, s);
-        std::cout << irstr << std::endl;
+        std::cout << irstr << "\n";
       }
-      std::cout << sep << std::endl;
+      std::cout << sep << "\n";
+
+      // print the asm without register allocation
+      arch::codegen::MuxMunchGen gen;
+      std::cout << "ASM: without reg alloc" << "\n";
+      for(auto& s : sched) {
+        auto instrs = gen.gen(s);
+        for(auto& i : instrs) {
+          std::cout << arch::codegen::format(arch::Frame::map_temp, i) << "\n";
+        }
+      }
+      std::cout << sep << "\n";
     }
   }
 
