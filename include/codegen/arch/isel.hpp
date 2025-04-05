@@ -52,20 +52,24 @@ reg : BinOpExp(reg1, reg2, div)   :: move rax, reg1; idiv reg2; move new_reg, ra
 reg : MemExp(reg1) 	:: move new_reg, [reg1] :: 0.5
 reg : MemExp(a1)   	:: move new_reg, [a1.reg1 + a1.reg2] :: 0.5
 reg : MemExp(a2)  	:: move new_reg, [a2.reg + a2.const32] :: 0.5
-reg : MemExp(a3)   	:: move new_reg, [const32] :: 0.5
+reg : MemExp(a3)   	:: move new_reg, [a3.const32] :: 0.5
+
+stmt : MoveStmt(reg1, MemExp(reg2)) :: move reg1, [reg2] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a1)) 	:: move reg1, [a1.reg1 + a1.reg2] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a2)) 	:: move reg1, [a2.reg1 + a2.const32] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a3)) 	:: move reg1, [a3.const32] :: 0.5
+
+stmt : MoveStmt(MemExp(reg1), reg2) :: move QWORD PTR [reg1], reg2  :: 1
+stmt : MoveStmt(MemExp(a1), reg1) 	:: move QWORD PTR [a1.reg1 + a1.reg2], reg1  :: 1
+stmt : MoveStmt(MemExp(a2), reg1) 	:: move QWORD PTR [a2.reg1 + a2.const32], reg1 :: 1
+stmt : MoveStmt(MemExp(a3), reg1) 	:: move QWORD PTR [a3.const32], reg1 :: 1
+
+stmt : MoveStmt(reg1, reg2)         :: move reg1, reg2 :: 0.25
+stmt : MoveStmt(reg1, a4) 	        :: xor reg1, reg1 :: 0.3
+stmt : MoveStmt(reg1, a3) 	        :: move reg1, a3.const32 :: 0.25
 
 reg : CallExp(reg1, reg_list) 	:: call reg1;             move new_reg, rax :: 2 + 0.25 = 2.25
 reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  move new_reg, rax :: 2 + 0.25 = 2.25
-
-stmt : MoveStmt(reg1, reg2) :: move reg1, reg2 :: 0.25
-stmt : MoveStmt(reg1, a1) 	:: move reg1, [a1.reg1 + a1.reg2] :: 0.5
-stmt : MoveStmt(reg1, a2) 	:: move reg1, [a2.reg1 + a2.const32] :: 0.5
-stmt : MoveStmt(reg1, a3) 	:: move reg1, [a3.const32] :: 0.5
-stmt : MoveStmt(reg1, a4) 	:: xor reg1, reg1 :: 0.3
-
-stmt : MoveStmt(a1, reg1) 	:: move QWORD PTR [a1.reg1 + a1.reg2], reg1  :: 1
-stmt : MoveStmt(a2, reg1) 	:: move QWORD PTR [a2.reg1 + a2.const32], reg1 :: 1
-stmt : MoveStmt(a3, reg1) 	:: move QWORD PTR [a3.const32], reg1 :: 1
 
 stmt : ExpStmt(CallExp(lab, reg_list)) :: call rel32 lab.label :: 2
 stmt : ExpStmt(CallExp(reg, reg_list)) :: call reg :: 2
@@ -104,12 +108,19 @@ CallExp(reg1, reg_list)             -> call reg1; move new_reg, rax
 
 MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1, plus)), reg2)     -> move QWORD PTR [reg1 + const32], reg2
 MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)   	-> move QWORD PTR [reg1 + const32], reg2
+MoveStmt(MemExp(BinOpExp(reg1, reg2, plus)), reg3)   	              -> move QWORD PTR [reg1 + reg2], reg3
 MoveStmt(MemExp(ConstExp(const32)), reg1)   	                      -> move QWORD PTR [const32], reg1
+MoveStmt(MemExp(reg1), reg2)   	                                    -> move QWORD PTR [reg1], reg2
+
 MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2, plus)))     -> move reg1, [reg2 + const32]
 MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32), plus)))     -> move reg1, [reg2 + const32]
-MoveStmt(reg1, MemExp(ConstExp(0)))   	                            -> xor reg1, reg1
+MoveStmt(reg1, MemExp(BinOpExp(reg2, reg3, plus)))                  -> move reg1, [reg2 + reg3]
 MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> move reg1, [const32]
-MoveStmt(reg1, reg2)   	                                            -> move reg1, reg2
+MoveStmt(reg1, MemExp(reg2))                                        -> move reg1, [reg2]
+
+MoveStmt(reg1, ConstExp(0))   	   -> xor reg1, reg1
+MoveStmt(reg1, ConstExp(const32))  -> move reg1, const32
+MoveStmt(reg1, reg2)   	           -> move reg1, reg2
 
 ExpStmt(CallExp(NameExp(label), reg_list))  -> call rel32 label
 ExpStmt(CallExp(reg, reg_list))             -> call reg
@@ -161,8 +172,8 @@ class MuxMunchGen : public ::codegen::Generator {
   void operator()(const std::unique_ptr<ir::tree::LabelStmt>& stmt);
 
   private:
-  bool maybe_munch_store(const ir::tree::MoveStmt& stmt);
-  bool maybe_munch_load(const ir::tree::MoveStmt& stmt);
+  void munch_store(const ir::tree::MoveStmt& stmt);
+  void munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
 
   bool is_const32(size_t constant)
