@@ -170,7 +170,6 @@ bool MuxMunchGen::maybe_munch_store(const ir::tree::MoveStmt& stmt)
         .src{reg1, reg2},
         .jmp{},
       });
-      return true;
     }
     else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
               binopexp->right) &&
@@ -186,7 +185,6 @@ bool MuxMunchGen::maybe_munch_store(const ir::tree::MoveStmt& stmt)
         .src{reg1, reg2},
         .jmp{},
       });
-      return true;
     }
   }
   else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
@@ -202,24 +200,101 @@ bool MuxMunchGen::maybe_munch_store(const ir::tree::MoveStmt& stmt)
       .src{reg1},
       .jmp{},
     });
-    return true;
   }
-  return false;
+  else {
+    // MoveStmt(MemExp(reg1), reg2) -> move QWORD PTR [reg1], reg2
+    auto reg1 = munch_exp(memexp->a);
+    auto reg2 = munch_exp(stmt.right);
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move QWORD PTR [`s0], `s1"},
+      .dst{},
+      .src{reg1, reg2},
+      .jmp{},
+    });
+  }
+  return true;
 }
 
 bool MuxMunchGen::maybe_munch_load(const ir::tree::MoveStmt& stmt)
 {
-  /*
-  MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2), plus)))    -> move reg1, [reg2 + const32]
-  MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32)), plus)))    -> move reg1, [reg2 + const32]
-  MoveStmt(reg1, MemExp(ConstExp(0)))   	                            -> xor reg1, reg1
-  MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> move reg1, [const32]
-  MoveStmt(reg1, reg2)   	                                            -> move reg1, reg2
-  */
+  if(!std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt.right)) {
+    return false;
+  }
+  auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.right);
 
-  // TODO
-  (void)stmt;
-  return false;
+  if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a) &&
+     std::get<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a)->op ==
+       ir::tree::BinaryOp::plus) {
+    auto& binopexp = std::get<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a);
+    // MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2, plus))) -> move reg1, [reg2 + const32]
+    // MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32), plus))) -> move reg1, [reg2 + const32]
+    if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+         binopexp->left) &&
+       is_const32(
+         std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v)) {
+      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v;
+      auto reg2 = munch_exp(binopexp->right);
+      auto reg1 = munch_exp(stmt.left);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{std::format("move `d0, [`s0 + {}]", c)},
+        .dst{reg1},
+        .src{reg2},
+        .jmp{},
+      });
+    }
+    else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+              binopexp->right) &&
+            is_const32(
+              std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)
+                ->v)) {
+      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->left)->v;
+      auto reg2 = munch_exp(binopexp->left);
+      auto reg1 = munch_exp(stmt.left);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{std::format("move `d0, [`s0 + {}]", c)},
+        .dst{reg1},
+        .src{reg2},
+        .jmp{},
+      });
+    }
+  }
+  else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(
+            memexp->a) &&
+          is_const32(
+            std::get<std::unique_ptr<ir::tree::ConstExp>>(memexp->a)->v)) {
+    // MoveStmt(reg1, MemExp(ConstExp(0))) -> xor reg1, reg1
+    // MoveStmt(reg1, MemExp(ConstExp(const32))) -> move reg1, [const32]
+    auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(memexp->a)->v;
+    auto reg1 = munch_exp(stmt.left);
+    if(c == 0) {
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{"xor `s0 `s0"},
+        .dst{reg1},
+        .src{reg1},
+        .jmp{},
+      });
+    }
+    else {
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{std::format("move `d0, [{}]", c)},
+        .dst{reg1},
+        .src{},
+        .jmp{},
+      });
+    }
+  }
+  else {
+    // MoveStmt(reg1, MemExp(reg2)) -> move reg1, [reg2]
+    auto reg1 = munch_exp(stmt.left);
+    auto reg2 = munch_exp(memexp->a);
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"move `d0, [`s0]"},
+      .dst{reg1},
+      .src{reg2},
+      .jmp{},
+    });
+  }
+  return true;
 }
 
 ir::TempGen::Temp MuxMunchGen::munch_binop_exp(const ir::tree::BinOpExp& exp)
