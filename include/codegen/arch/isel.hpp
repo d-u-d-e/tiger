@@ -145,22 +145,32 @@ class MuxMunchGen : public ::codegen::Generator {
   std::vector<::codegen::assem::Instruction>
   gen(const ir::tree::Stmt& stmt) override;
 
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::NameExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::TempExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::BinOpExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::MemExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::CallExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::ESeqExp>& exp);
+  ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::ConstExp>& exp);
+
+  void operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt);
+  void operator()(const std::unique_ptr<ir::tree::CJumpStmt>& stmt);
+  void operator()(const std::unique_ptr<ir::tree::JumpStmt>& stmt);
+  void operator()(const std::unique_ptr<ir::tree::ExpStmt>& stmt);
+  void operator()(const std::unique_ptr<ir::tree::SeqStmt>& stmt);
+  void operator()(const std::unique_ptr<ir::tree::LabelStmt>& stmt);
+
   private:
-  ir::TempGen::Temp munch_exp(const ir::tree::Exp& exp);
-  void munch_stmt(const ir::tree::Stmt& stmt);
-  void munch_move_stmt(const ir::tree::MoveStmt& stmt);
-  void munch_cjump_stmt(const ir::tree::CJumpStmt& stmt);
-  ir::TempGen::Temp munch_mem_exp(const ir::tree::MemExp& exp);
   bool maybe_munch_store(const ir::tree::MoveStmt& stmt);
   bool maybe_munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
-  ir::TempGen::Temp munch_binop_exp(const ir::tree::BinOpExp& exp);
-  std::vector<::codegen::assem::Instruction> list;
 
   bool is_const32(size_t constant)
   {
     return constant <= std::numeric_limits<uint32_t>::max();
   }
+
+  std::vector<::codegen::assem::Instruction> list;
 };
 
 std::string format(
