@@ -295,12 +295,8 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
   else {
     // MoveStmt(reg1, reg2) -> move reg1, reg2
     auto reg2 = std::visit(*this, stmt->right);
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"move `d0, `s0"},
-      .dst{temp},
-      .src{reg2},
-      .jmp{},
-    });
+    list.emplace_back(
+      ::codegen::assem::Move{.assem{"move `d0, `s0"}, .dst{temp}, .src{reg2}});
   }
 }
 
@@ -435,7 +431,8 @@ void MuxMunchGen::munch_store(const ir::tree::MoveStmt& stmt)
               std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)
                 ->v)) {
       // MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)  -> move QWORD PTR [reg1 + const32], reg2
-      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)->v;
+      auto c =
+        std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)->v;
       auto reg1 = std::visit(*this, binopexp->left);
       auto reg2 = std::visit(*this, stmt.right);
       list.emplace_back(::codegen::assem::Oper{
@@ -515,7 +512,8 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
               std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)
                 ->v)) {
       // MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32), plus))) -> move reg1, [reg2 + const32]
-      auto c = std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)->v;
+      auto c =
+        std::get<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right)->v;
       auto reg1 = std::visit(*this, stmt.left);
       auto reg2 = std::visit(*this, binopexp->left);
       list.emplace_back(::codegen::assem::Oper{
