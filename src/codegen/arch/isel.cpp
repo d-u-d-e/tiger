@@ -333,19 +333,19 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::CJumpStmt>& stmt)
     break;
   }
   case ir::tree::RelOp::lt: {
-    assem = std::format("jl    {}", tlabel);
+    assem = std::format("jl   {}", tlabel);
     break;
   }
   case ir::tree::RelOp::gt: {
-    assem = std::format("jg    {}", tlabel);
+    assem = std::format("jg   {}", tlabel);
     break;
   }
   case ir::tree::RelOp::le: {
-    assem = std::format("jle   {}", tlabel);
+    assem = std::format("jle  {}", tlabel);
     break;
   }
   case ir::tree::RelOp::ge: {
-    assem = std::format("jge   {}", tlabel);
+    assem = std::format("jge  {}", tlabel);
     break;
   }
   default:
@@ -593,22 +593,49 @@ std::string format(
 {
   using namespace ::codegen::assem;
 
-  (void)mapper; // TODO
+  auto map_temp = [&mapper](const ir::TempGen::Temp& t) {
+    auto mapped = mapper(t);
+    if(mapped) {
+      return mapped.value();
+    }
+    return std::format("t{}", std::to_string(t));
+  };
+
+  auto replace_placeholders =
+    [&map_temp](const std::vector<ir::TempGen::Temp>& src,
+                const std::vector<ir::TempGen::Temp>& dst,
+                const std::string& assem) {
+      std::string result;
+      for(size_t i = 0; i < assem.length(); i++) {
+        if(std::string_view(assem.data() + i, 2) == "`s") {
+          size_t pos;
+          auto ix = std::stoi(assem.substr(i + 2), &pos);
+          result += map_temp(src[ix]);
+          i += pos + 1;
+        }
+        else if(std::string_view(assem.data() + i, 2) == "`d") {
+          size_t pos;
+          auto ix = std::stoi(assem.substr(i + 2), &pos);
+          result += map_temp(dst[ix]);
+          i += pos + 1;
+        }
+        else {
+          result += assem[i];
+        }
+      }
+      return result;
+    };
 
   if(std::holds_alternative<Oper>(ins)) {
     auto& cins = std::get<Oper>(ins);
-    // TODO
-    return cins.assem;
+    return replace_placeholders(cins.src, cins.dst, cins.assem);
   }
   if(std::holds_alternative<Move>(ins)) {
     auto& cins = std::get<Move>(ins);
-    // TODO
-    return cins.assem;
+    return replace_placeholders({cins.src}, {cins.dst}, cins.assem);
   }
   else if(std::holds_alternative<Label>(ins)) {
-    auto& cins = std::get<Label>(ins);
-    // TODO
-    return cins.assem;
+    return std::get<Label>(ins).assem;
   }
   return "?";
 }
