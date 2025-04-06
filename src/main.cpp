@@ -84,9 +84,9 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag)) {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
 
-      /*std::cout << "IR: proc fragment" << "\n";
+      std::cout << "IR: proc fragment" << "\n";
       std::cout << translator.dump_fragment(frag) << "\n"
-                << sep << "\n";*/
+                << sep << "\n";
 
       auto list = canon.linearize(std::move(pf.body));
 

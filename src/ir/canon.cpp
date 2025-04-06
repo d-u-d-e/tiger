@@ -184,7 +184,7 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
     // moving to a temporary
     auto temp = std::get<std::unique_ptr<TempExp>>(s->left)->temp;
     std::list<Exp> subexps;
-    subexps.push_front(std::move(s->right));
+    subexps.push_back(std::move(s->right));
     return reorder_stmt(std::move(subexps), [temp](std::list<Exp>&& l) {
       auto right = std::move(l.front());
       l.pop_front();
@@ -196,8 +196,8 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
     // moving to a memory location
     auto& mem_exp = std::get<std::unique_ptr<MemExp>>(s->left);
     std::list<Exp> subexps;
-    subexps.push_front(std::move(mem_exp->a));
-    subexps.push_front(std::move(s->right));
+    subexps.push_back(std::move(mem_exp->a));
+    subexps.push_back(std::move(s->right));
     return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
       auto a = std::move(l.front());
       l.pop_front();
@@ -401,9 +401,9 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
             std::make_unique<JumpStmt>(std::make_unique<NameExp>(cjump->flabel),
                                        std::vector{cjump->flabel});
           bp->stmts.pop_back(); // pop current cjump
-          bp->stmts.push_front(std::move(cjump_));
-          bp->stmts.push_front(std::move(lstmt));
-          bp->stmts.push_front(std::move(jump));
+          bp->stmts.push_back(std::move(cjump_));
+          bp->stmts.push_back(std::move(lstmt));
+          bp->stmts.push_back(std::move(jump));
           // cannot continue
         }
       }

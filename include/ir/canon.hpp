@@ -26,7 +26,7 @@ class Canon {
   basic_blocks(std::list<Stmt>&& l);
 
   std::list<Stmt> trace_schedule(std::vector<BasicBlock>&& blocks,
-                                       const TempGen::Label& ldone);
+                                 const TempGen::Label& ldone);
 
   // do_exp
   std::pair<Stmt, Exp> operator()(std::unique_ptr<ConstExp> e);
@@ -49,7 +49,7 @@ class Canon {
   std::list<Stmt> linear(Stmt&& s, std::list<Stmt>&& l)
   {
     if(std::holds_alternative<std::unique_ptr<SeqStmt>>(s)) {
-      auto seq = std::move(std::get<std::unique_ptr<SeqStmt>>(s));
+      auto& seq = std::get<std::unique_ptr<SeqStmt>>(s);
       return linear(std::move(seq->stm1),
                     linear(std::move(seq->stm2), std::move(l)));
     }
