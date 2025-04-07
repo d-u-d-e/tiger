@@ -184,13 +184,32 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
     // moving to a temporary
     auto temp = std::get<std::unique_ptr<TempExp>>(s->left)->temp;
     std::list<Exp> subexps;
-    subexps.push_back(std::move(s->right));
-    return reorder_stmt(std::move(subexps), [temp](std::list<Exp>&& l) {
-      auto right = std::move(l.front());
-      l.pop_front();
-      return std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
-                                        std::move(right));
-    });
+
+    if(std::holds_alternative<std::unique_ptr<CallExp>>(s->right)) {
+      // here we need to make sure to not call reorder on the CallExp
+      auto& e = std::get<std::unique_ptr<CallExp>>(s->right);
+      subexps.push_back(std::move(e->fun));
+      std::move(e->args.begin(), e->args.end(), std::back_inserter(subexps));
+
+      return reorder_stmt(std::move(subexps), [temp](std::list<Exp>&& l) {
+        auto f = std::move(l.front());
+        l.pop_front();
+        std::vector<Exp> args;
+        std::move(l.begin(), l.end(), std::back_inserter(args));
+        return std::make_unique<MoveStmt>(
+          std::make_unique<TempExp>(temp),
+          std::make_unique<CallExp>(std::move(f), std::move(args)));
+      });
+    }
+    else {
+      subexps.push_back(std::move(s->right));
+      return reorder_stmt(std::move(subexps), [temp](std::list<Exp>&& l) {
+        auto right = std::move(l.front());
+        l.pop_front();
+        return std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
+                                          std::move(right));
+      });
+    }
   }
   else if(std::holds_alternative<std::unique_ptr<MemExp>>(s->left)) {
     // moving to a memory location
@@ -339,7 +358,7 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks,
     in this reordering as many JUMP(T.NAME(lab)) statements
     as possible are eliminated by falling through into T.LABEL(lab).
   */
- 
+
   std::list<Stmt> schedule;
   std::unordered_map<TempGen::Label, BasicBlock*> map;
 
