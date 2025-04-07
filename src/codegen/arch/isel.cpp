@@ -597,7 +597,7 @@ std::string format(
     if(mapped) {
       return mapped.value();
     }
-    return std::format("t{}", std::to_string(t));
+    return ir::TempGen::to_string(t);
   };
 
   auto replace_placeholders =

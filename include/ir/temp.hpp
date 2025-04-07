@@ -38,6 +38,11 @@ class TempGen {
     return tid;
   }
 
+  static std::string to_string(Temp t)
+  {
+    return std::format("t{}", t);
+  }
+
   private:
   TempGen() = default;
 
