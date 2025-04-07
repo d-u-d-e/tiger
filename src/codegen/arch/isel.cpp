@@ -2,16 +2,16 @@
 #include <codegen/arch/frame.hpp>
 #include <codegen/arch/isel.hpp>
 #include <codegen/assem.hpp>
-#include <cstdint>
+#include <cstddef>
 #include <format>
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -295,8 +295,7 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
   else {
     // MoveStmt(reg1, reg2) -> move reg1, reg2
     auto reg2 = std::visit(*this, stmt->right);
-    list.emplace_back(
-      ::codegen::assem::Move{.assem{"move `d0, `s0"}, .dst{temp}, .src{reg2}});
+    list.emplace_back(::codegen::assem::Move{"move `d0, `s0", temp, reg2});
   }
 }
 

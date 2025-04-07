@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <format>
 #include <ir/tree.hpp>
+#include <memory>
 #include <string>
 #include <variant>
 

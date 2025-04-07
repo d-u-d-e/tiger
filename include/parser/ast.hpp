@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include <cstddef>
 #include <lexer/position.hpp>
 #include <memory>
 #include <optional>
