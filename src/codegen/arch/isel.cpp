@@ -428,6 +428,7 @@ void MuxMunchGen::munch_store(const ir::tree::MoveStmt& stmt)
             .src{reg1, reg2},
             .jmp{},
           });
+          return;
         }
       }
       else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right))
@@ -443,20 +444,20 @@ void MuxMunchGen::munch_store(const ir::tree::MoveStmt& stmt)
             .src{reg1, reg2},
             .jmp{},
           });
+          return;
         }
       }
-      else
-      {
-        auto reg1 = std::visit(*this, binopexp->left);
-        auto reg2 = std::visit(*this, binopexp->right);
-        auto reg3 = std::visit(*this, stmt.right);
-        list.emplace_back(::codegen::assem::Oper{
-          .assem{"move QWORD PTR [`s0+`s1], `s2"},
-          .dst{},
-          .src{reg1, reg2, reg3},
-          .jmp{},
-        });
-      }
+
+      auto reg1 = std::visit(*this, binopexp->left);
+      auto reg2 = std::visit(*this, binopexp->right);
+      auto reg3 = std::visit(*this, stmt.right);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{"move QWORD PTR [`s0+`s1], `s2"},
+        .dst{},
+        .src{reg1, reg2, reg3},
+        .jmp{},
+      });
+      return;
     }
   }
   else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(memexp->a) &&
@@ -471,19 +472,18 @@ void MuxMunchGen::munch_store(const ir::tree::MoveStmt& stmt)
       .src{reg1},
       .jmp{},
     });
+    return;
   }
-  else
-  {
-    // MoveStmt(MemExp(reg1), reg2) -> move QWORD PTR [reg1], reg2
-    auto reg1 = std::visit(*this, memexp->a);
-    auto reg2 = std::visit(*this, stmt.right);
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"move QWORD PTR [`s0], `s1"},
-      .dst{},
-      .src{reg1, reg2},
-      .jmp{},
-    });
-  }
+
+  // MoveStmt(MemExp(reg1), reg2) -> move QWORD PTR [reg1], reg2
+  auto reg1 = std::visit(*this, memexp->a);
+  auto reg2 = std::visit(*this, stmt.right);
+  list.emplace_back(::codegen::assem::Oper{
+    .assem{"move QWORD PTR [`s0], `s1"},
+    .dst{},
+    .src{reg1, reg2},
+    .jmp{},
+  });
 }
 
 void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
@@ -512,6 +512,7 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
             .src{reg2},
             .jmp{},
           });
+          return;
         }
       }
       else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(binopexp->right))
@@ -527,20 +528,19 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
             .src{reg2},
             .jmp{},
           });
+          return;
         }
       }
-      else
-      {
-        auto reg1 = std::visit(*this, stmt.left);
-        auto reg2 = std::visit(*this, binopexp->left);
-        auto reg3 = std::visit(*this, binopexp->right);
-        list.emplace_back(::codegen::assem::Oper{
-          .assem{"move `d0, [`s0+`s1]"},
-          .dst{reg1},
-          .src{reg2, reg3},
-          .jmp{},
-        });
-      }
+      auto reg1 = std::visit(*this, stmt.left);
+      auto reg2 = std::visit(*this, binopexp->left);
+      auto reg3 = std::visit(*this, binopexp->right);
+      list.emplace_back(::codegen::assem::Oper{
+        .assem{"move `d0, [`s0+`s1]"},
+        .dst{reg1},
+        .src{reg2, reg3},
+        .jmp{},
+      });
+      return;
     }
   }
   else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(memexp->a) &&
@@ -555,19 +555,18 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
       .src{},
       .jmp{},
     });
+    return;
   }
-  else
-  {
-    // MoveStmt(reg1, MemExp(reg2)) -> move reg1, [reg2]
-    auto reg1 = std::visit(*this, stmt.left);
-    auto reg2 = std::visit(*this, memexp->a);
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"move `d0, [`s0]"},
-      .dst{reg1},
-      .src{reg2},
-      .jmp{},
-    });
-  }
+
+  // MoveStmt(reg1, MemExp(reg2)) -> move reg1, [reg2]
+  auto reg1 = std::visit(*this, stmt.left);
+  auto reg2 = std::visit(*this, memexp->a);
+  list.emplace_back(::codegen::assem::Oper{
+    .assem{"move `d0, [`s0]"},
+    .dst{reg1},
+    .src{reg2},
+    .jmp{},
+  });
 }
 
 void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
