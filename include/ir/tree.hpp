@@ -1,5 +1,5 @@
 #pragma once
-#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <ir/temp.hpp>
 #include <memory>
@@ -82,10 +82,10 @@ enum class RelOp
 RelOp not_relop(RelOp op);
 
 struct ConstExp {
-  ConstExp(size_t v)
+  ConstExp(int64_t v)
     : v(v)
   { }
-  size_t v;
+  int64_t v;
 };
 
 struct NameExp {
@@ -161,11 +161,7 @@ struct JumpStmt {
 };
 
 struct CJumpStmt {
-  CJumpStmt(RelOp op,
-            ir::Ex&& lexp,
-            ir::Ex&& rexp,
-            TempGen::Label tlabel,
-            TempGen::Label flabel)
+  CJumpStmt(RelOp op, ir::Ex&& lexp, ir::Ex&& rexp, TempGen::Label tlabel, TempGen::Label flabel)
     : op(op)
     , lexp(std::move(lexp))
     , rexp(std::move(rexp))

@@ -141,8 +141,8 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 #pragma once
 #include <codegen/assem.hpp>
 #include <codegen/generator.hpp>
-#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
@@ -157,8 +157,7 @@ namespace arch::codegen
 
 class MuxMunchGen : public ::codegen::Generator {
   public:
-  std::vector<::codegen::assem::Instruction>
-  gen(const ir::tree::Stmt& stmt) override;
+  std::vector<::codegen::assem::Instruction> gen(const ir::tree::Stmt& stmt) override;
 
   ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::NameExp>& exp);
   ir::TempGen::Temp operator()(const std::unique_ptr<ir::tree::TempExp>& exp);
@@ -180,16 +179,16 @@ class MuxMunchGen : public ::codegen::Generator {
   void munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
 
-  bool is_const32(size_t constant)
+  bool is_const32(int64_t constant)
   {
-    return constant <= std::numeric_limits<uint32_t>::max();
+    return constant <= std::numeric_limits<int32_t>::max() &&
+           constant >= std::numeric_limits<int32_t>::min();
   }
 
   std::vector<::codegen::assem::Instruction> list;
 };
 
-std::string format(
-  std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,
-  const ::codegen::assem::Instruction& ins);
+std::string format(std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,
+                   const ::codegen::assem::Instruction& ins);
 
 } // namespace arch::codegen

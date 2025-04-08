@@ -1,8 +1,9 @@
 #pragma once
 #include <algorithm>
-#include <codegen/arch/frame.hpp>
 #include <cassert>
+#include <codegen/arch/frame.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <ir/fragment.hpp>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
@@ -21,11 +22,10 @@ class Translator {
   public:
   Translator()
   {
-    lvl_outermost = std::make_shared<Level>(
-      nullptr, arch::Frame(TempGen::named_label("tiger_outermost"), {}));
+    lvl_outermost =
+      std::make_shared<Level>(nullptr, arch::Frame(TempGen::named_label("tiger_outermost"), {}));
     // TODO: formal arguments of main?
-    lvl_main =
-      new_level(lvl_outermost.get(), TempGen::named_label("tiger_main"), {});
+    lvl_main = new_level(lvl_outermost.get(), TempGen::named_label("tiger_main"), {});
   }
 
   std::shared_ptr<Level> main_level()
@@ -38,9 +38,8 @@ class Translator {
     return lvl_outermost;
   }
 
-  static std::unique_ptr<Level> new_level(const Level* parent,
-                                          TempGen::Label label,
-                                          const std::vector<bool>& formals)
+  static std::unique_ptr<Level>
+  new_level(const Level* parent, TempGen::Label label, const std::vector<bool>& formals)
   {
     // augment the formals with the static link as first parameter
     std::vector<bool> with_slink(formals.size() + 1);
@@ -53,8 +52,7 @@ class Translator {
   {
     // return a view of accesses without the static link, to be used by the analyzer
     // which is not aware of it
-    return std::ranges::subrange(level.formals.begin() + 1,
-                                 level.formals.end());
+    return std::ranges::subrange(level.formals.begin() + 1, level.formals.end());
   }
 
   static Level::Access alloc_local(Level& level, bool escape)
@@ -64,7 +62,7 @@ class Translator {
 
   static Exp simple_var(const Level::Access& ax, const Level* current);
   Exp seq_exp(std::vector<Exp>&& exps);
-  Ex constant(size_t constant);
+  Ex constant(int64_t constant);
   Exp call_exp(TempGen::Label name,
                const Level* lcaller,
                const Level* lcallee,
@@ -87,11 +85,8 @@ class Translator {
 
   Exp while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak);
   Exp break_exp(const TempGen::Label& lbreak);
-  Exp for_exp(const Level::Access& iax,
-              Exp&& low,
-              Exp&& high,
-              Exp&& body,
-              const TempGen::Label& lbreak);
+  Exp for_exp(
+    const Level::Access& iax, Exp&& low, Exp&& high, Exp&& body, const TempGen::Label& lbreak);
 
   void add_fragment(Fragment&& f)
   {
@@ -112,7 +107,8 @@ class Translator {
 
   tree::BinaryOp map_binary_operator(parser::ast::Operator op)
   {
-    switch(op) {
+    switch(op)
+    {
     case parser::ast::Operator::plus:
       return tree::BinaryOp::plus;
     case parser::ast::Operator::minus:
@@ -128,7 +124,8 @@ class Translator {
 
   tree::RelOp map_rel_operator(parser::ast::Operator op)
   {
-    switch(op) {
+    switch(op)
+    {
     case parser::ast::Operator::equal:
       return tree::RelOp::eq;
     case parser::ast::Operator::not_equal:

@@ -26,7 +26,8 @@
 
 int main(int argc, char** argv)
 {
-  if(argc != 2) {
+  if(argc != 2)
+  {
     std::cerr << "\033[1;31m";
     std::cerr << "tiger: no input files";
     std::cerr << "\033[0m";
@@ -43,7 +44,8 @@ int main(int argc, char** argv)
   auto exp = parser.parse();
   std::cerr << "\033[0m";
 
-  if(parser.had_error()) {
+  if(parser.had_error())
+  {
     return EX_DATAERR;
   }
 
@@ -63,10 +65,12 @@ int main(int argc, char** argv)
   ir::Translator translator;
   seman::Analyzer type_checker(string_table, translator);
   ir::Exp ir;
-  try {
+  try
+  {
     ir = type_checker.type_check(*exp);
   }
-  catch(std::exception& e) {
+  catch(std::exception& e)
+  {
     std::cerr << "\033[1;31m" << e.what() << "\033[0m"
               << "\n";
     return EX_DATAERR;
@@ -83,8 +87,10 @@ int main(int argc, char** argv)
 
   // dump procedure fragments
   // procedure fragments are shown before and after canonicalization
-  for(auto& frag : translator.fragments()) {
-    if(std::holds_alternative<ir::ProcedureFragment>(frag)) {
+  for(auto& frag : translator.fragments())
+  {
+    if(std::holds_alternative<ir::ProcedureFragment>(frag))
+    {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
 
       std::cout << "IR: proc fragment"
@@ -117,7 +123,8 @@ int main(int argc, char** argv)
       auto sched = canon.trace_schedule(std::move(blocks), ldone);
       std::cout << "IR: trace"
                 << "\n";
-      for(auto& s : sched) {
+      for(auto& s : sched)
+      {
         std::string irstr = std::visit(ir_pretty_printer, s);
         std::cout << irstr << "\n";
       }
@@ -127,9 +134,11 @@ int main(int argc, char** argv)
       arch::codegen::MuxMunchGen gen;
       std::cout << "ASM: without reg alloc"
                 << "\n";
-      for(auto& s : sched) {
+      for(auto& s : sched)
+      {
         auto instrs = gen.gen(s);
-        for(auto& i : instrs) {
+        for(auto& i : instrs)
+        {
           std::cout << arch::codegen::format(arch::Frame::map_temp, i) << "\n";
         }
       }
