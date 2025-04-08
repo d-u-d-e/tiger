@@ -6,7 +6,8 @@ namespace ir::tree
 {
 RelOp not_relop(RelOp op)
 {
-  switch(op) {
+  switch(op)
+  {
   case RelOp::eq:
     return RelOp::ne;
   case RelOp::ne:

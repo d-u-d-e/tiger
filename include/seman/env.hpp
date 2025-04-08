@@ -80,11 +80,13 @@ class Environment {
     depth_--;
     extern Symbol scope_marker;
     // pop all elements until a scope_marker is found
-    while(true) {
+    while(true)
+    {
       assert(stack.size() > 0);
       auto elem = stack.top();
       stack.pop();
-      if(elem == scope_marker) {
+      if(elem == scope_marker)
+      {
         break;
       }
       pop(elem);
@@ -97,7 +99,8 @@ class Environment {
   void enter(const Symbol& s, U&& value)
   {
     stack.push(s);
-    if(count + 1 > capacity * load_factor) {
+    if(count + 1 > capacity * load_factor)
+    {
       grow();
     }
     size_t index = s.id() % capacity;
@@ -108,13 +111,13 @@ class Environment {
   const T* lookup(const Symbol& s) const
   {
     size_t index = s.id() % capacity;
-    auto iter = std::find_if(table[index].begin(),
-                             table[index].end(),
-                             [&s](const std::pair<Symbol, T>& pair) -> bool {
-                               return std::get<0>(pair).id() == s.id();
-                             });
+    auto iter = std::find_if(
+      table[index].begin(), table[index].end(), [&s](const std::pair<Symbol, T>& pair) -> bool {
+        return std::get<0>(pair).id() == s.id();
+      });
 
-    if(iter == table[index].end()) {
+    if(iter == table[index].end())
+    {
       return nullptr;
     }
     return &std::get<1>(*iter);
@@ -122,7 +125,8 @@ class Environment {
 
   const_iterator begin() const
   {
-    if(count == 0) {
+    if(count == 0)
+    {
       return end();
     }
     return &table[0];
@@ -147,31 +151,31 @@ class Environment {
   void replace(const Symbol& s, U&& value)
   {
     size_t index = s.id() % capacity;
-    auto iter = std::find_if(table[index].begin(),
-                             table[index].end(),
-                             [&s](const std::pair<Symbol, T>& pair) -> bool {
-                               return std::get<0>(pair).id() == s.id();
-                             });
+    auto iter = std::find_if(
+      table[index].begin(), table[index].end(), [&s](const std::pair<Symbol, T>& pair) -> bool {
+        return std::get<0>(pair).id() == s.id();
+      });
     assert(iter != table[index].end());
     (*iter).second = std::forward<U>(value);
   }
 
   template <
     typename U = T,
-    bool has_to_string =
-      std::is_same_v<decltype(std::declval<U>().to_string()), std::string>>
+    bool has_to_string = std::is_same_v<decltype(std::declval<U>().to_string()), std::string>>
   std::string dump() const
   {
     std::string result;
-    for(size_t i = 0; i < capacity; i++) {
+    for(size_t i = 0; i < capacity; i++)
+    {
       auto& l = table[i];
-      if(l.size() == 0) {
+      if(l.size() == 0)
+      {
         continue;
       }
       result += "-----------------\n";
-      for(const auto& [s, v] : l) {
-        result += std::to_string(s.id()) + "-> " + "\"" + s.str() +
-                  "\": " + v.to_string() + "\n";
+      for(const auto& [s, v] : l)
+      {
+        result += std::to_string(s.id()) + "-> " + "\"" + s.str() + "\": " + v.to_string() + "\n";
       }
     }
     return result;
@@ -192,12 +196,13 @@ class Environment {
   {
     auto capacity_old = capacity;
     capacity *= 2;
-    auto new_table =
-      std::make_unique<std::list<std::pair<Symbol, T>>[]>(capacity);
+    auto new_table = std::make_unique<std::list<std::pair<Symbol, T>>[]>(capacity);
 
-    for(size_t i = 0; i < capacity_old; i++) {
+    for(size_t i = 0; i < capacity_old; i++)
+    {
       auto& l = table[i];
-      for(auto& [s, v] : l) {
+      for(auto& [s, v] : l)
+      {
         auto bin = s.id() % capacity;
         new_table[bin].emplace_back(s, std::move(v));
       }

@@ -17,7 +17,8 @@ TEST_SUITE("environment")
   auto lookup_tentry = [](Environment<TEntry>& tenv, const symbol::Symbol& s) {
     auto lookup = tenv.lookup(s);
     CHECK((lookup != nullptr) == expected);
-    if constexpr(expected) {
+    if constexpr(expected)
+    {
       auto t = dynamic_cast<T*>(lookup->t.get());
       CHECK(t != nullptr);
     }
@@ -27,7 +28,8 @@ TEST_SUITE("environment")
   auto lookup_ventry = [](Environment<VEntry>& venv, const symbol::Symbol& s) {
     auto lookup = venv.lookup(s);
     CHECK((lookup != nullptr) == expected);
-    if constexpr(expected) {
+    if constexpr(expected)
+    {
       CHECK(std::holds_alternative<T>(lookup->v));
     }
   };
@@ -74,9 +76,8 @@ TEST_SUITE("environment")
     fields.emplace_back(z, std::make_shared<seman::types::String>());
     tenv.enter(R, TEntry{std::make_shared<seman::types::Record>(fields)});
 
-    tenv.enter(A,
-               TEntry{std::make_shared<seman::types::Array>(
-                 std::make_shared<seman::types::String>())});
+    tenv.enter(
+      A, TEntry{std::make_shared<seman::types::Array>(std::make_shared<seman::types::String>())});
 
     lookup_tentry<seman::types::Record>(tenv, R);
     lookup_tentry<seman::types::Array>(tenv, A);
@@ -112,8 +113,8 @@ TEST_SUITE("environment")
 
     ir::Level::Access ax; // dummy
     ir::Translator translator;
-    std::shared_ptr<ir::Level> l = translator.new_level(
-      nullptr, ir::TempGen::named_label("ldummy"), {}); // dummy
+    std::shared_ptr<ir::Level> l =
+      translator.new_level(nullptr, ir::TempGen::named_label("ldummy"), {}); // dummy
 
     venv.begin_scope();
     venv.enter(a, VarEntry(std::make_shared<seman::types::Integer>(), ax));
@@ -126,11 +127,8 @@ TEST_SUITE("environment")
     std::vector<seman::types::SharedType> formals;
     formals.push_back(std::make_shared<seman::types::Integer>());
     formals.push_back(std::make_shared<seman::types::String>());
-    venv.enter(f,
-               FuncEntry(ir::TempGen::new_label(),
-                         formals,
-                         std::make_shared<seman::types::String>(),
-                         l));
+    venv.enter(
+      f, FuncEntry(ir::TempGen::new_label(), formals, std::make_shared<seman::types::String>(), l));
     lookup_ventry<FuncEntry>(venv, f);
 
     venv.end_scope();
@@ -139,11 +137,8 @@ TEST_SUITE("environment")
 
     formals.clear();
     formals.push_back(std::make_shared<seman::types::String>());
-    venv.enter(g,
-               FuncEntry(ir::TempGen::new_label(),
-                         formals,
-                         std::make_shared<seman::types::String>(),
-                         l));
+    venv.enter(
+      g, FuncEntry(ir::TempGen::new_label(), formals, std::make_shared<seman::types::String>(), l));
     lookup_ventry<FuncEntry>(venv, g);
 
     venv.end_scope();

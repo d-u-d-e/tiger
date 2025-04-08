@@ -58,16 +58,14 @@ class PrettyPrinterTypeVisitor {
   public:
   std::string virtual visit_name_type(const parser::ast::NameType& type) = 0;
   std::string virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
-  std::string virtual visit_record_type(
-    const parser::ast::RecordType& type) = 0;
+  std::string virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };
 
 class PrettyPrinterVarVisitor {
   public:
   std::string virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   std::string virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
-  std::string virtual visit_subscript_var(
-    const parser::ast::SubscriptVar& var) = 0;
+  std::string virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
 };
 
 }; // namespace parser::ast

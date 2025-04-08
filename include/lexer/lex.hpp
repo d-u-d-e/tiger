@@ -21,10 +21,9 @@ class Scanner {
   {
     auto f = std::ifstream(filename);
 
-    if(!f.is_open()) {
-      error(std::format("Err: could not open file '{}'\n",
-                        filename.generic_string()),
-            EX_IOERR);
+    if(!f.is_open())
+    {
+      error(std::format("Err: could not open file '{}'\n", filename.generic_string()), EX_IOERR);
     }
 
     std::stringstream buffer;
@@ -59,7 +58,8 @@ class Scanner {
 
   char peek(int offset = 0)
   {
-    if(current + offset >= contents.c_str() + contents.size()) {
+    if(current + offset >= contents.c_str() + contents.size())
+    {
       return '\0';
     }
     return *(current + offset);
@@ -67,7 +67,8 @@ class Scanner {
 
   void expect(char ch, const std::string& err_msg)
   {
-    if(*current != ch) {
+    if(*current != ch)
+    {
       error_at(err_msg);
     }
     current++;
@@ -75,7 +76,8 @@ class Scanner {
 
   bool match(char ch)
   {
-    if(*current == ch) {
+    if(*current == ch)
+    {
       current++;
       return true;
     }
@@ -105,15 +107,18 @@ class Scanner {
 
   void skip_comments()
   {
-    while(!is_eof(current) && *current == '/' && peek(1) == '*') {
+    while(!is_eof(current) && *current == '/' && peek(1) == '*')
+    {
       skip_multiline_comment();
     }
   }
 
   void skip_whitespaces()
   {
-    while(!is_eof(current) && std::isspace(*current)) {
-      if(*current == '\n') {
+    while(!is_eof(current) && std::isspace(*current))
+    {
+      if(*current == '\n')
+      {
         line++;
         row = current + 1;
       }

@@ -33,7 +33,8 @@ const std::unordered_map<std::string, TokenType> keywords = {
 
 std::string to_string(TokenType type)
 {
-  switch(type) {
+  switch(type)
+  {
   case TokenType::eof:
     return "eof";
   case TokenType::identifier:
@@ -129,11 +130,8 @@ std::string to_string(TokenType type)
 
 std::string to_string(const Token& token)
 {
-  return std::format("[{}: '{}' ({}, {})]",
-                     to_string(token.type),
-                     token.value,
-                     token.pos.line,
-                     token.pos.column);
+  return std::format(
+    "[{}: '{}' ({}, {})]", to_string(token.type), token.value, token.pos.line, token.pos.column);
 }
 
 std::ostream& operator<<(std::ostream& os, const Token& value)

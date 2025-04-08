@@ -50,8 +50,8 @@ class Frame {
   static inline std::unordered_map<ir::TempGen::Temp, std::string> special_regs{
     {FP, "rbp"}, {RV, "rax"}, {SP, "rsp"}};
 
-  static inline std::unordered_map<ir::TempGen::Temp, std::string> caller_saved{
-    {RCX, "rcx"}, {RDX, "rdx"}};
+  static inline std::unordered_map<ir::TempGen::Temp, std::string> caller_saved{{RCX, "rcx"},
+                                                                                {RDX, "rdx"}};
 
   static inline std::unordered_map<ir::TempGen::Temp, std::string> callee_saved{
     {RBX, "rbx"},
@@ -69,13 +69,16 @@ class Frame {
   Frame(ir::TempGen::Label label, const std::vector<bool>& formals)
     : label(label)
   {
-    for(auto escape : formals) {
+    for(auto escape : formals)
+    {
       int16_t off = word_size;
-      if(escape) {
+      if(escape)
+      {
         formals_.push_back(InFrame(off));
         off += word_size; // incoming params
       }
-      else {
+      else
+      {
         formals_.push_back(InReg(ir::TempGen::new_temp()));
       }
     }
@@ -93,13 +96,16 @@ class Frame {
 
   static std::optional<std::string> map_temp(const ir::TempGen::Temp& t)
   {
-    if(auto i = special_regs.find(t); i != special_regs.end()) {
+    if(auto i = special_regs.find(t); i != special_regs.end())
+    {
       return i->second;
     }
-    if(auto i = callee_saved.find(t); i != callee_saved.end()) {
+    if(auto i = callee_saved.find(t); i != callee_saved.end())
+    {
       return i->second;
     }
-    if(auto i = caller_saved.find(t); i != caller_saved.end()) {
+    if(auto i = caller_saved.find(t); i != caller_saved.end())
+    {
       return i->second;
     }
     return std::nullopt;
@@ -108,13 +114,15 @@ class Frame {
   Access alloc_local(bool escape)
   {
     locals++;
-    if(escape) {
+    if(escape)
+    {
       auto off = offset;
       assert(offset - word_size < offset); // overflow
       offset -= word_size;
       return InFrame(off);
     }
-    else {
+    else
+    {
       return InReg(ir::TempGen::new_temp());
     }
   }
@@ -126,10 +134,12 @@ class Frame {
 
   static std::string to_string(const Access& ax)
   {
-    if(std::holds_alternative<InReg>(ax)) {
+    if(std::holds_alternative<InReg>(ax))
+    {
       return std::format("InReg(t{})", std::get<InReg>(ax).t);
     }
-    else {
+    else
+    {
       return std::format("InFrame({})", std::get<InFrame>(ax).offset);
     }
   }
@@ -137,28 +147,29 @@ class Frame {
   static ir::Ex exp(const Access& fax, ir::Ex&& fp)
   {
     // translate an access into an exp
-    if(std::holds_alternative<InFrame>(fax)) {
+    if(std::holds_alternative<InFrame>(fax))
+    {
       auto at = std::make_unique<ir::tree::BinOpExp>(
         ir::tree::BinaryOp::plus,
         std::move(fp),
         std::make_unique<ir::tree::ConstExp>(std::get<InFrame>(fax).offset));
       return std::make_unique<ir::tree::MemExp>(std::move(at));
     }
-    else {
+    else
+    {
       return std::make_unique<ir::tree::TempExp>(std::get<InReg>(fax).t);
     }
     assert(false);
   }
 
-  static ir::Ex external_call(ir::TempGen::Label label,
-                              std::vector<ir::Ex>&& args)
+  static ir::Ex external_call(ir::TempGen::Label label, std::vector<ir::Ex>&& args)
   {
     // TODO: external calls on Linux will use the system V abi
     // runtime functions are called using system V abi, unless
     // function attributes (cdecl) are specified
 
-    return std::make_unique<ir::tree::CallExp>(
-      std::make_unique<ir::tree::NameExp>(label), std::move(args));
+    return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
+                                               std::move(args));
   }
 
   private:

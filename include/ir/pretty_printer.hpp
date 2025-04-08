@@ -58,7 +58,8 @@ class PrettyPrinter {
     r += indent() + "[\n";
     auto size = exp->args.size();
     depth++;
-    for(size_t i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++)
+    {
       auto& arg = exp->args[i];
       r += std::visit(*this, arg) + ((i == size - 1) ? "\n" : ",\n");
     }
@@ -108,7 +109,8 @@ class PrettyPrinter {
     r += std::visit(*this, stmt->a) + ",\n";
     r += indent() + "[";
     auto size = stmt->labels.size();
-    for(size_t i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++)
+    {
       auto& l = stmt->labels[i];
       r += l.str() + ((i == size - 1) ? "]\n" : ", ");
     }
@@ -162,7 +164,8 @@ class PrettyPrinter {
   std::string name(BinaryOp op)
   {
     std::string r = "";
-    switch(op) {
+    switch(op)
+    {
     case BinaryOp::and_:
       r = "and";
       break;
@@ -202,7 +205,8 @@ class PrettyPrinter {
   std::string name(RelOp op)
   {
     std::string r = "";
-    switch(op) {
+    switch(op)
+    {
     case RelOp::eq:
       r = "eq";
       break;

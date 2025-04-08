@@ -33,7 +33,8 @@ void EscapeFinder::visit_var_exp(parser::ast::VarExp& exp)
 
 void EscapeFinder::visit_seq_exp(parser::ast::SeqExp& exp)
 {
-  for(auto& e : exp.exps) {
+  for(auto& e : exp.exps)
+  {
     e.first->accept(*this);
   }
 }
@@ -46,7 +47,8 @@ void EscapeFinder::visit_array_exp(parser::ast::ArrayExp& exp)
 
 void EscapeFinder::visit_record_exp(parser::ast::RecordExp& exp)
 {
-  for(auto& f : exp.fields) {
+  for(auto& f : exp.fields)
+  {
     f.exp->accept(*this);
   }
 }
@@ -55,7 +57,8 @@ void EscapeFinder::visit_if_exp(parser::ast::IfExp& exp)
 {
   exp.cond->accept(*this);
   exp.then->accept(*this);
-  if(exp.else_) {
+  if(exp.else_)
+  {
     exp.else_->accept(*this);
   }
 }
@@ -79,7 +82,8 @@ void EscapeFinder::visit_for_exp(parser::ast::ForExp& exp)
 
 void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 {
-  for(auto& arg : exp.args) {
+  for(auto& arg : exp.args)
+  {
     arg->accept(*this);
   }
 }
@@ -87,7 +91,8 @@ void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 {
   env.begin_scope();
-  for(auto& d : exp.decls) {
+  for(auto& d : exp.decls)
+  {
     d->accept(*this);
   }
   exp.body->accept(*this);
@@ -96,7 +101,8 @@ void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 
 void EscapeFinder::visit_simple_var(parser::ast::SimpleVar& var)
 {
-  if(auto v = env.lookup(var.name); v && v->depth < env.depth()) {
+  if(auto v = env.lookup(var.name); v && v->depth < env.depth())
+  {
     *(v->ref) = true;
   }
 }
@@ -122,8 +128,10 @@ void EscapeFinder::visit_var_decl(parser::ast::VarDecl& decl)
 void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
 {
   env.begin_scope();
-  for(auto& d : decl.decls) {
-    for(auto& p : d->params) {
+  for(auto& d : decl.decls)
+  {
+    for(auto& p : d->params)
+    {
       *p.escape = false;
       env.enter(p.name, Escape(env.depth(), p.escape));
     }

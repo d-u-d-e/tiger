@@ -17,7 +17,8 @@ struct Level {
     : parent(parent)
     , f(f)
   {
-    for(auto& f : f.formals()) {
+    for(auto& f : f.formals())
+    {
       formals.emplace_back(this, f);
     }
   }
