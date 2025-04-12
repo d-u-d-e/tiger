@@ -40,36 +40,36 @@ const: const32 | const64 | 0
 
 lab : NameExp(label) :: :: 0
 
-reg : ConstExp(const) :: move new_reg, const :: 0.25
-reg : NameExp(label)  :: move new_reg, label :: 0.25
+reg : ConstExp(const) :: mov new_reg, const :: 0.25
+reg : NameExp(label)  :: mov new_reg, label :: 0.25
 reg : TempExp(temp) :: :: 0
 
-reg : BinOpExp(reg1, reg2, plus)  :: move new_reg, reg1; add new_reg, reg2 :: 0.25 + 0.3 = 0.55 
-reg : BinOpExp(reg1, reg2, minus) :: move new_reg, reg1; sub new_reg, reg2 :: 0.25 + 0.3 = 0.55
-reg : BinOpExp(reg1, reg2, mul)   :: move rax, reg1; imul reg2; move new_reg, rax :: 0.25 + 1 + 0.25 = 1.5 
-reg : BinOpExp(reg1, reg2, div)   :: move rax, reg1; idiv reg2; move new_reg, rax :: 0.25 + 13 + 0.25 = 13.5 
+reg : BinOpExp(reg1, reg2, plus)  :: mov new_reg, reg1; add new_reg, reg2 :: 0.25 + 0.3 = 0.55 
+reg : BinOpExp(reg1, reg2, minus) :: mov new_reg, reg1; sub new_reg, reg2 :: 0.25 + 0.3 = 0.55
+reg : BinOpExp(reg1, reg2, mul)   :: mov rax, reg1; imul reg2; mov new_reg, rax :: 0.25 + 1 + 0.25 = 1.5 
+reg : BinOpExp(reg1, reg2, div)   :: mov rax, reg1; idiv reg2; mov new_reg, rax :: 0.25 + 13 + 0.25 = 13.5 
 
-reg : MemExp(reg1) 	:: move new_reg, [reg1] :: 0.5
-reg : MemExp(a1)   	:: move new_reg, [a1.reg1 + a1.reg2] :: 0.5
-reg : MemExp(a2)  	:: move new_reg, [a2.reg + a2.const32] :: 0.5
-reg : MemExp(a3)   	:: move new_reg, [a3.const32] :: 0.5
+reg : MemExp(reg1) 	:: mov new_reg, [reg1] :: 0.5
+reg : MemExp(a1)   	:: mov new_reg, [a1.reg1 + a1.reg2] :: 0.5
+reg : MemExp(a2)  	:: mov new_reg, [a2.reg + a2.const32] :: 0.5
+reg : MemExp(a3)   	:: mov new_reg, [a3.const32] :: 0.5
 
-stmt : MoveStmt(reg1, MemExp(reg2)) :: move reg1, [reg2] :: 0.5
-stmt : MoveStmt(reg1, MemExp(a1)) 	:: move reg1, [a1.reg1 + a1.reg2] :: 0.5
-stmt : MoveStmt(reg1, MemExp(a2)) 	:: move reg1, [a2.reg1 + a2.const32] :: 0.5
-stmt : MoveStmt(reg1, MemExp(a3)) 	:: move reg1, [a3.const32] :: 0.5
+stmt : MoveStmt(reg1, MemExp(reg2)) :: mov reg1, [reg2] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a1)) 	:: mov reg1, [a1.reg1 + a1.reg2] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a2)) 	:: mov reg1, [a2.reg1 + a2.const32] :: 0.5
+stmt : MoveStmt(reg1, MemExp(a3)) 	:: mov reg1, [a3.const32] :: 0.5
 
-stmt : MoveStmt(MemExp(reg1), reg2) :: move QWORD PTR [reg1], reg2  :: 1
-stmt : MoveStmt(MemExp(a1), reg1) 	:: move QWORD PTR [a1.reg1 + a1.reg2], reg1  :: 1
-stmt : MoveStmt(MemExp(a2), reg1) 	:: move QWORD PTR [a2.reg1 + a2.const32], reg1 :: 1
-stmt : MoveStmt(MemExp(a3), reg1) 	:: move QWORD PTR [a3.const32], reg1 :: 1
+stmt : MoveStmt(MemExp(reg1), reg2) :: mov QWORD PTR [reg1], reg2  :: 1
+stmt : MoveStmt(MemExp(a1), reg1) 	:: mov QWORD PTR [a1.reg1 + a1.reg2], reg1  :: 1
+stmt : MoveStmt(MemExp(a2), reg1) 	:: mov QWORD PTR [a2.reg1 + a2.const32], reg1 :: 1
+stmt : MoveStmt(MemExp(a3), reg1) 	:: mov QWORD PTR [a3.const32], reg1 :: 1
 
-stmt : MoveStmt(reg1, reg2)         :: move reg1, reg2 :: 0.25
+stmt : MoveStmt(reg1, reg2)         :: mov reg1, reg2 :: 0.25
 stmt : MoveStmt(reg1, a4) 	        :: xor reg1, reg1 :: 0.3
-stmt : MoveStmt(reg1, a3) 	        :: move reg1, a3.const32 :: 0.25
+stmt : MoveStmt(reg1, a3) 	        :: mov reg1, a3.const32 :: 0.25
 
-reg : CallExp(reg1, reg_list) 	:: call reg1;             move new_reg, rax :: 2 + 0.25 = 2.25
-reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  move new_reg, rax :: 2 + 0.25 = 2.25
+reg : CallExp(reg1, reg_list) 	:: call reg1;             mov new_reg, rax :: 2 + 0.25 = 2.25
+reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  mov new_reg, rax :: 2 + 0.25 = 2.25
 
 stmt : ExpStmt(CallExp(lab, reg_list)) :: call rel32 lab.label :: 2
 stmt : ExpStmt(CallExp(reg, reg_list)) :: call reg :: 2
@@ -88,39 +88,39 @@ stmt : CJumpStmt(ge, reg1, reg2, tlab, flab) :: cmp reg1, reg2; jge tlab :: 0.25
 ---------------------------------------------------
 Instruction selection using maximal munch:
 
-ConstExp(const) -> move new_reg, const
-NameExp(label)  -> move new_reg, label
+ConstExp(const) -> mov new_reg, const
+NameExp(label)  -> mov new_reg, label
 TempExp(temp)   -> 
 
-BinOpExp(reg1, reg2, plus)  -> move new_reg, reg1; add new_reg, reg2
-BinOpExp(reg1, reg2, minus) -> move new_reg, reg1; sub new_reg, reg2
-BinOpExp(reg1, reg2, mul)   -> move rax, reg1; imul reg2; move new_reg, rax
-BinOpExp(reg1, reg2, div)   -> move rax, reg1; idiv reg2; move new_reg, rax
+BinOpExp(reg1, reg2, plus)  -> mov new_reg, reg1; add new_reg, reg2
+BinOpExp(reg1, reg2, minus) -> mov new_reg, reg1; sub new_reg, reg2
+BinOpExp(reg1, reg2, mul)   -> mov rax, reg1; imul reg2; mov new_reg, rax
+BinOpExp(reg1, reg2, div)   -> mov rax, reg1; idiv reg2; mov new_reg, rax
 
-MemExp(BinOpExp(ConstExp(const32), reg1, plus))     -> move new_reg, [reg1 + const32]
-MemExp(BinOpExp(reg1, ConstExp(const32), plus))   	-> move new_reg, [reg1 + const32]
-MemExp(BinOpExp(reg1, reg2, plus))   	              -> move new_reg, [reg1 + reg2]
-MemExp(ConstExp(const32))                           -> move new_reg, [const32]
-MemExp(reg1) 	                                      -> move new_reg, [reg1]
+MemExp(BinOpExp(ConstExp(const32), reg1, plus))     -> mov new_reg, [reg1 + const32]
+MemExp(BinOpExp(reg1, ConstExp(const32), plus))   	-> mov new_reg, [reg1 + const32]
+MemExp(BinOpExp(reg1, reg2, plus))   	              -> mov new_reg, [reg1 + reg2]
+MemExp(ConstExp(const32))                           -> mov new_reg, [const32]
+MemExp(reg1) 	                                      -> mov new_reg, [reg1]
 
-CallExp(NameExp(label),  reg_list)  -> call label;  move new_reg, rax
-CallExp(reg1, reg_list)             -> call reg1; move new_reg, rax
+CallExp(NameExp(label),  reg_list)  -> call label;  mov new_reg, rax
+CallExp(reg1, reg_list)             -> call reg1; mov new_reg, rax
 
-MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1, plus)), reg2)     -> move QWORD PTR [reg1 + const32], reg2
-MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)   	-> move QWORD PTR [reg1 + const32], reg2
-MoveStmt(MemExp(BinOpExp(reg1, reg2, plus)), reg3)   	              -> move QWORD PTR [reg1 + reg2], reg3
-MoveStmt(MemExp(ConstExp(const32)), reg1)   	                      -> move QWORD PTR [const32], reg1
-MoveStmt(MemExp(reg1), reg2)   	                                    -> move QWORD PTR [reg1], reg2
+MoveStmt(MemExp(BinOpExp(ConstExp(const32), reg1, plus)), reg2)     -> mov QWORD PTR [reg1 + const32], reg2
+MoveStmt(MemExp(BinOpExp(reg1, ConstExp(const32), plus)), reg2)   	-> mov QWORD PTR [reg1 + const32], reg2
+MoveStmt(MemExp(BinOpExp(reg1, reg2, plus)), reg3)   	              -> mov QWORD PTR [reg1 + reg2], reg3
+MoveStmt(MemExp(ConstExp(const32)), reg1)   	                      -> mov QWORD PTR [const32], reg1
+MoveStmt(MemExp(reg1), reg2)   	                                    -> mov QWORD PTR [reg1], reg2
 
-MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2, plus)))     -> move reg1, [reg2 + const32]
-MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32), plus)))     -> move reg1, [reg2 + const32]
-MoveStmt(reg1, MemExp(BinOpExp(reg2, reg3, plus)))                  -> move reg1, [reg2 + reg3]
-MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> move reg1, [const32]
-MoveStmt(reg1, MemExp(reg2))                                        -> move reg1, [reg2]
+MoveStmt(reg1, MemExp(BinOpExp(ConstExp(const32), reg2, plus)))     -> mov reg1, [reg2 + const32]
+MoveStmt(reg1, MemExp(BinOpExp(reg2, ConstExp(const32), plus)))     -> mov reg1, [reg2 + const32]
+MoveStmt(reg1, MemExp(BinOpExp(reg2, reg3, plus)))                  -> mov reg1, [reg2 + reg3]
+MoveStmt(reg1, MemExp(ConstExp(const32)))                           -> mov reg1, [const32]
+MoveStmt(reg1, MemExp(reg2))                                        -> mov reg1, [reg2]
 
 MoveStmt(reg1, ConstExp(0))   	   -> xor reg1, reg1
-MoveStmt(reg1, ConstExp(const32))  -> move reg1, const32
-MoveStmt(reg1, reg2)   	           -> move reg1, reg2
+MoveStmt(reg1, ConstExp(const32))  -> mov reg1, const32
+MoveStmt(reg1, reg2)   	           -> mov reg1, reg2
 
 ExpStmt(CallExp(NameExp(label), reg_list))  -> call rel32 label
 ExpStmt(CallExp(reg, reg_list))             -> call reg

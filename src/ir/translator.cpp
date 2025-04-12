@@ -204,7 +204,7 @@ Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
     // cjump(cond, t, f); t:
     auto seq = std::make_unique<tree::SeqStmt>(uncx(std::move(cond))(tl, fl),
                                                std::make_unique<tree::LabelStmt>(tl));
-    // move(temp, texp)
+    // mov(temp, texp)
     seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
       std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
@@ -217,7 +217,7 @@ Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
     // f:
     seq = std::make_unique<tree::SeqStmt>(std::move(seq), std::make_unique<tree::LabelStmt>(fl));
 
-    // move(temp, fexp)
+    // mov(temp, fexp)
     seq = std::make_unique<tree::SeqStmt>(
       std::move(seq),
       std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(temp),
@@ -372,7 +372,7 @@ void Translator::proc_entry_exit(const Level& level, Exp&& body)
 
   // TODO: apply Frame::proc_entry_exit1 to the body
   // proc_entry_exit1 does the following:
-  // - move incoming register formal params to the place expected by the function
+  // - mov incoming register formal params to the place expected by the function
   // - save callee saved registers
   // - restore callee saved registers
   // callee saved regs should be saved to the frame depending whether the reg allocator implements spilling
