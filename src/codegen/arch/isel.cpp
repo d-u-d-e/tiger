@@ -256,7 +256,7 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
 
   if(std::holds_alternative<std::unique_ptr<ir::tree::CallExp>>(stmt->right))
   {
-    // MoveStmt(TempExp(temp), CallExp(NameExp(label), reg_list)) -> call rel32 label; mov temp, rax
+    // MoveStmt(TempExp(temp), CallExp(NameExp(label), reg_list)) -> call label; mov temp, rax
     // MoveStmt(TempExp(temp), CallExp(reg, reg_list)) -> call reg; mov temp, rax
     munch_call_exp(*std::get<std::unique_ptr<ir::tree::CallExp>>(stmt->right));
     list.emplace_back(::codegen::assem::Oper{
@@ -361,12 +361,12 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::CJumpStmt>& stmt)
 
 void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::JumpStmt>& stmt)
 {
-  // JumpStmt(NameExp(label))  -> jmp rel32 label
+  // JumpStmt(NameExp(label))  -> jmp label
   auto& jmp = stmt->a;
   assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(jmp));
   auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(jmp)->label;
   list.emplace_back(::codegen::assem::Oper{
-    .assem = std::format("jmp  rel32 {}", ljmp.str()),
+    .assem = std::format("jmp  {}", ljmp.str()),
     .dst{},
     .src{},
     .jmp{stmt->labels},
@@ -571,7 +571,7 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
 
 void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
 {
-  // CallExp(NameExp(label),  reg_list) -> call rel32 label
+  // CallExp(NameExp(label),  reg_list) -> call label
   std::vector<ir::TempGen::Temp> args;
   for(auto& arg : exp.args)
   {
@@ -586,7 +586,7 @@ void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
   assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun));
   auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
   list.emplace_back(::codegen::assem::Oper{
-    .assem = std::format("call rel32 {}", ljmp.str()),
+    .assem = std::format("call {}", ljmp.str()),
     .dst{std::move(trashed)},
     .src{std::move(args)},
     .jmp{},

@@ -69,13 +69,13 @@ stmt : MoveStmt(reg1, a4) 	        :: xor reg1, reg1 :: 0.3
 stmt : MoveStmt(reg1, a3) 	        :: mov reg1, a3.const32 :: 0.25
 
 reg : CallExp(reg1, reg_list) 	:: call reg1;             mov new_reg, rax :: 2 + 0.25 = 2.25
-reg : CallExp(lab,  reg_list)  	:: call rel32 lab.label;  mov new_reg, rax :: 2 + 0.25 = 2.25
+reg : CallExp(lab,  reg_list)  	:: call lab.label;  mov new_reg, rax :: 2 + 0.25 = 2.25
 
-stmt : ExpStmt(CallExp(lab, reg_list)) :: call rel32 lab.label :: 2
+stmt : ExpStmt(CallExp(lab, reg_list)) :: call lab.label :: 2
 stmt : ExpStmt(CallExp(reg, reg_list)) :: call reg :: 2
 stmt : ExpStmt(reg) :: :: 0
 
-stmt : JumpStmt(lab) 	  :: jmp rel32 lab.label :: 2
+stmt : JumpStmt(lab) 	  :: jmp lab.label :: 2
 stmt : LabelStmt(label) :: label: :: 0
 
 stmt : CJumpStmt(eq, reg1, reg2, tlab, flab) :: cmp reg1, reg2; je tlab  :: 0.25 + 0.5 = 0.75
@@ -122,11 +122,11 @@ MoveStmt(reg1, ConstExp(0))   	   -> xor reg1, reg1
 MoveStmt(reg1, ConstExp(const32))  -> mov reg1, const32
 MoveStmt(reg1, reg2)   	           -> mov reg1, reg2
 
-ExpStmt(CallExp(NameExp(label), reg_list))  -> call rel32 label
+ExpStmt(CallExp(NameExp(label), reg_list))  -> call label
 ExpStmt(CallExp(reg, reg_list))             -> call reg
 ExpStmt(reg)                                -> 
 
-JumpStmt(NameExp(label))  -> jmp rel32 label
+JumpStmt(NameExp(label))  -> jmp label
 LabelStmt(label) -> label:
 
 CJumpStmt(eq, reg1, reg2, tlab, flab) -> cmp reg1, reg2; je tlab
