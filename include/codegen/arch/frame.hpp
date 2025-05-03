@@ -168,6 +168,20 @@ class Frame {
     // runtime functions are called using system V abi, unless
     // function attributes (cdecl) are specified
 
+    /* 
+    System V calling convention
+    callee-saved: rbx, rbp, rsp, r12, r13, r14, r15
+    caller-saved: rax, rdi, rsi, rcx, rdx, r8, r9, r10, r11
+    Parameters to functions are passed in via the registers rdi, rsi, rdx, rcx, r8, and r9.
+    Any additional arguments that do not fit in these registers are passed on the stack in reverse order. 
+    Parameters passed via the stack may be modified by the called function.
+    The return value is stored in the rax register.
+    Functions are called using the call instruction, which pushes the address of the next instruction onto the stack and 
+    jumps to the operand. 
+    Functions return to the caller using the ret instruction, which pops the return address from the stack and jumps to it. 
+    The stack is 16-byte aligned just before the call instruction is executed.
+    */
+
     return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
                                                std::move(args));
   }

@@ -71,8 +71,7 @@ int main(int argc, char** argv)
   }
   catch(std::exception& e)
   {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m"
-              << "\n";
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
     return EX_DATAERR;
   }
 
@@ -80,8 +79,7 @@ int main(int argc, char** argv)
   auto c = translator.unex(std::move(ir));
 
   auto sep = "-----------------------------";
-  std::cout << "IR: main expression"
-            << "\n";
+  std::cout << "IR: main expression" << "\n";
   std::cout << std::visit(ir_pretty_printer, c) << "\n" << sep << "\n";
   ir::tree::Canon canon;
 
@@ -93,8 +91,7 @@ int main(int argc, char** argv)
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
 
-      std::cout << "IR: proc fragment"
-                << "\n";
+      std::cout << "IR: proc fragment" << "\n";
       std::cout << translator.dump_fragment(frag) << "\n" << sep << "\n";
 
       auto list = canon.linearize(std::move(pf.body));
@@ -121,19 +118,17 @@ int main(int argc, char** argv)
 
       // print the traces
       auto sched = canon.trace_schedule(std::move(blocks), ldone);
-      std::cout << "IR: trace"
+      /* std::cout << "IR: trace"
                 << "\n";
-      for(auto& s : sched)
-      {
+      for(auto& s : sched) {
         std::string irstr = std::visit(ir_pretty_printer, s);
         std::cout << irstr << "\n";
       }
-      std::cout << sep << "\n";
+      std::cout << sep << "\n";*/
 
       // print the asm without register allocation
       arch::codegen::MuxMunchGen gen;
-      std::cout << "ASM: without reg alloc"
-                << "\n";
+      std::cout << "ASM: without reg alloc" << "\n";
       for(auto& s : sched)
       {
         auto instrs = gen.gen(s);
