@@ -69,9 +69,9 @@ class Frame {
   Frame(ir::TempGen::Label label, const std::vector<bool>& formals)
     : label(label)
   {
+    int16_t off = word_size;
     for(auto escape : formals)
     {
-      int16_t off = word_size;
       if(escape)
       {
         formals_.push_back(InFrame(off));
