@@ -22,8 +22,9 @@ class Translator {
   public:
   Translator()
   {
-    lvl_outermost =
-      std::make_shared<Level>(nullptr, arch::Frame(TempGen::named_label("tiger_outermost"), {}));
+    lvl_outermost = std::make_shared<Level>(
+      nullptr,
+      std::make_unique<arch::Frame>(TempGen::named_label("tiger_outermost"), std::vector<bool>{}));
     // TODO: formal arguments of main?
     lvl_main = new_level(lvl_outermost.get(), TempGen::named_label("tiger_main"), {});
   }
@@ -45,7 +46,7 @@ class Translator {
     std::vector<bool> with_slink(formals.size() + 1);
     std::copy(formals.begin(), formals.end(), with_slink.begin() + 1);
     with_slink[0] = true;
-    return std::make_unique<Level>(parent, arch::Frame(label, with_slink));
+    return std::make_unique<Level>(parent, std::make_unique<arch::Frame>(label, with_slink));
   }
 
   static auto formals(const Level& level)
@@ -57,7 +58,7 @@ class Translator {
 
   static Level::Access alloc_local(Level& level, bool escape)
   {
-    return Level::Access{.l = &level, .fax = level.f.alloc_local(escape)};
+    return Level::Access{.l = &level, .fax = level.frame->alloc_local(escape)};
   }
 
   static Exp simple_var(const Level::Access& ax, const Level* current);
@@ -68,7 +69,7 @@ class Translator {
                const Level* lcallee,
                std::vector<Exp>&& args);
   Exp assign(Exp&& left, Exp&& right);
-  void proc_entry_exit(const Level& level, Exp&& body);
+  void proc_entry_exit(std::shared_ptr<Level> level, Exp&& body);
   Exp binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
   Exp rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
 
@@ -100,9 +101,9 @@ class Translator {
 
   std::string dump_fragment(const Fragment& f) const;
   Ex unex(Exp&& exp);
-
-  private:
   Nx unnx(Exp&& exp);
+  
+  private:
   Cx uncx(Exp&& exp);
 
   tree::BinaryOp map_binary_operator(parser::ast::Operator op)

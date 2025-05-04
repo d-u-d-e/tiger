@@ -17,12 +17,73 @@
 #include <ir/pretty_printer.hpp>
 #include <ir/translator.hpp>
 #include <seman/escape.hpp>
-#include <string>
 #include <utility>
 
 #include <codegen/arch/isel.hpp>
 #include <ir/canon.hpp>
 #include <variant>
+
+void code_gen(ir::tree::Stmt&& stmt)
+{
+  auto sep = "-----------------------------";
+  ir::tree::PrettyPrinter ir_pretty_printer;
+  (void)ir_pretty_printer;
+  (void)sep;
+
+  /*
+  std::cout << "IR" << "\n";
+  std::cout << std::visit(ir_pretty_printer, stmt) << "\n" << sep << "\n";
+  */
+
+  ir::tree::Canon canon;
+  auto list = canon.linearize(std::move(stmt));
+
+  /*
+  std::cout << "Reduced" << "\n";
+  for(auto& s : list) {
+    std::string reduced = std::visit(ir_pretty_printer, s);
+    std::cout << reduced << "\n";
+  }
+  std::cout << sep << "\n";
+  */
+
+  auto [blocks, ldone] = canon.basic_blocks(std::move(list));
+
+  /*
+  std::cout << "Basic blocks" << "\n";
+  for(auto& b : blocks) {
+    std::cout << "<<<< block start" << "\n";
+    for(auto& s : b.stmts) {
+      std::string irstr = std::visit(ir_pretty_printer, s);
+      std::cout << irstr << "\n";
+    }
+    std::cout << ">>>> block end" << "\n" << "\n";
+  }
+  std::cout << sep << "\n";
+  */
+
+  auto sched = canon.trace_schedule(std::move(blocks), ldone);
+
+  /* 
+  std::cout << "Trace" << "\n";
+  for(auto& s : sched) {
+    std::string irstr = std::visit(ir_pretty_printer, s);
+    std::cout << irstr << "\n";
+  }
+  std::cout << sep << "\n";
+  */
+
+  arch::codegen::MuxMunchGen gen;
+  for(auto& s : sched)
+  {
+    auto instrs = gen.gen(s);
+    for(auto& i : instrs)
+    {
+      std::cout << arch::codegen::format(arch::Frame::map_temp, i) << "\n";
+    }
+  }
+  std::cout << sep << "\n";
+}
 
 int main(int argc, char** argv)
 {
@@ -56,7 +117,8 @@ int main(int argc, char** argv)
 
   // dump the string table
   std::cout << "string table:" << "\n";
-  std::cout << string_table.dump() << "\n";*/
+  std::cout << string_table.dump() << "\n";
+  */
 
   // find escape variables
   seman::EscapeFinder esc_finder;
@@ -75,69 +137,16 @@ int main(int argc, char** argv)
     return EX_DATAERR;
   }
 
-  ir::tree::PrettyPrinter ir_pretty_printer;
-  auto c = translator.unex(std::move(ir));
-
-  auto sep = "-----------------------------";
-  std::cout << "IR: main expression" << "\n";
-  std::cout << std::visit(ir_pretty_printer, c) << "\n" << sep << "\n";
-  ir::tree::Canon canon;
+  auto main = translator.unnx(std::move(ir));
+  code_gen(std::move(main));
 
   // dump procedure fragments
-  // procedure fragments are shown before and after canonicalization
   for(auto& frag : translator.fragments())
   {
     if(std::holds_alternative<ir::ProcedureFragment>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
-
-      std::cout << "IR: proc fragment" << "\n";
-      std::cout << translator.dump_fragment(frag) << "\n" << sep << "\n";
-
-      auto list = canon.linearize(std::move(pf.body));
-
-      /*std::cout << "IR: proc fragment reduced" << "\n";
-      for(auto& s : list) {
-        std::string reduced = std::visit(ir_pretty_printer, s);
-        std::cout << reduced << "\n";
-      }
-      std::cout << sep << "\n";*/
-
-      auto [blocks, ldone] = canon.basic_blocks(std::move(list));
-
-      /*std::cout << "IR: proc fragment basic blocks" << "\n";
-      for(auto& b : blocks) {
-        std::cout << "<<<< block start" << "\n";
-        for(auto& s : b.stmts) {
-          std::string irstr = std::visit(ir_pretty_printer, s);
-          std::cout << irstr << "\n";
-        }
-        std::cout << ">>>> block end" << "\n" << "\n";
-      }
-      std::cout << sep << "\n";*/
-
-      // print the traces
-      auto sched = canon.trace_schedule(std::move(blocks), ldone);
-      /* std::cout << "IR: trace"
-                << "\n";
-      for(auto& s : sched) {
-        std::string irstr = std::visit(ir_pretty_printer, s);
-        std::cout << irstr << "\n";
-      }
-      std::cout << sep << "\n";*/
-
-      // print the asm without register allocation
-      arch::codegen::MuxMunchGen gen;
-      std::cout << "ASM: without reg alloc" << "\n";
-      for(auto& s : sched)
-      {
-        auto instrs = gen.gen(s);
-        for(auto& i : instrs)
-        {
-          std::cout << arch::codegen::format(arch::Frame::map_temp, i) << "\n";
-        }
-      }
-      std::cout << sep << "\n";
+      code_gen(std::move(pf.body));
     }
   }
 

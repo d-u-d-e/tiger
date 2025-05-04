@@ -365,25 +365,17 @@ Exp Translator::assign(Exp&& left, Exp&& right)
   return std::make_unique<tree::MoveStmt>(unex(std::move(left)), unex(std::move(right)));
 }
 
-void Translator::proc_entry_exit(const Level& level, Exp&& body)
+void Translator::proc_entry_exit(std::shared_ptr<Level> level, Exp&& body)
 {
+  // move the body result onto the RV register
   auto rv = std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(arch::Frame::RV),
                                              unex(std::move(body)));
 
-  // TODO: apply Frame::proc_entry_exit1 to the body
-  // proc_entry_exit1 does the following:
-  // - mov incoming register formal params to the place expected by the function
-  // - save callee saved registers
-  // - restore callee saved registers
-  // callee saved regs should be saved to the frame depending whether the reg allocator implements spilling
+  // perform the view shift and add code to save and restore callee-saved registers
+  auto pee1 = level->frame->proc_entry_exit1(std::move(rv));
+  add_fragment(ProcedureFragment{std::move(pee1), std::move(level)});
 
-  // TODO: apply Frame::proc_entry_exit2 to the body
-  // proc_entry_exit2 appends a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
-
-  // TODO: apply Frame::proc_entry_exit3 to the body
-  // proc_entry_exit3 implements the prologue/epilogue
-
-  add_fragment(ProcedureFragment{std::move(rv), level.f});
+  // proc_entry_2 and proc_entry_3 are called later after code generation
 }
 
 Exp Translator::call_exp(TempGen::Label name,
@@ -398,10 +390,8 @@ Exp Translator::call_exp(TempGen::Label name,
   {
     // not a library function (runtime)
     // pass the static link as first argument
-    // we need to compute it by going through the caller's link until we hit the level of the callee
-    // it may happen that we are inside a recursive function, so caller level == callee level
     Ex fp = std::make_unique<tree::TempExp>(arch::Frame::FP);
-    while(lcallee != lcaller && lcaller != lvl_main.get())
+    while(lcaller != lvl_main.get() && lcallee->parent != lcaller)
     {
       // first arg holds the static link
       auto slink = lcaller->formals[0].fax;
@@ -409,7 +399,7 @@ Exp Translator::call_exp(TempGen::Label name,
       lcaller = lcaller->parent;
       assert(lcaller != nullptr);
     }
-    args_as_exp.emplace_back(arch::Frame::exp(lcaller->formals[0].fax, std::move(fp)));
+    args_as_exp.emplace_back(std::move(fp));
   }
 
   for(auto& arg : args)
@@ -517,9 +507,9 @@ std::string Translator::dump_fragment(const Fragment& f) const
   auto dump_proc_frag = [](const ProcedureFragment& pf) -> std::string {
     tree::PrettyPrinter printer;
     auto result = std::format("frag function: {}, args: {}, locals: {}\n",
-                              pf.frame.name().str(),
-                              pf.frame.formals().size(),
-                              pf.frame.locals_count());
+                              pf.level->frame->name().str(),
+                              pf.level->frame->formals().size(),
+                              pf.level->frame->locals_count());
     auto ir_str = std::visit(printer, pf.body) + "\n";
     return ir_str;
   };

@@ -116,9 +116,8 @@ Stmt Canon::operator()(std::unique_ptr<ExpStmt> s)
   {
     // just a call expression which discards the return value
     auto ce = std::move(std::get<std::unique_ptr<CallExp>>(s->exp));
-    std::list<Exp> subexps;
     subexps.push_back(std::move(ce->fun));
-    std::move(ce->args.begin(), ce->args.begin(), std::back_inserter(subexps));
+    std::move(ce->args.begin(), ce->args.end(), std::back_inserter(subexps));
 
     return reorder_stmt(std::move(subexps), [](std::list<Exp>&& l) {
       auto f = std::move(l.front());
@@ -454,6 +453,14 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
     }
   }
 
+  // throw away useless final jmp
+  if(std::holds_alternative<std::unique_ptr<ir::tree::JumpStmt>>(schedule.back()))
+  {
+    if(std::get<std::unique_ptr<ir::tree::JumpStmt>>(schedule.back())->labels == std::vector{ldone})
+    {
+      schedule.pop_back();
+    }
+  }
   // ldone is where the epilogue starts
   schedule.push_back(std::make_unique<LabelStmt>(ldone));
   return schedule;

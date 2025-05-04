@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <codegen/arch/frame.hpp>
 #include <codegen/arch/isel.hpp>
@@ -572,25 +573,40 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
 void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
 {
   // CallExp(NameExp(label),  reg_list) -> call label
-  std::vector<ir::TempGen::Temp> args;
-  for(auto& arg : exp.args)
-  {
-    args.push_back(std::visit(*this, arg));
-  }
   auto trashed = std::vector(std::views::keys(arch::Frame::special_regs).begin(),
                              std::views::keys(arch::Frame::special_regs).end());
-  trashed.insert(trashed.end(),
-                 std::views::keys(arch::Frame::caller_saved).begin(),
-                 std::views::keys(arch::Frame::caller_saved).end());
 
   assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun));
   auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
   list.emplace_back(::codegen::assem::Oper{
     .assem = std::format("call {}", ljmp.str()),
     .dst{std::move(trashed)},
-    .src{std::move(args)},
+    .src{munch_args(exp.args)},
     .jmp{},
   });
+}
+
+std::vector<ir::TempGen::Temp> MuxMunchGen::munch_args(const std::vector<ir::tree::Exp>& args)
+{
+  std::vector<ir::TempGen::Temp> srcs;
+  auto k = arch::Frame::params_on_regs.size();
+
+  for(size_t i = 0; i < std::min(k, args.size()); i++)
+  {
+    auto t = std::visit(*this, args[i]);
+    srcs.push_back(t);
+    list.emplace_back(::codegen::assem::Move{
+      .assem{"mov  `d0, `s0"}, .dst = arch::Frame::params_on_regs[i], .src = t});
+  }
+
+  for(size_t i = k; i < args.size(); i++)
+  {
+    auto t = std::visit(*this, args[i]);
+    // the instruction will be patched later by proc_entry_exit2, since we need to alloc space on the current
+    // stack frame for outgoing parameters, but this space should be calculated based on all calls
+    list.emplace_back(::codegen::assem::Oper{.assem{"*"}, .dst{}, .src{t}, .jmp{}});
+  }
+  return srcs;
 }
 
 std::string format(std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,

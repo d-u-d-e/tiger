@@ -1,8 +1,9 @@
 #pragma once
 
-#include <codegen/arch/frame.hpp>
 #include <ir/temp.hpp>
+#include <ir/level.hpp>
 #include <ir/tree.hpp>
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -10,7 +11,7 @@ namespace ir
 {
 struct ProcedureFragment {
   Nx body;
-  arch::Frame frame;
+  std::shared_ptr<Level> level;
 };
 
 struct StringFragment {

@@ -570,7 +570,7 @@ Result Analyzer::visit_func_decl(const parser::ast::FuncDecl& decl)
                            to_string(rbody.type)));
     }
 
-    translator.proc_entry_exit(*func_entry.level, std::move(rbody.ir));
+    translator.proc_entry_exit(func_entry.level, std::move(rbody.ir));
     venv.end_scope(); // end body scope
   }
 

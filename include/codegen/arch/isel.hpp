@@ -178,6 +178,7 @@ class MuxMunchGen : public ::codegen::Generator {
   void munch_store(const ir::tree::MoveStmt& stmt);
   void munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
+  std::vector<ir::TempGen::Temp> munch_args(const std::vector<ir::tree::Exp>& args);
 
   bool is_const32(int64_t constant)
   {
