@@ -181,6 +181,8 @@ class Frame {
     // - append a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
     // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
 
+    // TODO: we need to make the stack 16-byte aligned just before the CALL instruction
+    // TODO: recall that a call instruction pushes the return address on the stack
     uint16_t outgoing_params{};
     uint16_t max_outgoing_params{};
     for(auto& i : list)
