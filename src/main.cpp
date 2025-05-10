@@ -1,9 +1,12 @@
+#include <codegen/assem.hpp>
+#include <algorithm>
 #include <codegen/arch/frame.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <ir/fragment.hpp>
 #include <ir/tree.hpp>
+#include <iterator>
 #include <lexer/lex.hpp>
 #include <parser/ast.hpp>
 #include <parser/parser.hpp>
@@ -22,13 +25,13 @@
 #include <codegen/arch/isel.hpp>
 #include <ir/canon.hpp>
 #include <variant>
+#include <vector>
 
-void code_gen(ir::tree::Stmt&& stmt)
+void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 {
   auto sep = "-----------------------------";
   ir::tree::PrettyPrinter ir_pretty_printer;
   (void)ir_pretty_printer;
-  (void)sep;
 
   /*
   std::cout << "IR" << "\n";
@@ -74,14 +77,25 @@ void code_gen(ir::tree::Stmt&& stmt)
   */
 
   arch::codegen::MuxMunchGen gen;
+  std::vector<::codegen::assem::Instruction> all;
   for(auto& s : sched)
   {
-    auto instrs = gen.gen(s);
+    auto v = gen.gen(s);
+    std::move(v.begin(), v.end(), std::back_inserter(all));
+  }
+
+  auto print_instr = [](const std::vector<::codegen::assem::Instruction>& instrs) {
     for(auto& i : instrs)
     {
-      std::cout << arch::codegen::format(arch::Frame::map_temp, i) << "\n";
+      std::cout << arch::codegen::format(arch::Frame::map_temp, i);
     }
-  }
+  };
+
+  f.proc_entry_exit2(all);
+  auto [pro, epi] = f.proc_entry_exit3(all);
+  std::cout << pro << "\n";
+  print_instr(all);
+  std::cout << epi << "\n";
   std::cout << sep << "\n";
 }
 
@@ -137,8 +151,7 @@ int main(int argc, char** argv)
     return EX_DATAERR;
   }
 
-  auto main = translator.unnx(std::move(ir));
-  code_gen(std::move(main));
+  translator.translate_main_program(std::move(ir));
 
   // dump procedure fragments
   for(auto& frag : translator.fragments())
@@ -146,7 +159,7 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
-      code_gen(std::move(pf.body));
+      code_gen(std::move(pf.body), *pf.level->frame);
     }
   }
 

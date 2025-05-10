@@ -11,8 +11,8 @@
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -175,24 +175,54 @@ class Frame {
     return stmt;
   }
 
-  std::vector<::codegen::assem::Instruction>
-  proc_entry_exit2(std::vector<::codegen::assem::Instruction>& list)
+  void proc_entry_exit2(std::vector<::codegen::assem::Instruction>& list)
   {
-    // TODO
     // proc_entry_exit2 does the following:
     // - append a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
     // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
-    return list;
+
+    uint16_t outgoing_params{};
+    uint16_t max_outgoing_params{};
+    for(auto& i : list)
+    {
+      if(std::holds_alternative<::codegen::assem::Oper>(i))
+      {
+        auto& oper = std::get<::codegen::assem::Oper>(i);
+        if(oper.assem.starts_with("*"))
+        {
+          outgoing_params++;
+          i = ::codegen::assem::Oper{
+            .assem{std::format("mov  [`s0{}], `s1\n",
+                               locals_stack_offset - word_size * outgoing_params)},
+            .dst{},
+            .src{SP, oper.src[0]},
+            .jmp{}};
+          continue;
+        }
+      }
+      outgoing_params = 0;
+    }
+    max_outgoing_params = std::max(max_outgoing_params, outgoing_params);
+
+    // append sink instruction (is this enough? TODO)
+    auto live =
+      std::vector(std::views::keys(special_regs).begin(), std::views::keys(special_regs).end());
+    list.push_back(::codegen::assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
   }
 
-  std::tuple<std::vector<::codegen::assem::Instruction>, std::string, std::string>
+  std::pair<std::string, std::string>
   proc_entry_exit3(std::vector<::codegen::assem::Instruction>& list)
   {
     // proc_entry_exit3 does the following:
     // - implement the prologue/epilogue
 
+    // stack space is allocated as follows (going downwards):
+    // locals
+    // max outgoing params
+
     // TODO adjust rsp, rbp
-    return {list, std::format(".type {}, @function\n{}:\n", label.str(), label.str()), "ret\n"};
+    (void)list;
+    return {std::format(".type {}, @function\n{}:", label.str(), label.str()), "ret\n"};
   }
 
   const std::vector<Access>& formals() const
@@ -227,10 +257,9 @@ class Frame {
     locals++;
     if(escape)
     {
-      auto off = offset;
-      assert(offset - word_size < offset); // overflow
-      offset -= word_size;
-      return InFrame(off);
+      assert(locals_stack_offset - word_size < locals_stack_offset); // overflow
+      locals_stack_offset -= word_size;
+      return InFrame(locals_stack_offset);
     }
     else
     {
@@ -284,9 +313,10 @@ class Frame {
   }
 
   ir::tree::Stmt view_shift{};
+  uint16_t max_outgoing_params{};
 
   private:
-  int16_t offset{-word_size};
+  int16_t locals_stack_offset{};
   std::vector<Access> formals_;
   ir::TempGen::Label label;
   uint16_t locals{};

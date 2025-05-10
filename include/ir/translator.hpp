@@ -25,8 +25,10 @@ class Translator {
     lvl_outermost = std::make_shared<Level>(
       nullptr,
       std::make_unique<arch::Frame>(TempGen::named_label("tiger_outermost"), std::vector<bool>{}));
-    // TODO: formal arguments of main?
-    lvl_main = new_level(lvl_outermost.get(), TempGen::named_label("tiger_main"), {});
+
+    lvl_main = std::make_shared<Level>(
+      lvl_outermost.get(),
+      std::make_unique<arch::Frame>(TempGen::named_label("tiger_main"), std::vector<bool>{}));
   }
 
   std::shared_ptr<Level> main_level()
@@ -47,6 +49,14 @@ class Translator {
     std::copy(formals.begin(), formals.end(), with_slink.begin() + 1);
     with_slink[0] = true;
     return std::make_unique<Level>(parent, std::make_unique<arch::Frame>(label, with_slink));
+  }
+
+  void translate_main_program(Exp&& exp)
+  {
+    // move the body result onto the RV register
+    auto rv = std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(arch::Frame::RV),
+                                               unex(std::move(exp)));
+    add_fragment(ProcedureFragment{.body = std::move(rv), .level = lvl_main});
   }
 
   static auto formals(const Level& level)
@@ -100,11 +110,11 @@ class Translator {
   }
 
   std::string dump_fragment(const Fragment& f) const;
-  Ex unex(Exp&& exp);
-  Nx unnx(Exp&& exp);
-  
+
   private:
   Cx uncx(Exp&& exp);
+  Ex unex(Exp&& exp);
+  Nx unnx(Exp&& exp);
 
   tree::BinaryOp map_binary_operator(parser::ast::Operator op)
   {
