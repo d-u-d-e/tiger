@@ -1,6 +1,6 @@
-#include <codegen/assem.hpp>
 #include <algorithm>
 #include <codegen/arch/frame.hpp>
+#include <codegen/assem.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -93,9 +93,9 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 
   f.proc_entry_exit2(all);
   auto [pro, epi] = f.proc_entry_exit3(all);
-  std::cout << pro << "\n";
+  std::cout << pro;
   print_instr(all);
-  std::cout << epi << "\n";
+  std::cout << epi;
   std::cout << sep << "\n";
 }
 

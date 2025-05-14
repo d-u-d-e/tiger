@@ -125,8 +125,10 @@ class Frame {
       }
     }
 
-    // the remaining params are passed on the stack
-    int16_t off = word_size;
+    // the remaining params are passed on the stack, but recall that with respect to the
+    // current fp, we need to go past the saved fp and the return address which are on the stack
+    // so we start at off = 3 * word_size
+    int16_t off = 3 * word_size;
     for(size_t i = params_on_regs.size(); i < formals.size(); i++)
     {
       formals_.push_back(InFrame(off));
@@ -181,8 +183,7 @@ class Frame {
     // - append a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
     // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
 
-    // TODO: we need to make the stack 16-byte aligned just before the CALL instruction
-    // TODO: recall that a call instruction pushes the return address on the stack
+    // we will need to make the stack 16-byte aligned just before the CALL instruction
     uint16_t outgoing_params{};
     uint16_t max_outgoing_params{};
     for(auto& i : list)
@@ -222,9 +223,27 @@ class Frame {
     // locals
     // max outgoing params
 
-    // TODO adjust rsp, rbp
-    (void)list;
-    return {std::format(".type {}, @function\n{}:", label.str(), label.str()), "ret\n"};
+    (void)list; // actually not used
+    uint16_t space = -locals_stack_offset + max_outgoing_params * word_size;
+    // let's align the stack on a 16 byte boundary, keeping in mind that we also save indirectly
+    // the return address and the old fp (2 * word_size == 16)
+    space = (space + 15) & ~15;
+
+    std::string prologue = std::format(".type {}, @function\n"
+                                       "{}:\n"
+                                       "push rbp\n"
+                                       "mov  rbp, rsp\n"
+                                       "sub  rsp, {}\n",
+                                       label.str(),
+                                       label.str(),
+                                       space);
+
+    std::string epilogue = std::format("mov  rsp, rpb\n"
+                                       "pop  rbp\n"
+                                       "ret  \n",
+                                       space);
+
+    return {prologue, epilogue};
   }
 
   const std::vector<Access>& formals() const
@@ -306,10 +325,7 @@ class Frame {
 
   static ir::Ex external_call(ir::TempGen::Label label, std::vector<ir::Ex>&& args)
   {
-    // TODO: external calls on Linux will use the system V abi
-    // runtime functions are called using system V abi, unless
-    // function attributes (cdecl) are specified
-
+    // external calls on Linux will use the System V abi, so this should be fine
     return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
                                                std::move(args));
   }
