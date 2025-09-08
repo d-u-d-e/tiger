@@ -277,7 +277,6 @@ std::unique_ptr<ast::LetExp> Parser::let_expr()
   // parse the body as a sequence of expressions separated by ';'
   if(!match(lexer::TokenType::end_keyword))
   {
-
     do
     {
       auto exp_pos = current.pos;
