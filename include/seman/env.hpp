@@ -68,7 +68,6 @@ class Environment {
 
   void begin_scope()
   {
-
     depth_++;
     extern Symbol scope_marker;
     // push a scope_marker
