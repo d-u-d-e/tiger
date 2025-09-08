@@ -104,7 +104,7 @@ int main(int argc, char** argv)
   if(argc != 2)
   {
     std::cerr << "\033[1;31m";
-    std::cerr << "tiger: no input files";
+    std::cerr << "tigerc: no input files\n";
     std::cerr << "\033[0m";
     return EX_NOINPUT;
   };

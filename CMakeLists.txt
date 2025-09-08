@@ -22,15 +22,15 @@ set(sources_common
 )
 
 add_executable(
-    tiger
+    tigerc
     src/main.cpp
     src/ir/canon.cpp
     src/ir/tree.cpp
     src/codegen/arch/isel.cpp
     ${sources_common}
 )
-target_include_directories(tiger PRIVATE include)
-target_compile_options(tiger PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
+target_include_directories(tigerc PRIVATE include)
+target_compile_options(tigerc PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
 
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
