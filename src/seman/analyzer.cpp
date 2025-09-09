@@ -220,16 +220,17 @@ Result Analyzer::visit_array_exp(const parser::ast::ArrayExp& exp)
   }
   else if(!is_type<Integer>(rsize.type))
   {
+    // TODO: it must be positive!
     error_at(exp.position, "array size must be an integer");
   }
   else
   {
-    auto arr = dynamic_cast<Array*>(texpr->t.get());
-    if(!can_assign(skip_name_types(arr->type), rinit.type))
+    auto& arr = dynamic_cast<Array&>(*texpr->t);
+    if(!can_assign(skip_name_types(arr.type), rinit.type))
     {
       error_at(exp.position,
                std::format(
-                 "array type mismatch: '{}' != '{}'", to_string(arr->type), to_string(rinit.type)));
+                 "array type mismatch: '{}' != '{}'", to_string(arr.type), to_string(rinit.type)));
     }
   }
   // this is an array type, whose elements may be name types
@@ -248,9 +249,9 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   {
     error_at(exp.position, std::format("undefined record type '{}'", exp.type.str()));
   }
-  auto trec = dynamic_cast<Record*>(maybe_rec->t.get());
+  auto& trec = dynamic_cast<Record&>(*maybe_rec->t);
 
-  auto rsize = trec->fields.size();
+  auto rsize = trec.fields.size();
   auto esize = exp.fields.size();
 
   if(rsize != esize)
@@ -262,7 +263,7 @@ Result Analyzer::visit_record_exp(const parser::ast::RecordExp& exp)
   std::vector<ir::Exp> fields;
   for(size_t i = 0; i < rsize; i++)
   {
-    auto& formal = trec->fields[i];
+    auto& formal = trec.fields[i];
     auto& actual = exp.fields[i];
 
     if(formal.first != actual.name)
@@ -654,47 +655,47 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
     type C = B
 
     tenv after having parsed the "headers"
-    A -> Name("A", 0)
-    B -> Name("B", 0)
-    C -> Name("C", 0)
+    "A" -> @1: Name("A", @0)
+    "B" -> @2: Name("B", @0)
+    "C" -> @3: Name("C", @0)
 
     tenv after having parsed the "bodies"
-    A' -> Name("B", B)
-    B' -> Name("C", C)
-    C' -> Name("B", B')
+    "A" -> @2
+    "B" -> @3
+    "C" -> @3
 
     example 2:
     type A = B
     type B = array of A
 
     tenv after having parsed the "headers"
-    A -> Name("A", 0)
-    B -> Name("B", 0)
+    "A" -> @1: Name("A", @0)
+    "B" -> @2: Name("B", @0)
 
     tenv after having parsed the "bodies"
-    A' -> Name("B", B)
-    B' -> Array(A')
+    "A" -> @2
+    "B" -> @3: Array(@2)
 
     example 3:
     type A = A
 
     tenv after having parsed the "headers"
-    A -> Name("A", 0)
+    "A" -> @1: Name("A", @0)
 
     tenv after having parsed the "bodies"
-    A' -> Name("A", A')
+    "A" -> @1
 
     example 4:
     type A = B
     type B = int
 
     tenv after having parsed the "headers"
-    A -> Name("A", 0)
-    B -> Name("B", 0)
+    "A" -> @1: Name("A", @0)
+    "B" -> @2: int
 
     tenv after having parsed the "bodies"
-    A' -> Name("B", B)
-    B' -> int
+    "A" -> @2
+    "B" -> @2
 
     example 5:
     type A = B
@@ -702,14 +703,14 @@ void Analyzer::detect_cycles(const parser::ast::TypeDecl& decl)
     type C = A
 
     tenv after having parsed the "headers"
-    A -> Name("A", 0)
-    B -> Name("B", 0)
-    C -> Name("C", 0)
+    "A" -> @1: Name("A", @0)
+    "B" -> @2: Name("B", @0)
+    "C" -> @3: Name("C", @0)
 
     tenv after having parsed the "bodies"
-    A' -> Name("B", B)
-    B' -> Name("C", C)
-    C' -> Name("A", A')
+    "A" -> @2
+    "B" -> @3
+    "C" -> @2
   */
 
   // this can be made more efficient
@@ -803,15 +804,15 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   {
     error_at(var.position, std::format("'{}' is not a record type", to_string(tlhs.type)));
   }
-  auto record = dynamic_cast<Record*>(tlhs.type.get());
+  auto& record = dynamic_cast<Record&>(*tlhs.type);
 
   // check whether the field name belongs to the record fields
 
   size_t i = 0;
-  auto size = record->fields.size();
+  auto size = record.fields.size();
   for(; i < size; i++)
   {
-    if(std::get<0>(record->fields[i]) == var.name)
+    if(std::get<0>(record.fields[i]) == var.name)
     {
       break;
     }
@@ -821,7 +822,7 @@ Result Analyzer::visit_field_var(const parser::ast::FieldVar& var)
   {
     error_at(var.position, std::format("unexpected record field name '{}'", var.name.str()));
   }
-  return Result{skip_name_types(record->fields[i].second),
+  return Result{skip_name_types(record.fields[i].second),
                 translator.record_field(std::move(tlhs.ir), i)};
 };
 
@@ -834,7 +835,7 @@ Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
     error_at(var.position, std::format("'{}' is not an array type", to_string(lhs.type)));
   }
 
-  auto array = dynamic_cast<Array*>(lhs.type.get());
+  auto& array = dynamic_cast<Array&>(*lhs.type);
   // expression must be an integer
   auto rexp = var.exp->accept(*this);
   if(!is_type<Integer>(rexp.type))
@@ -843,7 +844,7 @@ Result Analyzer::visit_subscript_var(const parser::ast::SubscriptVar& var)
   }
 
   // the type of the expression is the type of each array element
-  return Result{skip_name_types(array->type),
+  return Result{skip_name_types(array.type),
                 translator.array_subscript(std::move(lhs.ir), std::move(rexp.ir))};
 };
 
