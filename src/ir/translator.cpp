@@ -195,7 +195,6 @@ Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
   if(std::holds_alternative<Ex>(texp) || std::holds_alternative<Ex>(fexp))
   {
     // at least one branch is an expression
-
     auto j = TempGen::new_label();
     auto tl = TempGen::new_label();
     auto fl = TempGen::new_label();
@@ -232,7 +231,6 @@ Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
 
   else if(std::holds_alternative<Cx>(texp) && std::holds_alternative<Cx>(fexp))
   {
-
     // both branches are conditionals
     return [cond = uncx(std::move(cond)), cthen = std::move(texp), celse = std::move(fexp)](
              TempGen::Label t, TempGen::Label f) mutable {
@@ -256,7 +254,6 @@ Exp Translator::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
   }
   else
   {
-
     // both branches are statements
     assert(std::holds_alternative<Nx>(texp));
     assert(std::holds_alternative<Nx>(fexp));
@@ -299,7 +296,6 @@ Exp Translator::if_then_exp(Exp&& cond, Exp&& texp)
 
 Exp Translator::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak)
 {
-
   auto ltest = TempGen::new_label();
   auto t = TempGen::new_label();
 

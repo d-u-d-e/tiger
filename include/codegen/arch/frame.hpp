@@ -238,10 +238,9 @@ class Frame {
                                        label.str(),
                                        space);
 
-    std::string epilogue = std::format("mov  rsp, rpb\n"
-                                       "pop  rbp\n"
-                                       "ret  \n",
-                                       space);
+    std::string epilogue = "mov  rsp, rpb\n"
+                           "pop  rbp\n"
+                           "ret  \n";
 
     return {prologue, epilogue};
   }
