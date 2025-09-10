@@ -185,7 +185,6 @@ class Frame {
 
     // we will need to make the stack 16-byte aligned just before the CALL instruction
     uint16_t outgoing_params{};
-    uint16_t max_outgoing_params{};
     for(auto& i : list)
     {
       if(std::holds_alternative<::codegen::assem::Oper>(i))
@@ -193,19 +192,26 @@ class Frame {
         auto& oper = std::get<::codegen::assem::Oper>(i);
         if(oper.assem.starts_with("*"))
         {
+          // instruction that need to be patched
           outgoing_params++;
+          if(outgoing_params > max_outgoing_params)
+          {
+            max_outgoing_params = outgoing_params;
+          }
           i = ::codegen::assem::Oper{
             .assem{std::format("mov  [`s0{}], `s1\n",
                                locals_stack_offset - word_size * outgoing_params)},
             .dst{},
             .src{SP, oper.src[0]},
             .jmp{}};
-          continue;
+        }
+        else if(oper.assem.starts_with("call"))
+        {
+          // we computed all the outgoing parameters
+          outgoing_params = 0;
         }
       }
-      outgoing_params = 0;
     }
-    max_outgoing_params = std::max(max_outgoing_params, outgoing_params);
 
     // append sink instruction (is this enough? TODO)
     auto live =
