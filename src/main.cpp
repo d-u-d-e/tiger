@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <codegen/arch/frame.hpp>
 #include <codegen/assem.hpp>
+#include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -26,6 +27,7 @@
 #include <ir/canon.hpp>
 #include <variant>
 #include <vector>
+#include <flow.hpp>
 
 void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 {
@@ -97,6 +99,10 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   print_instr(all);
   std::cout << epi;
   std::cout << sep << "\n";
+
+  // Create the control flow graph
+  auto flow_g = flow::FlowGraph(all);
+  flow_g.render(f.name().str());
 }
 
 int main(int argc, char** argv)

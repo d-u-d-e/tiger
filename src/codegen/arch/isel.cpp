@@ -8,6 +8,7 @@
 #include <functional>
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -50,11 +51,10 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
   if(exp->op == ir::tree::BinaryOp::plus)
   {
     // BinOpExp(reg1, reg2, plus) -> mov new_reg, reg1; add new_reg, reg2
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{result},
-      .src{left},
-      .jmp{},
+    list.emplace_back(::codegen::assem::Move{
+      .assem = "mov  `d0, `s0\n",
+      .dst = result,
+      .src = left,
     });
     list.emplace_back(::codegen::assem::Oper{
       .assem{"add  `d0, `s0\n"},
@@ -65,12 +65,11 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
   }
   else if(exp->op == ir::tree::BinaryOp::minus)
   {
-    // BinOpExp(reg1, reg2, plus)  -> mov new_reg, reg1; add new_reg, reg2
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{result},
-      .src{left},
-      .jmp{},
+    // BinOpExp(reg1, reg2, minus)  -> mov new_reg, reg1; sub new_reg, reg2
+    list.emplace_back(::codegen::assem::Move{
+      .assem = "mov  `d0, `s0\n",
+      .dst = result,
+      .src = left,
     });
     list.emplace_back(::codegen::assem::Oper{
       .assem{"sub  `d0, `s0\n"},
@@ -82,11 +81,10 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
   else if(exp->op == ir::tree::BinaryOp::mul)
   {
     // BinOpExp(reg1, reg2, mul) -> mov rax, reg1; imul reg2; mov new_reg, rax
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{arch::Frame::RAX},
-      .src{left},
-      .jmp{},
+    list.emplace_back(::codegen::assem::Move{
+      .assem = "mov  `d0, `s0\n",
+      .dst = arch::Frame::RAX,
+      .src = left,
     });
     list.emplace_back(::codegen::assem::Oper{
       .assem{"imul `s0\n"},
@@ -94,34 +92,22 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
       .src{right},
       .jmp{},
     });
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{result},
-      .src{arch::Frame::RAX},
-      .jmp{},
-    });
+    list.emplace_back(
+      ::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = result, .src = arch::Frame::RAX});
   }
   else if(exp->op == ir::tree::BinaryOp::div)
   {
     // BinOpExp(reg1, reg2, div) -> mov rax, reg1; idiv reg2; mov new_reg, rax
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{arch::Frame::RAX},
-      .src{left},
-      .jmp{},
-    });
+    list.emplace_back(
+      ::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = arch::Frame::RAX, .src = left});
     list.emplace_back(::codegen::assem::Oper{
       .assem{"idiv `s0\n"},
       .dst{arch::Frame::RAX, arch::Frame::RDX},
       .src{right},
       .jmp{},
     });
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{result},
-      .src{arch::Frame::RAX},
-      .jmp{},
-    });
+    list.emplace_back(
+      ::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = result, .src = arch::Frame::RAX});
   }
   else
   {
@@ -260,12 +246,8 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
     // MoveStmt(TempExp(temp), CallExp(NameExp(label), reg_list)) -> call label; mov temp, rax
     // MoveStmt(TempExp(temp), CallExp(reg, reg_list)) -> call reg; mov temp, rax
     munch_call_exp(*std::get<std::unique_ptr<ir::tree::CallExp>>(stmt->right));
-    list.emplace_back(::codegen::assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{temp},
-      .src{arch::Frame::RAX},
-      .jmp{},
-    });
+    list.emplace_back(
+      ::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = temp, .src = arch::Frame::RAX});
   }
   else if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(stmt->right))
   {
@@ -295,7 +277,7 @@ void MuxMunchGen::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
   {
     // MoveStmt(reg1, reg2) -> mov reg1, reg2
     auto reg2 = std::visit(*this, stmt->right);
-    list.emplace_back(::codegen::assem::Move{"mov  `d0, `s0\n", temp, reg2});
+    list.emplace_back(::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = temp, .src = reg2});
   }
 }
 
@@ -573,8 +555,14 @@ void MuxMunchGen::munch_load(const ir::tree::MoveStmt& stmt)
 void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
 {
   // CallExp(NameExp(label),  reg_list) -> call label
+  // A call instruction can trash the caller saved registers, so any live value should
+  // not be contained in those registers. The special regs are also trashed.
+
   auto trashed = std::vector(std::views::keys(arch::Frame::special_regs).begin(),
                              std::views::keys(arch::Frame::special_regs).end());
+  std::copy(std::views::keys(arch::Frame::caller_saved).begin(),
+            std::views::keys(arch::Frame::caller_saved).end(),
+            std::back_inserter(trashed));
 
   assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun));
   auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
@@ -588,13 +576,13 @@ void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
 
 std::vector<ir::TempGen::Temp> MuxMunchGen::munch_args(const std::vector<ir::tree::Exp>& args)
 {
-  std::vector<ir::TempGen::Temp> srcs;
+  std::vector<ir::TempGen::Temp> srcs_call;
   auto k = arch::Frame::params_on_regs.size();
 
   for(size_t i = 0; i < std::min(k, args.size()); i++)
   {
     auto t = std::visit(*this, args[i]);
-    srcs.push_back(t);
+    srcs_call.push_back(arch::Frame::params_on_regs[i]);
     list.emplace_back(::codegen::assem::Move{
       .assem{"mov  `d0, `s0\n"}, .dst = arch::Frame::params_on_regs[i], .src = t});
   }
@@ -606,7 +594,7 @@ std::vector<ir::TempGen::Temp> MuxMunchGen::munch_args(const std::vector<ir::tre
     // stack frame for outgoing parameters, but this space should be calculated based on all calls
     list.emplace_back(::codegen::assem::Oper{.assem{"*\n"}, .dst{}, .src{t}, .jmp{}});
   }
-  return srcs;
+  return srcs_call;
 }
 
 std::string format(std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,

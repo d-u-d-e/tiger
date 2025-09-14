@@ -27,10 +27,12 @@ add_executable(
     src/ir/canon.cpp
     src/ir/tree.cpp
     src/codegen/arch/isel.cpp
+    src/flow.cpp
     ${sources_common}
 )
 target_include_directories(tigerc PRIVATE include)
 target_compile_options(tigerc PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
+target_link_libraries(tigerc cgraph gvc)
 
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
