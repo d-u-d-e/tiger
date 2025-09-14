@@ -10,7 +10,6 @@
 
 void Digraph::render(const std::string& name, const std::string& filename)
 {
-  // TODO move in graph
   Agraph_t* graph = agopen(const_cast<char*>(name.data()), Agdirected, nullptr);
   GVC_t* gvc = gvContext();
 
