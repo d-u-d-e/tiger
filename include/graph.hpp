@@ -1,7 +1,6 @@
 #pragma once
 #include <cassert>
 #include <cstddef>
-#include <list>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -42,14 +41,20 @@ private:
 
   void add_node(std::shared_ptr<Node> node)
   {
-    nodes.push_back(node);
+    nodes.insert(node);
   }
 
-  void delete_node(const std::shared_ptr<Node>& n)
+  void remove_node(const std::shared_ptr<Node>& n)
   {
-    (void)n;
-    assert(false);
-    //TODO
+    for(auto& s : n->succ)
+    {
+      s->prec.erase(n);
+    }
+    for(auto& s : n->prec)
+    {
+      s->succ.erase(n);
+    }
+    nodes.erase(n);
   }
 
   const std::unordered_set<std::shared_ptr<Node>>& succ(const std::shared_ptr<Node>& n)
@@ -62,11 +67,11 @@ private:
     return n->prec;
   }
 
-  const std::list<std::shared_ptr<Node>>& get_nodes()
+  const std::unordered_set<std::shared_ptr<Node>>& get_nodes()
   {
     return nodes;
   }
 
   private:
-  std::list<std::shared_ptr<Node>> nodes;
+  std::unordered_set<std::shared_ptr<Node>> nodes;
 };
