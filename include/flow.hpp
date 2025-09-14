@@ -5,6 +5,7 @@
 #include <codegen/assem.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,10 @@ class FlowGraph {
 
     // is the instruction a Move instruction?
     bool is_move{false};
+
+    // these are used by the liveness analyzer, and are sorted by ir::TempGen::Temp value
+    std::list<ir::TempGen::Temp> live_in;
+    std::list<ir::TempGen::Temp> live_out;
 
     std::string str() const override
     {
