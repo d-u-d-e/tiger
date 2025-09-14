@@ -1,22 +1,12 @@
-#include <cassert>
-#include <codegen/arch/frame.hpp>
-#include <codegen/arch/isel.hpp>
 #include <codegen/assem.hpp>
 #include <cstddef>
-#include <cstdio>
 #include <flow.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
 #include <memory>
-#include <optional>
-#include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
-
-#include <graphviz/cgraph.h>
-#include <graphviz/gvc.h>
-#include <graphviz/gvcext.h>
 
 namespace flow
 {
@@ -88,43 +78,6 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
     prev = curr;
     current_i++;
   }
-}
-
-void FlowGraph::render(const std::string& filename)
-{
-  // TODO move in graph
-  Agraph_t* graph = agopen((char*)"G", Agdirected, nullptr);
-  GVC_t* gvc = gvContext();
-  std::unordered_map<Digraph::Node*, Agnode_t*> map;
-
-  for(auto& node : g.get_nodes())
-  {
-    Agnode_t* c{};
-    if(!map.contains(node.get()))
-    {
-      auto instr = dynamic_cast<Node&>(*node).i;
-      auto descr = arch::codegen::format(arch::Frame::map_temp, instr);
-      map[node.get()] = agnode(graph, descr.data(), true);
-    }
-    c = map[node.get()];
-    for(auto& succ : g.succ(node))
-    {
-      if(!map.contains(succ.get()))
-      {
-        auto instr = dynamic_cast<Node&>(*succ).i;
-        auto descr = arch::codegen::format(arch::Frame::map_temp, instr);
-        map[succ.get()] = agnode(graph, descr.data(), true);
-      }
-      agedge(graph, c, map[succ.get()], nullptr, true);
-    }
-  }
-
-  gvLayout(gvc, graph, "dot");
-  FILE* outFile = fopen((filename + ".png").c_str(), "wb");
-  gvRender(gvc, graph, "png", outFile);
-  fclose(outFile);
-  gvFreeContext(gvc);
-  agclose(graph);
 }
 
 } // namespace flow

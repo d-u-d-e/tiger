@@ -76,6 +76,8 @@ private:
     return nodes;
   }
 
+  void render(const std::string& name, const std::string& filename);
+
   private:
   std::unordered_set<std::shared_ptr<Node>> nodes;
 };

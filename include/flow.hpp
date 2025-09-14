@@ -1,5 +1,7 @@
 #pragma once
 
+#include <codegen/arch/frame.hpp>
+#include <codegen/arch/isel.hpp>
 #include <codegen/assem.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
@@ -22,10 +24,19 @@ class FlowGraph {
 
     // is the instruction a Move instruction?
     bool is_move{false};
+
+    std::string str() const override
+    {
+      return arch::codegen::format(arch::Frame::map_temp, i);
+    }
   };
 
   FlowGraph(const std::vector<::codegen::assem::Instruction>& ins);
-  void render(const std::string& filename);
+
+  void render(const std::string& name, const std::string& filename)
+  {
+    g.render(name, filename);
+  }
 
   private:
   Digraph g;

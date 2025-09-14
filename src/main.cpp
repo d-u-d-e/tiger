@@ -15,6 +15,7 @@
 
 #include <seman/analyzer.hpp>
 #include <seman/env.hpp>
+#include <string>
 #include <symbol.hpp>
 #include <sysexits.h>
 
@@ -102,7 +103,7 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 
   // Create the control flow graph
   auto flow_g = flow::FlowGraph(all);
-  flow_g.render(f.name().str());
+  flow_g.render(f.name().str(), f.name().str());
 }
 
 int main(int argc, char** argv)
