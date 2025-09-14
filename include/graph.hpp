@@ -12,9 +12,13 @@ class Digraph {
     Node()
       : uid(uid_counter++)
     { }
-    virtual std::string id() const
+    virtual std::string str() const
     {
       return std::to_string(uid);
+    }
+    node_id_t id() const
+    {
+      return uid;
     }
     friend Digraph;
 
