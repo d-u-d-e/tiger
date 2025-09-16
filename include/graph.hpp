@@ -1,21 +1,41 @@
 #pragma once
 #include <cassert>
+#include <concepts>
 #include <cstddef>
-#include <memory>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
+template <typename T>
 class Digraph {
   public:
   using node_id_t = size_t;
   struct Node {
-    Node()
-      : uid(uid_counter++)
+    Node(node_id_t uid, T data)
+      : data_(std::move(data))
+      , uid(uid)
     { }
-    virtual std::string str() const
+
+    std::string str() const requires requires(const T& t)
+    {
+      {
+        t.to_string()
+        } -> std::same_as<std::string>;
+    }
+    {
+      return data_.to_string();
+    }
+
+    std::string str() const
     {
       return std::to_string(uid);
     }
+
+    T& data()
+    {
+      return data_;
+    }
+
     node_id_t id() const
     {
       return uid;
@@ -23,55 +43,77 @@ class Digraph {
     friend Digraph;
 
 private:
-    static inline node_id_t uid_counter{};
-    std::unordered_set<std::shared_ptr<Node>> prec;
-    std::unordered_set<std::shared_ptr<Node>> succ;
+    T data_;
+    std::unordered_set<node_id_t> prec;
+    std::unordered_set<node_id_t> succ;
     node_id_t uid{};
   };
 
-  Digraph() { }
-
-  void add_edge(const std::shared_ptr<Node>& from, const std::shared_ptr<Node>& to)
+  void add_edge(node_id_t from, node_id_t to)
   {
-    from->succ.insert(to);
-    to->prec.insert(from);
+    assert(is_valid(from) && is_valid(to));
+    nodes[from].succ.insert(to);
+    nodes[to].prec.insert(from);
   }
 
-  void remove_edge(const std::shared_ptr<Node>& from, const std::shared_ptr<Node>& to)
+  void remove_edge(node_id_t from, node_id_t to)
   {
-    from->succ.erase(to);
-    to->prec.erase(from);
+    assert(is_valid(from) && is_valid(to));
+    nodes[from].succ.erase(to);
+    nodes[to].prec.erase(from);
   }
 
-  void add_node(std::shared_ptr<Node> node)
+  node_id_t add_node(T node_data)
   {
-    nodes.insert(node);
-  }
-
-  void remove_node(const std::shared_ptr<Node>& n)
-  {
-    for(auto& s : n->succ)
+    node_id_t node_id;
+    if(!free_nodes_ids.empty())
     {
-      s->prec.erase(n);
+      node_id = *free_nodes_ids.begin();
+      free_nodes_ids.erase(node_id);
+      nodes[node_id] = Node(node_id, std::move(node_data));
     }
-    for(auto& s : n->prec)
+    else
     {
-      s->succ.erase(n);
+      node_id = nodes.size();
+      nodes.emplace_back(node_id, std::move(node_data));
     }
-    nodes.erase(n);
+    return node_id;
   }
 
-  const std::unordered_set<std::shared_ptr<Node>>& succ(const std::shared_ptr<Node>& n)
+  void remove_node(node_id_t nid)
   {
-    return n->succ;
+    assert(is_valid(nid));
+    auto& n = nodes[nid];
+    for(auto& s : n.succ)
+    {
+      nodes[s].prec.erase(nid);
+    }
+    for(auto& s : n.prec)
+    {
+      nodes[s].succ.erase(nid);
+    }
+    free_nodes_ids.insert(nid);
   }
 
-  const std::unordered_set<std::shared_ptr<Node>>& prec(const std::shared_ptr<Node>& n)
+  const std::unordered_set<node_id_t>& succ(node_id_t nid)
   {
-    return n->prec;
+    assert(is_valid(nid));
+    return nodes[nid].succ;
   }
 
-  const std::unordered_set<std::shared_ptr<Node>>& get_nodes()
+  const std::unordered_set<node_id_t>& prec(node_id_t nid)
+  {
+    assert(is_valid(nid));
+    return nodes[nid].prec;
+  }
+
+  Node& operator[](node_id_t nid)
+  {
+    assert(is_valid(nid));
+    return nodes[nid];
+  }
+
+  const std::vector<Node>& get_nodes()
   {
     return nodes;
   }
@@ -79,5 +121,10 @@ private:
   void render(const std::string& name, const std::string& filename);
 
   private:
-  std::unordered_set<std::shared_ptr<Node>> nodes;
+  bool is_valid(node_id_t nid) const
+  {
+    return nid < nodes.size() && !free_nodes_ids.contains(nid);
+  }
+  std::unordered_set<node_id_t> free_nodes_ids;
+  std::vector<Node> nodes;
 };

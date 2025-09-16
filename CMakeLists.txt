@@ -28,7 +28,6 @@ add_executable(
     src/ir/tree.cpp
     src/codegen/arch/isel.cpp
     src/flow.cpp
-    src/graph.cpp
     ${sources_common}
 )
 target_include_directories(tigerc PRIVATE include)

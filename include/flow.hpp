@@ -13,37 +13,33 @@ namespace flow
 {
 class FlowGraph {
   public:
-  struct Node : public Digraph::Node {
+  struct Node {
     // the node assem instruction (could also be a basic block)
     codegen::assem::Instruction i;
 
     // temporaries defined at this node
-    std::vector<ir::TempGen::Temp> def;
+    std::vector<ir::TempGen::Temp> def{};
 
     // temporaries used at this node
-    std::vector<ir::TempGen::Temp> use;
+    std::vector<ir::TempGen::Temp> use{};
 
     // is the instruction a Move instruction?
     bool is_move{false};
 
     // these are used by the liveness analyzer, and are sorted by ir::TempGen::Temp value
-    std::list<ir::TempGen::Temp> live_in;
-    std::list<ir::TempGen::Temp> live_out;
+    std::list<ir::TempGen::Temp> live_in{};
+    std::list<ir::TempGen::Temp> live_out{};
 
-    std::string str() const override
+    std::string to_string() const
     {
       return arch::codegen::format(arch::Frame::map_temp, i);
     }
   };
 
   FlowGraph(const std::vector<::codegen::assem::Instruction>& ins);
-
-  void render(const std::string& name, const std::string& filename)
-  {
-    g.render(name, filename);
-  }
+  void render(const std::string& name, const std::string& filename);
 
   private:
-  Digraph g;
+  Digraph<Node> g;
 };
 } // namespace flow

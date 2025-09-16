@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
@@ -158,10 +159,12 @@ class Environment {
     (*iter).second = std::forward<U>(value);
   }
 
-  template <
-    typename U = T,
-    bool has_to_string = std::is_same_v<decltype(std::declval<U>().to_string()), std::string>>
-  std::string dump() const
+  std::string dump() const requires requires(const T& t)
+  {
+    {
+      t.to_string()
+      } -> std::same_as<std::string>;
+  }
   {
     std::string result;
     for(size_t i = 0; i < capacity; i++)
