@@ -3,6 +3,7 @@
 #include <codegen/arch/frame.hpp>
 #include <codegen/arch/isel.hpp>
 #include <codegen/assem.hpp>
+#include <config.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
 #include <list>
@@ -37,7 +38,10 @@ class FlowGraph {
   };
 
   FlowGraph(const std::vector<::codegen::assem::Instruction>& ins);
+
+#if CONFIG_WITH_GRAPHVIZ
   void render(const std::string& name, const std::string& filename);
+#endif
 
   private:
   Digraph<Node> g;

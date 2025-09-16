@@ -9,13 +9,15 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <config.hpp>
 
-#include <cstdio>
-#include <graphviz/cgraph.h>
-#include <graphviz/gvc.h>
-#include <graphviz/gvcext.h>
-#include <iostream>
-#include <ostream>
+#if CONFIG_WITH_GRAPHVIZ
+#  include <cstdio>
+#  include <graphviz/cgraph.h>
+#  include <graphviz/gvc.h>
+#  include <graphviz/gvcext.h>
+#  include <iostream>
+#endif
 
 namespace flow
 {
@@ -87,6 +89,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
   }
 }
 
+#if CONFIG_WITH_GRAPHVIZ
 void FlowGraph::render(const std::string& name, const std::string& filename)
 {
   Agraph_t* graph = agopen(const_cast<char*>(name.data()), Agdirected, nullptr);
@@ -129,5 +132,6 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
   gvFreeContext(gvc);
   agclose(graph);
 }
+#endif
 
 } // namespace flow

@@ -8,8 +8,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # add dependencies
 include(cmake/CPM.cmake)
 
-set(sources_common
+# TODO: where to put this?
+set(CONFIG_WITH_GRAPHVIZ 1)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/config.hpp.in 
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/config.hpp @ONLY)
+
+set(sources_common
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
@@ -30,9 +35,17 @@ add_executable(
     src/flow.cpp
     ${sources_common}
 )
-target_include_directories(tigerc PRIVATE include)
+
+# link libraries
+set(libraries "")
+if (CONFIG_WITH_GRAPHVIZ)
+    message(STATUS "Building with Graphviz support")
+    list(APPEND libraries cgraph gvc)
+endif()
+
+target_include_directories(tigerc PRIVATE include ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_compile_options(tigerc PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
-target_link_libraries(tigerc cgraph gvc)
+target_link_libraries(tigerc ${libraries})
 
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
