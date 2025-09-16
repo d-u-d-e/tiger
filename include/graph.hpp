@@ -118,8 +118,6 @@ private:
     return nodes;
   }
 
-  void render(const std::string& name, const std::string& filename);
-
   private:
   bool is_valid(node_id_t nid) const
   {
