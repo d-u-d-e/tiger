@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.20)
 project(tiger CXX C)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,7 +10,7 @@ include(cmake/CPM.cmake)
 
 # TODO: where to put this?
 set(CONFIG_WITH_GRAPHVIZ 1)
-set(CONFIG_TARGET_x86_64)
+set(CONFIG_TARGET_x86_64 1)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/config.hpp.in 
   ${CMAKE_CURRENT_BINARY_DIR}/generated/config.hpp @ONLY)
@@ -27,15 +27,21 @@ set(sources_common
     src/ir/translator.cpp
 )
 
+# Change this to include more targets
+set(sources_target_specific)
+if (CONFIG_TARGET_x86_64)
+    list(APPEND sources_target_specific src/codegen/arch/x86-64/isel.cpp)
+endif()
+
 add_executable(
     tigerc
     src/main.cpp
     src/ir/canon.cpp
     src/ir/tree.cpp
-    src/codegen/arch/isel.cpp
     src/flow.cpp
     src/liveness.cpp
     ${sources_common}
+    ${sources_target_specific}
 )
 
 # link libraries
