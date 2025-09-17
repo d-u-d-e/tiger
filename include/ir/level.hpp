@@ -1,5 +1,5 @@
 #pragma once
-#include <codegen/arch/frame.hpp>
+#include <codegen/arch.hpp>
 #include <memory>
 #include <utility>
 #include <vector>

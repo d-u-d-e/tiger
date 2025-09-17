@@ -1,9 +1,7 @@
 #pragma once
 
-#include <codegen/arch/frame.hpp>
-#include <codegen/arch/isel.hpp>
+#include <codegen/arch.hpp>
 #include <codegen/assem.hpp>
-#include <config.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
 #include <list>

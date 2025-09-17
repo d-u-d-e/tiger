@@ -2,12 +2,9 @@
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
 #include <ir/translator.hpp>
-#include <memory>
 #include <seman/env.hpp>
 #include <seman/types.hpp>
 #include <symbol.hpp>
-#include <utility>
-#include <vector>
 
 TEST_SUITE("environment")
 {

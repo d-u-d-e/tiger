@@ -1,5 +1,4 @@
 #include <cassert>
-#include <codegen/arch/frame.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <format>

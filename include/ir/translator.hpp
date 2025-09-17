@@ -1,7 +1,6 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
-#include <codegen/arch/frame.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <ir/fragment.hpp>

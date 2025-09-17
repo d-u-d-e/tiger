@@ -10,6 +10,7 @@ include(cmake/CPM.cmake)
 
 # TODO: where to put this?
 set(CONFIG_WITH_GRAPHVIZ 1)
+set(CONFIG_TARGET_x86_64)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/config.hpp.in 
   ${CMAKE_CURRENT_BINARY_DIR}/generated/config.hpp @ONLY)
@@ -44,7 +45,7 @@ if (CONFIG_WITH_GRAPHVIZ)
     list(APPEND libraries cgraph gvc)
 endif()
 
-target_include_directories(tigerc PRIVATE include ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_include_directories(tigerc PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(tigerc PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
 target_link_libraries(tigerc ${libraries})
 
@@ -62,7 +63,7 @@ if(BUILD_TEST_RUNNER)
     )
 
     target_link_libraries(test-runner doctest::doctest)
-    target_include_directories(test-runner PRIVATE include)
+    target_include_directories(test-runner PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
     target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -O2)
     
 endif(BUILD_TEST_RUNNER)

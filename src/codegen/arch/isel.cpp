@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
-#include <codegen/arch/frame.hpp>
-#include <codegen/arch/isel.hpp>
+#include <codegen/arch.hpp>
+#include <codegen/arch.hpp>
 #include <codegen/assem.hpp>
 #include <cstddef>
 #include <format>
