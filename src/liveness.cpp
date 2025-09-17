@@ -34,7 +34,7 @@ static std::list<ir::TempGen::Temp> union_sorted_lists(const std::list<ir::TempG
   return out;
 }
 
-static std::list<ir::TempGen::Temp> diff_sorted_list(const std::list<ir::TempGen::Temp>& a,
+static std::list<ir::TempGen::Temp> diff_sorted_lists(const std::list<ir::TempGen::Temp>& a,
                                                      const std::list<ir::TempGen::Temp>& b)
 {
   std::list<ir::TempGen::Temp> out;
@@ -76,7 +76,7 @@ LivenessAnalyzer::LivenessAnalyzer(flow::FlowGraph& g)
       auto live_out_size = d.live_out.size();
 
       // compute the live in set: use set + (live out set \ def set)
-      d.live_in = union_sorted_lists(d.use, diff_sorted_list(d.live_out, d.def));
+      d.live_in = union_sorted_lists(d.use, diff_sorted_lists(d.live_out, d.def));
 
       // compute the live out set: (for all successors: + live_in)
       std::list<ir::TempGen::Temp> live_out;
