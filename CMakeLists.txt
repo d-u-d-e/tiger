@@ -33,6 +33,7 @@ add_executable(
     src/ir/tree.cpp
     src/codegen/arch/isel.cpp
     src/flow.cpp
+    src/liveness.cpp
     ${sources_common}
 )
 

@@ -556,10 +556,10 @@ void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
 {
   // CallExp(NameExp(label),  reg_list) -> call label
   // A call instruction can trash the caller saved registers, so any live value should
-  // not be contained in those registers. The special regs are also trashed.
+  // not be contained in those registers. RAX is also trashed. FP and SP are saved by the prologue
+  // and restored by the epilogue.
 
-  auto trashed = std::vector(std::views::keys(arch::Frame::special_regs).begin(),
-                             std::views::keys(arch::Frame::special_regs).end());
+  auto trashed = std::vector({arch::Frame::RAX});
   std::copy(std::views::keys(arch::Frame::caller_saved).begin(),
             std::views::keys(arch::Frame::caller_saved).end(),
             std::back_inserter(trashed));

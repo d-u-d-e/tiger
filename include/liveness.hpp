@@ -1,18 +1,15 @@
 #pragma once
 #include <flow.hpp>
+#include <ir/temp.hpp>
 
 namespace liveness
 {
 class LivenessAnalyzer {
   public:
-  LivenessAnalyzer(const flow::FlowGraph& g)
-    : fg(g)
-  {
-    // TODO
-    (void)fg;
-  }
+  LivenessAnalyzer(flow::FlowGraph& g);
+  std::string dump_result();
 
   private:
-  const flow::FlowGraph& fg;
+  flow::FlowGraph& fg;
 };
 } // namespace liveness

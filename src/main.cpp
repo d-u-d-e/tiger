@@ -15,7 +15,6 @@
 
 #include <seman/analyzer.hpp>
 #include <seman/env.hpp>
-#include <string>
 #include <symbol.hpp>
 #include <sysexits.h>
 
@@ -25,10 +24,11 @@
 #include <utility>
 
 #include <codegen/arch/isel.hpp>
+#include <flow.hpp>
 #include <ir/canon.hpp>
+#include <liveness.hpp>
 #include <variant>
 #include <vector>
-#include <flow.hpp>
 
 void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 {
@@ -104,6 +104,10 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   // Create the control flow graph
   auto flow_g = flow::FlowGraph(all);
   flow_g.render(f.name().str(), f.name().str());
+
+  liveness::LivenessAnalyzer analyzer(flow_g);
+  std::cout << analyzer.dump_result() << "\n";
+  std::cout << sep << "\n";
 }
 
 int main(int argc, char** argv)

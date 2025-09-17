@@ -2,6 +2,7 @@
 #include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <format>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -10,20 +11,18 @@ template <typename T>
 class Digraph {
   public:
   using node_id_t = size_t;
-  struct Node {
-    Node(node_id_t uid, T data)
+  struct GraphNode {
+    GraphNode(node_id_t uid, T data)
       : data_(std::move(data))
       , uid(uid)
     { }
 
-    std::string str() const requires requires(const T& t)
+    std::string str() const
+      requires requires(const T& t) {
+        { t.to_string() } -> std::same_as<std::string>;
+      }
     {
-      {
-        t.to_string()
-        } -> std::same_as<std::string>;
-    }
-    {
-      return data_.to_string();
+      return std::format("{}: {}", uid, data_.to_string());
     }
 
     std::string str() const
@@ -70,7 +69,7 @@ private:
     {
       node_id = *free_nodes_ids.begin();
       free_nodes_ids.erase(node_id);
-      nodes[node_id] = Node(node_id, std::move(node_data));
+      nodes[node_id] = GraphNode(node_id, std::move(node_data));
     }
     else
     {
@@ -95,25 +94,30 @@ private:
     free_nodes_ids.insert(nid);
   }
 
-  const std::unordered_set<node_id_t>& succ(node_id_t nid)
+  const std::unordered_set<node_id_t>& succ(node_id_t nid) const
   {
     assert(is_valid(nid));
     return nodes[nid].succ;
   }
 
-  const std::unordered_set<node_id_t>& prec(node_id_t nid)
+  const std::unordered_set<node_id_t>& prec(node_id_t nid) const
   {
     assert(is_valid(nid));
     return nodes[nid].prec;
   }
 
-  Node& operator[](node_id_t nid)
+  GraphNode& operator[](node_id_t nid)
+  {
+    return get_node(nid);
+  }
+
+  GraphNode& get_node(node_id_t nid)
   {
     assert(is_valid(nid));
     return nodes[nid];
   }
 
-  const std::vector<Node>& get_nodes()
+  std::vector<GraphNode>& get_nodes()
   {
     return nodes;
   }
@@ -124,5 +128,5 @@ private:
     return nid < nodes.size() && !free_nodes_ids.contains(nid);
   }
   std::unordered_set<node_id_t> free_nodes_ids;
-  std::vector<Node> nodes;
+  std::vector<GraphNode> nodes;
 };

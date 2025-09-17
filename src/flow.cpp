@@ -1,15 +1,16 @@
+#include <algorithm>
 #include <codegen/assem.hpp>
+#include <config.hpp>
 #include <cstddef>
 #include <flow.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
+#include <list>
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <variant>
 #include <vector>
-#include <config.hpp>
 
 #if CONFIG_WITH_GRAPHVIZ
 #  include <cstdio>
@@ -24,7 +25,7 @@ namespace flow
 
 FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
 {
-  using node_id_t = Digraph<Node>::node_id_t;
+  using node_id_t = Digraph<GraphNode>::node_id_t;
   size_t current_i{};
   node_id_t curr{};
   std::optional<node_id_t> prev{};
@@ -36,7 +37,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
     if(std::holds_alternative<::codegen::assem::Label>(i))
     {
       auto l = std::get<::codegen::assem::Label>(i).label;
-      label_map[l] = g.add_node(Node{.i = i});
+      label_map[l] = add_node(Node{.i = i});
     }
   }
 
@@ -46,7 +47,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
     auto& i = ins[current_i];
     if(!std::holds_alternative<::codegen::assem::Label>(i))
     {
-      curr = g.add_node(Node{.i = i});
+      curr = add_node(Node{.i = i});
     }
     else
     {
@@ -56,28 +57,30 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
     if(prev)
     {
       // add an edge between the prev instruction and the current one
-      g.add_edge(*prev, curr);
+      add_edge(*prev, curr);
     }
 
     if(std::holds_alternative<::codegen::assem::Oper>(i))
     {
       auto oper = std::get<::codegen::assem::Oper>(i);
-      auto& data = g[curr].data();
-      data.def = std::move(oper.dst);
-      data.use = std::move(oper.src);
+      auto& data = get_node(curr).data();
+      std::sort(oper.dst.begin(), oper.dst.end());
+      std::sort(oper.src.begin(), oper.src.end());
+      data.def = std::list(oper.dst.begin(), oper.dst.end());
+      data.use = std::list(oper.src.begin(), oper.src.end());
       // add edges to jump nodes
       if(oper.jmp)
       {
         for(auto l : oper.jmp.value())
         {
-          g.add_edge(curr, label_map[l]);
+          add_edge(curr, label_map[l]);
         }
       }
     }
     else if(std::holds_alternative<::codegen::assem::Move>(i))
     {
       auto move = std::get<::codegen::assem::Move>(i);
-      auto& data = g[curr].data();
+      auto& data = get_node(curr).data();
       data.is_move = true;
       data.def = {move.dst};
       data.use = {move.src};
@@ -107,8 +110,8 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
     return;
   }
 
-  std::unordered_map<Digraph<Node>::node_id_t, Agnode_t*> map;
-  for(auto& node : g.get_nodes())
+  std::unordered_map<Digraph<GraphNode>::node_id_t, Agnode_t*> map;
+  for(auto& node : get_nodes())
   {
     Agnode_t* c{};
     if(!map.contains(node.id()))
@@ -116,11 +119,11 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
       map[node.id()] = agnode(graph, node.str().data(), true);
     }
     c = map[node.id()];
-    for(auto& succ : g.succ(node.id()))
+    for(auto& succ : succ(node.id()))
     {
       if(!map.contains(succ))
       {
-        map[succ] = agnode(graph, g[succ].str().data(), true);
+        map[succ] = agnode(graph, get_node(succ).str().data(), true);
       }
       agedge(graph, c, map[succ], nullptr, true);
     }

@@ -214,8 +214,11 @@ class Frame {
     }
 
     // append sink instruction (is this enough? TODO)
-    auto live =
-      std::vector(std::views::keys(special_regs).begin(), std::views::keys(special_regs).end());
+    auto live = std::vector({arch::Frame::RAX, arch::Frame::SP, arch::Frame::FP});
+    std::copy(std::views::keys(arch::Frame::callee_saved).begin(),
+              std::views::keys(arch::Frame::callee_saved).end(),
+              std::back_inserter(live));
+
     list.push_back(::codegen::assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
   }
 
