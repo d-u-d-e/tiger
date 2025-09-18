@@ -148,7 +148,6 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 #include <ir/tree.hpp>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
