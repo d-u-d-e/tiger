@@ -229,9 +229,8 @@ private:
   private:
   bool is_valid(node_id_t nid) const
   {
-    return nid < nodes.size() && !free_nodes_ids.contains(nid);
+    return nid < nodes.size();
   }
   std::unordered_set<edge_t, EdgeHash> edges_;
-  std::unordered_set<node_id_t> free_nodes_ids;
   std::vector<GraphNode> nodes;
 };
