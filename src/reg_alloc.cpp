@@ -84,7 +84,13 @@ void RegisterAllocator::assign_colors()
 
 void RegisterAllocator::make_lists()
 {
-  // TODO
+  for(auto n : igraph.get_nodes())
+  {
+    if(igraph[n].data().degree < arch::Frame::no_registers)
+    {
+      simplify_list.push_front(n);
+    }
+  }
 }
 
 void RegisterAllocator::perform_allocation()
