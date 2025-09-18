@@ -12,7 +12,7 @@
 namespace flow
 {
 
-struct Node {
+struct FlowNode {
   // the node assem instruction (could also be a basic block)
   codegen::assem::Instruction i;
 
@@ -35,7 +35,7 @@ struct Node {
   }
 };
 
-class FlowGraph : public Digraph<Node> {
+class FlowGraph : public Digraph<FlowNode> {
   public:
   FlowGraph(const std::vector<::codegen::assem::Instruction>& ins);
 

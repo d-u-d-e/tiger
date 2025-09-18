@@ -112,7 +112,7 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 
   // Create the register allocator
   register_allocator::RegisterAllocator allocator(flow_g);
-  allocator.build_interference_graph();
+  allocator.perform_allocation();
   name = f.name().str() + "_interference";
   allocator.render_igraph_dot(name, name);
 }

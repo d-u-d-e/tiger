@@ -41,7 +41,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
       assert(current_i + 1 < ins.size());
       assert(!std::holds_alternative<::codegen::assem::Label>(ins[current_i + 1]));
       auto l = std::get<::codegen::assem::Label>(i).label;
-      label_map[l] = add_node(Node());
+      label_map[l] = add_node(FlowNode());
     }
   }
 
@@ -57,7 +57,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
     else
     {
       // create a new node if not a label
-      curr = add_node(Node());
+      curr = add_node(FlowNode());
     }
     auto& i = ins[current_i];
 

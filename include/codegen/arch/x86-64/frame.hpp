@@ -97,6 +97,7 @@ class Frame {
   };
   // clang-format on
 
+  static inline auto no_registers = temp_map.size();
   static inline std::vector<ir::TempGen::Temp> special_regs{FP, RV, SP};
   static inline std::vector<ir::TempGen::Temp> caller_saved{RDI, RSI, RCX, RDX, R8, R9, R10, R11};
   static inline std::vector<ir::TempGen::Temp> callee_saved{RBX, R12, R13, R14, R15};
@@ -283,7 +284,7 @@ class Frame {
   {
     locals++;
     if(escape)
-    { 
+    {
       assert(locals_stack_offset - word_size < locals_stack_offset); // overflow
       locals_stack_offset -= word_size;
       return InFrame(locals_stack_offset);

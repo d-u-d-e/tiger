@@ -13,7 +13,7 @@ LivenessAnalyzer::LivenessAnalyzer(flow::FlowGraph& g)
     fixed_point = true;
     for(auto& n : fg.get_nodes())
     {
-      auto& d = n.data();
+      auto& d = fg[n].data();
       auto live_in_size = d.live_in.size();
       auto live_out_size = d.live_out.size();
 
@@ -22,9 +22,9 @@ LivenessAnalyzer::LivenessAnalyzer(flow::FlowGraph& g)
 
       // compute the live out set: (for all successors: + live_in)
       std::list<ir::TempGen::Temp> live_out;
-      for(auto succ_id : fg.succ(n.id()))
+      for(auto succ_id : fg.succ(n))
       {
-        live_out = helpers::union_sorted_lists(live_out, fg.get_node(succ_id).data().live_in);
+        live_out = helpers::union_sorted_lists(live_out, fg[succ_id].data().live_in);
       };
       d.live_out = std::move(live_out);
 
@@ -49,10 +49,10 @@ std::string LivenessAnalyzer::dump_result()
 
   for(auto& n : fg.get_nodes())
   {
-    auto& d = n.data();
-    out += std::format("live IN temporaries at node {}: ", n.id());
+    auto& d = fg[n].data();
+    out += std::format("live IN temporaries at node {}: ", n);
     out += format_list_of_temps(d.live_in);
-    out += std::format("live OUT temporaries at node {}: ", n.id());
+    out += std::format("live OUT temporaries at node {}: ", n);
     out += format_list_of_temps(d.live_out);
   }
   return out;
