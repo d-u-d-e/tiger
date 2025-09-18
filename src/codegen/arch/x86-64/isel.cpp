@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cassert>
 #include <codegen/arch.hpp>
-#include <codegen/arch.hpp>
 #include <codegen/assem.hpp>
 #include <cstddef>
 #include <format>
@@ -10,7 +9,6 @@
 #include <ir/tree.hpp>
 #include <iterator>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -597,23 +595,14 @@ std::vector<ir::TempGen::Temp> MuxMunchGen::munch_args(const std::vector<ir::tre
   return srcs_call;
 }
 
-std::string format(std::function<std::optional<std::string>(const ir::TempGen::Temp& t)> mapper,
+std::string format(std::function<std::string(const ir::TempGen::Temp& t)> mapper,
                    const ::codegen::assem::Instruction& ins)
 {
   using namespace ::codegen::assem;
 
-  auto map_temp = [&mapper](const ir::TempGen::Temp& t) {
-    auto mapped = mapper(t);
-    if(mapped)
-    {
-      return mapped.value();
-    }
-    return ir::TempGen::to_string(t);
-  };
-
-  auto replace_placeholders = [&map_temp](const std::vector<ir::TempGen::Temp>& src,
-                                          const std::vector<ir::TempGen::Temp>& dst,
-                                          const std::string& assem) {
+  auto replace_placeholders = [&mapper](const std::vector<ir::TempGen::Temp>& src,
+                                        const std::vector<ir::TempGen::Temp>& dst,
+                                        const std::string& assem) {
     std::string result;
     for(size_t i = 0; i < assem.length(); i++)
     {
@@ -621,14 +610,14 @@ std::string format(std::function<std::optional<std::string>(const ir::TempGen::T
       {
         size_t pos;
         auto ix = std::stoi(assem.substr(i + 2), &pos);
-        result += map_temp(src[ix]);
+        result += mapper(src[ix]);
         i += pos + 1;
       }
       else if(std::string_view(assem.data() + i, 2) == "`d")
       {
         size_t pos;
         auto ix = std::stoi(assem.substr(i + 2), &pos);
-        result += map_temp(dst[ix]);
+        result += mapper(dst[ix]);
         i += pos + 1;
       }
       else

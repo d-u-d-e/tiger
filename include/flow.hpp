@@ -1,5 +1,6 @@
 #pragma once
 
+#include <helpers.hpp>
 #include <codegen/arch.hpp>
 #include <codegen/assem.hpp>
 #include <graph.hpp>
@@ -30,7 +31,7 @@ struct Node {
 
   std::string to_string() const
   {
-    return arch::codegen::format(arch::Frame::map_temp, i);
+    return arch::codegen::format(helpers::map_temp, i);
   }
 };
 

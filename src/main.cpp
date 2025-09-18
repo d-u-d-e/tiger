@@ -89,7 +89,7 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   auto print_instr = [](const std::vector<::codegen::assem::Instruction>& instrs) {
     for(auto& i : instrs)
     {
-      std::cout << arch::codegen::format(arch::Frame::map_temp, i);
+      std::cout << arch::codegen::format(helpers::map_temp, i);
     }
   };
 
@@ -102,11 +102,16 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 
   // Create the control flow graph
   auto flow_g = flow::FlowGraph(all);
-  flow_g.render(f.name().str(), f.name().str());
+  std::string name = f.name().str() + "_flow";
+  flow_g.render(name, name);
 
   liveness::LivenessAnalyzer analyzer(flow_g);
   std::cout << analyzer.dump_result() << "\n";
   std::cout << sep << "\n";
+
+  // Dump the interference graph
+  name = f.name().str() + "_interference";
+  analyzer.render_igraph_dot(name, name);
 }
 
 int main(int argc, char** argv)
@@ -157,7 +162,8 @@ int main(int argc, char** argv)
   }
   catch(std::exception& e)
   {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m"
+              << "\n";
     return EX_DATAERR;
   }
 

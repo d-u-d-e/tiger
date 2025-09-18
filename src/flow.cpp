@@ -124,22 +124,19 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
   }
 
   std::unordered_map<Digraph<GraphNode>::node_id_t, Agnode_t*> map;
-  for(auto& node : get_nodes())
+  for(auto& e : edges())
   {
-    Agnode_t* c{};
-    if(!map.contains(node.id()))
+    auto& n1 = get_node(e.first);
+    auto& n2 = get_node(e.second);
+    if(!map.contains(n1.id()))
     {
-      map[node.id()] = agnode(graph, node.str().data(), true);
+      map[n1.id()] = agnode(graph, n1.str().data(), true);
     }
-    c = map[node.id()];
-    for(auto& succ : succ(node.id()))
+    if(!map.contains(n2.id()))
     {
-      if(!map.contains(succ))
-      {
-        map[succ] = agnode(graph, get_node(succ).str().data(), true);
-      }
-      agedge(graph, c, map[succ], nullptr, true);
+      map[n2.id()] = agnode(graph, n2.str().data(), true);
     }
+    agedge(graph, map[n1.id()], map[n2.id()], nullptr, true);
   }
 
   gvLayout(gvc, graph, "dot");
