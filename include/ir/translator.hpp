@@ -52,10 +52,7 @@ class Translator {
 
   void translate_main_program(Exp&& exp)
   {
-    // move the body result onto the RV register
-    auto rv = std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(arch::Frame::RV),
-                                               unex(std::move(exp)));
-    add_fragment(ProcedureFragment{.body = std::move(rv), .level = lvl_main});
+    proc_entry_exit(lvl_main, std::move(exp));
   }
 
   static auto formals(const Level& level)
