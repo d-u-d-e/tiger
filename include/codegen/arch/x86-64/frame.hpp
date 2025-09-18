@@ -11,7 +11,6 @@
 #include <iterator>
 #include <memory>
 #include <optional>
-#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -57,6 +56,7 @@ class Frame {
     The stack is 16-byte aligned just before the call instruction is executed.
   */
 
+  using register_t = std::string;
   static inline auto FP = ir::TempGen::new_temp();
   static inline auto RV = ir::TempGen::new_temp();
   static inline auto SP = ir::TempGen::new_temp();
@@ -71,26 +71,35 @@ class Frame {
   static inline auto R9 = ir::TempGen::new_temp();
   static inline auto R10 = ir::TempGen::new_temp();
   static inline auto R11 = ir::TempGen::new_temp();
+  static inline auto R12 = ir::TempGen::new_temp();
+  static inline auto R13 = ir::TempGen::new_temp();
+  static inline auto R14 = ir::TempGen::new_temp();
+  static inline auto R15 = ir::TempGen::new_temp();
 
-  static inline std::unordered_map<ir::TempGen::Temp, std::string> special_regs{
-    {FP, "rbp"}, {RV, "rax"}, {SP, "rsp"}};
-
-  static inline std::unordered_map<ir::TempGen::Temp, std::string> caller_saved{{RDI, "rdi"},
-                                                                                {RSI, "rsi"},
-                                                                                {RCX, "rcx"},
-                                                                                {RDX, "rdx"},
-                                                                                {R8, "r8"},
-                                                                                {R9, "r9"},
-                                                                                {R10, "r10"},
-                                                                                {R11, "r11"}};
-
-  static inline std::unordered_map<ir::TempGen::Temp, std::string> callee_saved{
+  // clang-format off
+  static inline std::unordered_map<ir::TempGen::Temp, register_t> temp_map{
+    {FP, "rbp"},
+    {RV, "rax"},
+    {SP, "rsp"},
+    {RDI, "rdi"},
+    {RSI, "rsi"},
+    {RCX, "rcx"},
+    {RDX, "rdx"},
+    {R8, "r8"},
+    {R9, "r9"},
+    {R10, "r10"},
+    {R11, "r11"},
     {RBX, "rbx"},
-    {ir::TempGen::new_temp(), "r12"},
-    {ir::TempGen::new_temp(), "r13"},
-    {ir::TempGen::new_temp(), "r14"},
-    {ir::TempGen::new_temp(), "r15"}};
+    {R12, "r12"},
+    {R13, "r13"},
+    {R14, "r14"},
+    {R15, "r15"}
+  };
+  // clang-format on
 
+  static inline std::vector<ir::TempGen::Temp> special_regs{FP, RV, SP};
+  static inline std::vector<ir::TempGen::Temp> caller_saved{RDI, RSI, RCX, RDX, R8, R9, R10, R11};
+  static inline std::vector<ir::TempGen::Temp> callee_saved{RBX, R12, R13, R14, R15};
   static inline std::vector<ir::TempGen::Temp> params_on_regs{RDI, RSI, RDX, RCX, R8, R9};
 
   Frame(ir::TempGen::Label label, const std::vector<bool>& formals)
@@ -147,7 +156,7 @@ class Frame {
     // TODO: review when spilling is implemented
     std::vector<ir::tree::Stmt> save;
     std::vector<ir::tree::Stmt> restore;
-    for(auto& [reg, _] : callee_saved)
+    for(auto& reg : callee_saved)
     {
       auto ax = alloc_local(true);
       save.push_back(
@@ -215,10 +224,7 @@ class Frame {
 
     // append sink instruction (is this enough? TODO)
     auto live = std::vector({arch::Frame::RAX, arch::Frame::SP, arch::Frame::FP});
-    std::copy(std::views::keys(arch::Frame::callee_saved).begin(),
-              std::views::keys(arch::Frame::callee_saved).end(),
-              std::back_inserter(live));
-
+    std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(live));
     list.push_back(::codegen::assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
   }
 
@@ -264,19 +270,11 @@ class Frame {
     return label;
   }
 
-  static std::optional<std::string> map_temp(const ir::TempGen::Temp& t)
+  static std::optional<register_t> map_temp(const ir::TempGen::Temp& t)
   {
-    if(auto i = special_regs.find(t); i != special_regs.end())
+    if(temp_map.find(t) != temp_map.end())
     {
-      return i->second;
-    }
-    if(auto i = callee_saved.find(t); i != callee_saved.end())
-    {
-      return i->second;
-    }
-    if(auto i = caller_saved.find(t); i != caller_saved.end())
-    {
-      return i->second;
+      return temp_map[t];
     }
     return std::nullopt;
   }
@@ -285,7 +283,7 @@ class Frame {
   {
     locals++;
     if(escape)
-    {
+    { 
       assert(locals_stack_offset - word_size < locals_stack_offset); // overflow
       locals_stack_offset -= word_size;
       return InFrame(locals_stack_offset);

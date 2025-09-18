@@ -1,16 +1,14 @@
 #pragma once
 #include <codegen/arch.hpp>
 #include <ir/temp.hpp>
+#include <list>
 
 namespace helpers
 {
-inline auto map_temp(const ir::TempGen::Temp& t)
-{
-  auto mapped = arch::Frame::map_temp(t);
-  if(mapped)
-  {
-    return mapped.value();
-  }
-  return ir::TempGen::to_string(t);
-};
+std::list<ir::TempGen::Temp> union_sorted_lists(const std::list<ir::TempGen::Temp>& a,
+                                                const std::list<ir::TempGen::Temp>& b);
+std::list<ir::TempGen::Temp> diff_sorted_lists(const std::list<ir::TempGen::Temp>& a,
+                                               const std::list<ir::TempGen::Temp>& b);
+std::string map_temp(const ir::TempGen::Temp& t);
+
 } // namespace helpers

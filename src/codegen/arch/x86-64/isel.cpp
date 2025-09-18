@@ -558,8 +558,8 @@ void MuxMunchGen::munch_call_exp(const ir::tree::CallExp& exp)
   // and restored by the epilogue.
 
   auto trashed = std::vector({arch::Frame::RAX});
-  std::copy(std::views::keys(arch::Frame::caller_saved).begin(),
-            std::views::keys(arch::Frame::caller_saved).end(),
+  std::copy(arch::Frame::caller_saved.begin(),
+            arch::Frame::caller_saved.end(),
             std::back_inserter(trashed));
 
   assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun));

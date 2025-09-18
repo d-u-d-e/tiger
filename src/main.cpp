@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <codegen/arch.hpp>
+#include <reg_alloc.hpp>
 
 #include <codegen/assem.hpp>
 #include <cstdio>
@@ -109,9 +110,11 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   std::cout << analyzer.dump_result() << "\n";
   std::cout << sep << "\n";
 
-  // Dump the interference graph
+  // Create the register allocator
+  register_allocator::RegisterAllocator allocator(flow_g);
+  allocator.build_interference_graph();
   name = f.name().str() + "_interference";
-  analyzer.render_igraph_dot(name, name);
+  allocator.render_igraph_dot(name, name);
 }
 
 int main(int argc, char** argv)
@@ -162,8 +165,7 @@ int main(int argc, char** argv)
   }
   catch(std::exception& e)
   {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m"
-              << "\n";
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
     return EX_DATAERR;
   }
 

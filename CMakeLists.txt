@@ -40,6 +40,8 @@ add_executable(
     src/ir/tree.cpp
     src/flow.cpp
     src/liveness.cpp
+    src/reg_alloc.cpp
+    src/helpers.cpp
     ${sources_common}
     ${sources_target_specific}
 )
