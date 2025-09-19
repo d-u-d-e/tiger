@@ -80,14 +80,14 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   */
 
   arch::codegen::MuxMunchGen gen;
-  std::vector<::codegen::assem::Instruction> all;
+  std::list<::codegen::assem::Instruction> all;
   for(auto& s : sched)
   {
     auto v = gen.gen(s);
     std::move(v.begin(), v.end(), std::back_inserter(all));
   }
 
-  auto print_instr = [](const std::vector<::codegen::assem::Instruction>& instrs) {
+  auto print_instr = [](const std::list<::codegen::assem::Instruction>& instrs) {
     for(auto& i : instrs)
     {
       std::cout << arch::codegen::format(helpers::map_temp, i);
@@ -111,24 +111,25 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   std::cout << sep << "\n";
 
   // Create the register allocator
-  register_allocator::RegisterAllocator allocator;
-  allocator.set_flowgraph(flow_g);
+  register_allocator::RegisterAllocator allocator(flow_g);
   name = f.name().str() + "_interference";
   allocator.render_igraph_dot(name, name);
 
   allocator.perform_allocation();
   auto color_map = allocator.get_color_mapping();
 
-  // TODO: remove instructions that move a register to itself
-  auto print_instr_with_colors =
-    [&color_map](const std::vector<::codegen::assem::Instruction>& instrs) {
+  // remove instructions that move a register to itself
+  helpers::delete_coalesced_moves(all, color_map);
+
+  auto print_instr_reg_allocated =
+    [&color_map](const std::list<::codegen::assem::Instruction>& instrs) {
       for(auto& i : instrs)
       {
         std::cout << arch::codegen::format(color_map, i);
       }
     };
-  std::cout << sep << sep << pro;
-  print_instr_with_colors(all);
+  std::cout << sep << "\n" << pro;
+  print_instr_reg_allocated(all);
   std::cout << epi;
   std::cout << sep << "\n";
 }

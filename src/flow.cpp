@@ -23,43 +23,44 @@
 namespace flow
 {
 
-FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
+FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
 {
   using node_id_t = Digraph<GraphNode>::node_id_t;
-  size_t current_i{};
   node_id_t curr{};
+  auto citer = ins.begin();
   std::optional<node_id_t> prev{};
   std::unordered_map<ir::TempGen::Label, node_id_t> label_map;
 
   // create nodes for labels
-  for(; current_i < ins.size(); current_i++)
+  for(; citer != ins.end(); citer++)
   {
-    auto& i = ins[current_i];
+    auto& i = *citer;
     if(std::holds_alternative<::codegen::assem::Label>(i))
     {
       // next instruction must exist and must not be a label
-      assert(current_i + 1 < ins.size());
-      assert(!std::holds_alternative<::codegen::assem::Label>(ins[current_i + 1]));
+      auto next_iter = std::next(citer);
+      assert(next_iter != ins.end());
+      assert(!std::holds_alternative<::codegen::assem::Label>(*next_iter));
       auto l = std::get<::codegen::assem::Label>(i).label;
       label_map[l] = add_node(FlowNode());
     }
   }
 
-  current_i = 0;
-  while(current_i < ins.size())
+  citer = ins.begin();
+  while(citer != ins.end())
   {
-    if(std::holds_alternative<::codegen::assem::Label>(ins[current_i]))
+    if(std::holds_alternative<::codegen::assem::Label>(*citer))
     {
       // skip the label
-      curr = label_map[std::get<::codegen::assem::Label>(ins[current_i]).label];
-      current_i++;
+      curr = label_map[std::get<::codegen::assem::Label>(*citer).label];
+      citer++;
     }
     else
     {
       // create a new node if not a label
       curr = add_node(FlowNode());
     }
-    auto& i = ins[current_i];
+    auto& i = *citer;
 
     if(std::holds_alternative<::codegen::assem::Oper>(i))
     {
@@ -101,7 +102,7 @@ FlowGraph::FlowGraph(const std::vector<codegen::assem::Instruction>& ins)
 
     // update prev
     prev = curr;
-    current_i++;
+    citer++;
   }
 }
 

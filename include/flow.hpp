@@ -37,7 +37,7 @@ struct FlowNode {
 
 class FlowGraph : public Digraph<FlowNode> {
   public:
-  FlowGraph(const std::vector<::codegen::assem::Instruction>& ins);
+  FlowGraph(const std::list<::codegen::assem::Instruction>& ins);
 
 #if CONFIG_WITH_GRAPHVIZ
   void render(const std::string& name, const std::string& filename);

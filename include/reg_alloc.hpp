@@ -10,12 +10,7 @@ namespace register_allocator
 
 class RegisterAllocator {
   public:
-  RegisterAllocator();
-  void set_flowgraph(std::shared_ptr<flow::FlowGraph> fg)
-  {
-    fgraph = std::move(fg);
-    build_interference_graph();
-  }
+  RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg);
   void perform_allocation();
   std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> get_color_mapping()
   {

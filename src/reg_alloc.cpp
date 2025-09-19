@@ -10,14 +10,9 @@
 namespace register_allocator
 {
 
-RegisterAllocator::RegisterAllocator() { }
-
-void RegisterAllocator::build_interference_graph()
+RegisterAllocator::RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg)
+  : fgraph(std::move(fg))
 {
-  map_tnode.clear();
-  nodes.clear();
-  edges.clear();
-
   // fill precolored temporaries
   for(auto& [t, v] : arch::Frame::temp_map)
   {
@@ -26,7 +21,11 @@ void RegisterAllocator::build_interference_graph()
     map_tnode[t] = nid;
     nodes[nid].color = v;
   }
+  build_interference_graph();
+}
 
+void RegisterAllocator::build_interference_graph()
+{
   // parse the flow graph
   for(auto& n : fgraph->get_nodes())
   {
@@ -152,12 +151,6 @@ void RegisterAllocator::assign_colors()
 
 void RegisterAllocator::make_lists()
 {
-  initial_nodes.clear();
-  colored_nodes.clear();
-  simplify_list.clear();
-  select_stack.clear();
-  spill_list.clear();
-
   for(auto& n : nodes)
   {
     if(!is_precolored(n.id))
@@ -181,8 +174,6 @@ void RegisterAllocator::make_lists()
 
 void RegisterAllocator::perform_allocation()
 {
-  assert(fgraph != nullptr);
-  build_interference_graph();
   make_lists();
   while(!simplify_list.empty())
   {

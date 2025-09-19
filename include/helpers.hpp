@@ -65,4 +65,8 @@ std::list<T> union_sorted_lists(const std::list<T>& a, const std::list<T>& b)
 }
 std::string map_temp(const ir::TempGen::Temp& t);
 
+void delete_coalesced_moves(
+  std::list<::codegen::assem::Instruction>& instrs,
+  const std::function<arch::Frame::register_t(const ir::TempGen::Temp&)>& reg_mapper);
+
 } // namespace helpers

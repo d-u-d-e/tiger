@@ -9,6 +9,7 @@
 #include <ir/temp.hpp>
 #include <ir/tree.hpp>
 #include <iterator>
+#include <list>
 #include <memory>
 #include <optional>
 #include <string>
@@ -187,7 +188,7 @@ class Frame {
     return stmt;
   }
 
-  void proc_entry_exit2(std::vector<::codegen::assem::Instruction>& list)
+  void proc_entry_exit2(std::list<::codegen::assem::Instruction>& list)
   {
     // proc_entry_exit2 does the following:
     // - append a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
@@ -230,7 +231,7 @@ class Frame {
   }
 
   std::pair<std::string, std::string>
-  proc_entry_exit3(std::vector<::codegen::assem::Instruction>& list)
+  proc_entry_exit3(std::list<::codegen::assem::Instruction>& list)
   {
     // proc_entry_exit3 does the following:
     // - implement the prologue/epilogue
