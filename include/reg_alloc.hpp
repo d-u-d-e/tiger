@@ -60,11 +60,6 @@ class RegisterAllocator {
   std::list<node_id_t> select_stack;
   std::list<node_id_t> spill_list;
 
-  // sets used during the allocation algorithm
-  std::unordered_set<node_id_t> colored_nodes;
-  std::unordered_set<node_id_t> precolored_nodes;
-  std::unordered_set<node_id_t> initial_nodes;
-
   static inline auto colors =
     std::ranges::to<std::unordered_set>(std::ranges::views::values(arch::Frame::temp_map));
 
@@ -72,9 +67,9 @@ class RegisterAllocator {
   void simplify();
   void make_lists();
   void assign_colors();
-  bool is_precolored(node_id_t n)
+  bool is_colored(node_id_t n)
   {
-    return precolored_nodes.contains(n);
+    return nodes[n].color.has_value();
   }
 
   std::unordered_set<node_id_t> adjacent(node_id_t t);

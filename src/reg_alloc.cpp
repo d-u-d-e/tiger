@@ -17,7 +17,6 @@ RegisterAllocator::RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg)
   for(auto& [t, v] : arch::Frame::temp_map)
   {
     auto nid = add_node(t);
-    precolored_nodes.insert(nid);
     map_tnode[t] = nid;
     nodes[nid].color = v;
   }
@@ -93,12 +92,12 @@ void RegisterAllocator::add_edge(node_id_t a, node_id_t b)
   if(!edges.contains({a, b}))
   {
     edges.insert({a, b});
-    if(!is_precolored(a))
+    if(!is_colored(a))
     {
       nodes[a].adj.insert(b);
       nodes[a].degree++;
     }
-    if(!is_precolored(b))
+    if(!is_colored(b))
     {
       nodes[b].adj.insert(a);
       nodes[b].degree++;
@@ -134,9 +133,8 @@ void RegisterAllocator::assign_colors()
     std::unordered_set<arch::Frame::register_t> ok_colors{colors};
     for(auto n : nodes[top].adj)
     {
-      if(is_precolored(n) || colored_nodes.contains(n))
+      if(is_colored(n))
       {
-        assert(nodes[n].color.has_value());
         ok_colors.erase(nodes[n].color.value());
       }
       if(ok_colors.empty())
@@ -145,7 +143,6 @@ void RegisterAllocator::assign_colors()
       }
       else
       {
-        colored_nodes.insert(top);
         nodes[top].color = *ok_colors.begin();
       }
     }
@@ -154,15 +151,17 @@ void RegisterAllocator::assign_colors()
 
 void RegisterAllocator::make_lists()
 {
+  std::list<node_id_t> initial{};
   for(auto& n : nodes)
   {
-    if(!is_precolored(n.id))
+    // don't add precolored nodes
+    if(!is_colored(n.id))
     {
-      initial_nodes.insert(n.id);
+      initial.push_back(n.id);
     }
   }
 
-  for(auto& nid : initial_nodes)
+  for(auto& nid : initial)
   {
     if(nodes[nid].degree >= arch::Frame::no_registers)
     {
