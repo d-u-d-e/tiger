@@ -31,7 +31,6 @@ class RegisterAllocator {
   struct EdgeHash {
     std::size_t operator()(const edge_t& p) const noexcept
     {
-      // Simple combination of x and y
       return std::rotl(std::hash<node_id_t>{}(p.first), 1) ^ std::hash<node_id_t>{}(p.second);
     }
   };

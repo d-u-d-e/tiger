@@ -207,7 +207,7 @@ void RegisterAllocator::render_igraph_dot(const std::string& name, const std::st
     return;
   }
 
-  std::unordered_map<Graph<ir::TempGen::Temp>::node_id_t, Agnode_t*> map;
+  std::unordered_map<node_id_t, Agnode_t*> map;
 
   for(auto& e : edges)
   {
