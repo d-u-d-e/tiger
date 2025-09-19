@@ -61,11 +61,14 @@ void RegisterAllocator::build_interference_graph()
 
 std::unordered_set<RegisterAllocator::node_id_t> RegisterAllocator::adjacent(node_id_t t)
 {
-  std::unordered_set<node_id_t> out;
-  std::copy_if(
-    nodes[t].adj.begin(), nodes[t].adj.end(), std::inserter(out, out.begin()), [this](node_id_t n) {
-      return select_stack.end() == std::find(select_stack.begin(), select_stack.end(), n);
-    });
+  std::unordered_set<node_id_t> out{nodes[t].adj};
+  for(auto nid : select_stack)
+  {
+    if(out.contains(nid))
+    {
+      out.erase(nid);
+    }
+  }
   return out;
 }
 
