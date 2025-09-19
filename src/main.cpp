@@ -102,19 +102,35 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
   std::cout << sep << "\n";
 
   // Create the control flow graph
-  auto flow_g = flow::FlowGraph(all);
+  auto flow_g = std::make_shared<flow::FlowGraph>(all);
   std::string name = f.name().str() + "_flow";
-  flow_g.render(name, name);
+  flow_g->render(name, name);
 
-  liveness::LivenessAnalyzer analyzer(flow_g);
+  liveness::LivenessAnalyzer analyzer(*flow_g);
   std::cout << analyzer.dump_result() << "\n";
   std::cout << sep << "\n";
 
   // Create the register allocator
-  register_allocator::RegisterAllocator allocator(flow_g);
-  allocator.perform_allocation();
+  register_allocator::RegisterAllocator allocator;
+  allocator.set_flowgraph(flow_g);
   name = f.name().str() + "_interference";
   allocator.render_igraph_dot(name, name);
+
+  allocator.perform_allocation();
+  auto color_map = allocator.get_color_mapping();
+
+  // TODO: remove instructions that move a register to itself
+  auto print_instr_with_colors =
+    [&color_map](const std::vector<::codegen::assem::Instruction>& instrs) {
+      for(auto& i : instrs)
+      {
+        std::cout << arch::codegen::format(color_map, i);
+      }
+    };
+  std::cout << sep << sep << pro;
+  print_instr_with_colors(all);
+  std::cout << epi;
+  std::cout << sep << "\n";
 }
 
 int main(int argc, char** argv)
@@ -165,7 +181,8 @@ int main(int argc, char** argv)
   }
   catch(std::exception& e)
   {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m"
+              << "\n";
     return EX_DATAERR;
   }
 
