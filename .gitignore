@@ -35,3 +35,4 @@ build/*
 generated/*
 .vscode/*
 .cache/*
+dist/*
