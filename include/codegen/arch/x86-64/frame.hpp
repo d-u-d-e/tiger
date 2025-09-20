@@ -246,16 +246,23 @@ class Frame {
     // the return address and the old fp (2 * word_size == 16)
     space = (space + 15) & ~15;
 
-    std::string prologue = std::format(".type {}, @function\n"
-                                       "{}:\n"
-                                       "push rbp\n"
-                                       "mov  rbp, rsp\n"
-                                       "sub  rsp, {}\n",
-                                       label.str(),
-                                       label.str(),
-                                       space);
+    std::string prologue;
+    if(label.str() == "tiger_main")
+    {
+      prologue = ".intel_syntax noprefix\n"
+                 ".global tiger_main\n";
+    }
 
-    std::string epilogue = "mov  rsp, rpb\n"
+    prologue += std::format(".type {}, @function\n"
+                            "{}:\n"
+                            "push rbp\n"
+                            "mov  rbp, rsp\n"
+                            "sub  rsp, {}\n",
+                            label.str(),
+                            label.str(),
+                            space);
+
+    std::string epilogue = "mov  rsp, rbp\n"
                            "pop  rbp\n"
                            "ret  \n";
 

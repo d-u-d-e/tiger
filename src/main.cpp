@@ -1,5 +1,9 @@
 #include <algorithm>
 #include <codegen/arch.hpp>
+#include <cstring>
+#include <fstream>
+#include <memory>
+#include <ostream>
 #include <reg_alloc.hpp>
 
 #include <codegen/assem.hpp>
@@ -30,8 +34,30 @@
 #include <variant>
 #include <vector>
 
-void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
+void output(std::ostream& out,
+            std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> mapper,
+            std::list<::codegen::assem::Instruction>& instrs,
+            const std::string& prologue,
+            const std::string& epilogue)
 {
+  // remove instructions that move a register to itself
+  helpers::delete_coalesced_moves(instrs, mapper);
+  auto print_instr_reg_allocated = [&mapper,
+                                    &out](const std::list<::codegen::assem::Instruction>& instrs) {
+    for(auto& i : instrs)
+    {
+      out << arch::codegen::format(mapper, i);
+    }
+  };
+  out << prologue;
+  print_instr_reg_allocated(instrs);
+  out << epilogue;
+  out << "\n";
+}
+
+void code_gen(std::ostream& out, ir::tree::Stmt&& stmt, arch::Frame& f)
+{
+
   auto sep = "-----------------------------";
   ir::tree::PrettyPrinter ir_pretty_printer;
   (void)ir_pretty_printer;
@@ -87,6 +113,10 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
     std::move(v.begin(), v.end(), std::back_inserter(all));
   }
 
+  f.proc_entry_exit2(all);
+  auto [pro, epi] = f.proc_entry_exit3(all);
+
+  /*
   auto print_instr = [](const std::list<::codegen::assem::Instruction>& instrs) {
     for(auto& i : instrs)
     {
@@ -94,12 +124,10 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
     }
   };
 
-  f.proc_entry_exit2(all);
-  auto [pro, epi] = f.proc_entry_exit3(all);
   std::cout << pro;
   print_instr(all);
   std::cout << epi;
-  std::cout << sep << "\n";
+  std::cout << sep << "\n";*/
 
   // Create the control flow graph
   auto flow_g = std::make_shared<flow::FlowGraph>(all);
@@ -112,39 +140,50 @@ void code_gen(ir::tree::Stmt&& stmt, arch::Frame& f)
 
   // Create the register allocator
   register_allocator::RegisterAllocator allocator(flow_g);
-  name = f.name().str() + "_interference";
-  allocator.render_igraph_dot(name, name);
+
+  /*name = f.name().str() + "_interference";
+  allocator.render_igraph_dot(name, name);*/
 
   allocator.perform_allocation();
   auto color_map = allocator.get_color_mapping();
 
-  // remove instructions that move a register to itself
-  helpers::delete_coalesced_moves(all, color_map);
-
-  auto print_instr_reg_allocated =
-    [&color_map](const std::list<::codegen::assem::Instruction>& instrs) {
-      for(auto& i : instrs)
-      {
-        std::cout << arch::codegen::format(color_map, i);
-      }
-    };
-  std::cout << sep << "\n" << pro;
-  print_instr_reg_allocated(all);
-  std::cout << epi;
-  std::cout << sep << "\n";
+  output(out, color_map, all, pro, epi);
 }
 
 int main(int argc, char** argv)
 {
-  if(argc != 2)
+  const char* oname{nullptr};
+  std::unique_ptr<std::ofstream> ofile{nullptr};
+
+  std::vector<std::filesystem::path> input_files;
+  for(int i = 1; i < argc; i++)
+  {
+    if(strcmp(argv[i], "-o") == 0 && (i + 1) < argc)
+    {
+      oname = argv[i + 1];
+    }
+    else
+    {
+      // input is considered a file to be processed
+      input_files.emplace_back(argv[i]);
+    }
+  }
+
+  if(input_files.empty())
   {
     std::cerr << "\033[1;31m";
     std::cerr << "tigerc: no input files\n";
     std::cerr << "\033[0m";
     return EX_NOINPUT;
-  };
+  }
 
-  std::filesystem::path s = argv[1];
+  if(!oname)
+  {
+    oname = "out.s";
+  }
+
+  // TODO: do all, here we do the first only
+  std::filesystem::path s = input_files[0];
 
   lexer::Scanner scanner(s);
   symbol::StringTable string_table;
@@ -182,12 +221,13 @@ int main(int argc, char** argv)
   }
   catch(std::exception& e)
   {
-    std::cerr << "\033[1;31m" << e.what() << "\033[0m"
-              << "\n";
+    std::cerr << "\033[1;31m" << e.what() << "\033[0m" << "\n";
     return EX_DATAERR;
   }
 
   translator.translate_main_program(std::move(ir));
+
+  ofile = std::make_unique<std::ofstream>(oname);
 
   // dump procedure fragments
   for(auto& frag : translator.fragments())
@@ -195,10 +235,10 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
-      code_gen(std::move(pf.body), *pf.level->frame);
+      code_gen(*ofile, std::move(pf.body), *pf.level->frame);
     }
   }
 
-  // print output of codegen
+  *ofile << ".section .note.GNU-stack,\"\",@progbits\n";
   return EX_OK;
 }
