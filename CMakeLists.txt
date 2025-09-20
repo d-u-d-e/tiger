@@ -57,6 +57,26 @@ target_include_directories(tigerc PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(tigerc PRIVATE -Werror -Wall -Wextra -pedantic -g -O0)
 target_link_libraries(tigerc ${libraries})
 
+# build the runtime object
+set(RUNTIME_SRC ${CMAKE_CURRENT_SOURCE_DIR}/lib/runtime.c)
+set(LIB_DIR ${CMAKE_BINARY_DIR}/lib)
+set(RUNTIME_OBJ ${LIB_DIR}/runtime.o)
+
+file(MAKE_DIRECTORY ${LIB_DIR})
+add_custom_command(
+    OUTPUT ${RUNTIME_OBJ}
+    COMMAND ${CMAKE_C_COMPILER} -c ${CMAKE_C_FLAGS} ${RUNTIME_SRC} -o ${RUNTIME_OBJ}
+    DEPENDS ${RUNTIME_SRC}
+    COMMENT "Building runtime.o into ${LIB_DIR}"
+)
+
+add_custom_target(runtime ALL DEPENDS ${RUNTIME_OBJ})
+add_dependencies(tigerc runtime)
+
+set_target_properties(tigerc PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
 if(BUILD_TEST_RUNNER)
@@ -75,3 +95,9 @@ if(BUILD_TEST_RUNNER)
     target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -O2)
     
 endif(BUILD_TEST_RUNNER)
+
+
+# Install compiler executable
+install(TARGETS tigerc RUNTIME DESTINATION bin)
+# Install runtime.o into lib/
+install(FILES ${RUNTIME_OBJ} DESTINATION lib)

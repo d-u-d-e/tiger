@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <codegen/arch.hpp>
+#include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <memory>
 #include <ostream>
 #include <reg_alloc.hpp>
@@ -34,28 +34,28 @@
 #include <variant>
 #include <vector>
 
-void output(std::ostream& out,
+void output(FILE* ofile,
             std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> mapper,
             std::list<::codegen::assem::Instruction>& instrs,
             const std::string& prologue,
             const std::string& epilogue)
 {
   // remove instructions that move a register to itself
+  std::string result{prologue};
   helpers::delete_coalesced_moves(instrs, mapper);
-  auto print_instr_reg_allocated = [&mapper,
-                                    &out](const std::list<::codegen::assem::Instruction>& instrs) {
-    for(auto& i : instrs)
-    {
-      out << arch::codegen::format(mapper, i);
-    }
-  };
-  out << prologue;
+  auto print_instr_reg_allocated =
+    [&mapper, &result](const std::list<::codegen::assem::Instruction>& instrs) {
+      for(auto& i : instrs)
+      {
+        result += arch::codegen::format(mapper, i);
+      }
+    };
   print_instr_reg_allocated(instrs);
-  out << epilogue;
-  out << "\n";
+  result += epilogue + "\n";
+  std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
 
-void code_gen(std::ostream& out, ir::tree::Stmt&& stmt, arch::Frame& f)
+void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 {
 
   auto sep = "-----------------------------";
@@ -147,15 +147,24 @@ void code_gen(std::ostream& out, ir::tree::Stmt&& stmt, arch::Frame& f)
   allocator.perform_allocation();
   auto color_map = allocator.get_color_mapping();
 
-  output(out, color_map, all, pro, epi);
+  output(ofile, color_map, all, pro, epi);
+}
+
+std::string strip_extension(const std::string& filename)
+{
+  size_t dot = filename.find_last_of('.');
+  if(dot == std::string::npos)
+  {
+    return filename; // no extension
+  }
+  return filename.substr(0, dot);
 }
 
 int main(int argc, char** argv)
 {
   const char* oname{nullptr};
-  std::unique_ptr<std::ofstream> ofile{nullptr};
-
   std::vector<std::filesystem::path> input_files;
+  std::vector<std::filesystem::path> link_dir;
   for(int i = 1; i < argc; i++)
   {
     if(strcmp(argv[i], "-o") == 0 && (i + 1) < argc)
@@ -179,13 +188,13 @@ int main(int argc, char** argv)
 
   if(!oname)
   {
-    oname = "out.s";
+    oname = "a.out";
   }
 
   // TODO: do all, here we do the first only
-  std::filesystem::path s = input_files[0];
+  std::filesystem::path input = input_files[0];
 
-  lexer::Scanner scanner(s);
+  lexer::Scanner scanner(input);
   symbol::StringTable string_table;
   parser::Parser parser(std::cerr, scanner, string_table);
 
@@ -227,7 +236,19 @@ int main(int argc, char** argv)
 
   translator.translate_main_program(std::move(ir));
 
-  ofile = std::make_unique<std::ofstream>(oname);
+  // TODO: should we move this to a python script that acts as the driver?
+  // this way we remove all the system calls
+
+  // create a tmp file to write the assembly
+  std::string input_fname =
+    std::string("/tmp/") + strip_extension(input.filename().string()) + ".s";
+
+  auto tmp_file = fopen(input_fname.c_str(), "w");
+  if(!tmp_file)
+  {
+    std::cerr << "\033[1;31m" << "tigerc: could not write assembly output" << "\033[0m" << "\n";
+    return EX_UNAVAILABLE;
+  }
 
   // dump procedure fragments
   for(auto& frag : translator.fragments())
@@ -235,10 +256,44 @@ int main(int argc, char** argv)
     if(std::holds_alternative<ir::ProcedureFragment>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
-      code_gen(*ofile, std::move(pf.body), *pf.level->frame);
+      code_gen(tmp_file, std::move(pf.body), *pf.level->frame);
     }
   }
 
-  *ofile << ".section .note.GNU-stack,\"\",@progbits\n";
+  std::string ending = ".section .note.GNU-stack,\"\",@progbits\n";
+  std::fwrite(ending.c_str(), 1, ending.size(), tmp_file);
+
+  // close the tmp file
+  fclose(tmp_file);
+
+  // we need to assemble the temporary file
+  std::string tmp_object_fname = input_fname + ".o";
+  auto cmd = std::format("gcc -c -o {} {} > /dev/null 2>&1", tmp_object_fname, input_fname);
+  std::system(cmd.c_str());
+
+  // see if the file exists
+  if(!std::filesystem::exists(tmp_object_fname))
+  {
+    std::cerr << "\033[1;31m" << "tigerc: could not run assembler" << "\033[0m" << "\n";
+    return EX_UNAVAILABLE;
+  }
+
+  // find out where we are
+  char result[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+  auto mypath = std::string(result, (count > 0) ? count : 0);
+  auto runtime_path = std::filesystem::path(mypath).parent_path().string() + "/../lib/runtime.o";
+
+  // we need to link against runtime.o
+  cmd = std::format("gcc {} {} -o {} > /dev/null 2>&1", runtime_path, tmp_object_fname, oname);
+  std::system(cmd.c_str());
+
+  // see if the file exists
+  if(!std::filesystem::exists(oname))
+  {
+    std::cerr << "\033[1;31m" << "tigerc: could not run linker" << "\033[0m" << "\n";
+    return EX_UNAVAILABLE;
+  }
+
   return EX_OK;
 }
