@@ -196,7 +196,7 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
     parser::Parser parser(std::cerr, scanner, string_table);
     exp = parser.parse();
 
-    // the parser does not at the first error
+    // the parser does not stop at the first error
     if(parser.had_error())
     {
       terminal_exit_error();
