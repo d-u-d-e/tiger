@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <ir/level.hpp>
 #include <ir/temp.hpp>
 #include <ir/translator.hpp>
@@ -9,6 +10,7 @@
 #include <seman/env.hpp>
 #include <seman/types.hpp>
 #include <seman/visitor.hpp>
+#include <stdexcept>
 #include <string>
 #include <symbol.hpp>
 
@@ -16,6 +18,13 @@ namespace seman
 {
 
 using namespace types;
+
+class Exception : public std::runtime_error {
+  public:
+  Exception(const std::string& what)
+    : std::runtime_error(what)
+  { }
+};
 
 class Analyzer : public TypeCheckerExprVisitor,
                  public TypeCheckerDeclVisitor,
@@ -25,7 +34,9 @@ class Analyzer : public TypeCheckerExprVisitor,
 {
 
   public:
-  Analyzer(symbol::StringTable& string_table, ir::Translator& translator);
+  Analyzer(const std::filesystem::path& filename,
+           symbol::StringTable& string_table,
+           ir::Translator& translator);
   ir::Exp type_check(const parser::ast::Expression& exp);
 
   Result visit_string_exp(const parser::ast::StringExp& exp) override;
@@ -79,5 +90,6 @@ class Analyzer : public TypeCheckerExprVisitor,
   std::shared_ptr<ir::Level> current_level{};
   env::Environment<env::TEntry> tenv;
   env::Environment<env::VEntry> venv;
+  std::string filename; // for error reporting only
 };
 } // namespace seman

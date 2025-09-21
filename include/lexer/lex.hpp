@@ -9,11 +9,19 @@
 #include <lexer/position.hpp>
 #include <lexer/token.hpp>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <sysexits.h>
 
 namespace lexer
 {
+
+class Exception : public std::runtime_error {
+  public:
+  Exception(const std::string& what)
+    : std::runtime_error(what)
+  { }
+};
 
 class Scanner {
   public:
@@ -24,7 +32,7 @@ class Scanner {
 
     if(!f.is_open())
     {
-      error(std::format("Err: could not open file '{}'\n", filename.generic_string()), EX_IOERR);
+      error(std::format("Err: could not open file '{}'", filename.generic_string()));
     }
 
     std::stringstream buffer;
@@ -90,15 +98,14 @@ class Scanner {
     return false;
   }
 
-  void error_at(const std::string& err_msg, int exit_code = EX_DATAERR)
+  void error_at(const std::string& err_msg)
   {
-    error(std::format("[{}:{}] Err: {}\n", filename_, line, err_msg), exit_code);
+    error(std::format("[{}:{}] Err: {}", filename_, line, err_msg));
   }
 
-  void error(const std::string& err_msg, int exit_code = EX_DATAERR)
+  void error(const std::string& err_msg)
   {
-    std::cerr << "\033[1;31m" << err_msg << "\033[0m";
-    exit(exit_code);
+    throw Exception(err_msg);
   }
 
   Token eof_token()

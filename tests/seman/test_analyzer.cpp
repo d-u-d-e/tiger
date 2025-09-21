@@ -15,7 +15,7 @@ TEST_SUITE("seman_analyzer")
 #define SHOULD_PASS(filename)                                                                      \
   TEST_CASE(filename)                                                                              \
   {                                                                                                \
-    lexer::Scanner scanner(std::filesystem::path("../tests/seman/valid/" filename));               \
+    lexer::Scanner scanner(std::filesystem::path(filename));                                       \
     auto string_table = symbol::StringTable();                                                     \
     std::ostringstream serr;                                                                       \
     parser::Parser parser(serr, scanner, string_table);                                            \
@@ -24,22 +24,22 @@ TEST_SUITE("seman_analyzer")
     ir::Translator translator;                                                                     \
                                                                                                    \
     CHECK_NOTHROW({                                                                                \
-      seman::Analyzer analyzer(string_table, translator);                                          \
+      seman::Analyzer analyzer(filename, string_table, translator);                                \
       analyzer.type_check(*exp);                                                                   \
     });                                                                                            \
   }
 
-  SHOULD_PASS("array_expr.tig");
-  SHOULD_PASS("assign_expr.tig");
-  SHOULD_PASS("if_expr.tig");
-  SHOULD_PASS("op_expr.tig");
-  SHOULD_PASS("record_expr.tig");
-  SHOULD_PASS("seq_expr.tig");
-  SHOULD_PASS("while_expr.tig");
-  SHOULD_PASS("for_expr.tig");
-  SHOULD_PASS("vars.tig");
-  SHOULD_PASS("funcs.tig");
-  SHOULD_PASS("types.tig");
+  SHOULD_PASS("../tests/seman/valid/array_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/assign_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/if_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/op_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/record_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/seq_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/while_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/for_expr.tig");
+  SHOULD_PASS("../tests/seman/valid/vars.tig");
+  SHOULD_PASS("../tests/seman/valid/funcs.tig");
+  SHOULD_PASS("../tests/seman/valid/types.tig");
 
   TEST_CASE("valid_book_examples")
   {
@@ -63,7 +63,7 @@ TEST_SUITE("seman_analyzer")
 
       CHECK_NOTHROW_MESSAGE(
         {
-          seman::Analyzer analyzer(string_table, translator);
+          seman::Analyzer analyzer(f, string_table, translator);
           analyzer.type_check(*exp);
         },
         fname);
@@ -92,7 +92,7 @@ TEST_SUITE("seman_analyzer")
       auto exp = parser.parse();
       CHECK_FALSE_MESSAGE(parser.had_error(), fname);
       ir::Translator translator;
-      seman::Analyzer analyzer(string_table, translator);
+      seman::Analyzer analyzer(f, string_table, translator);
       CHECK_THROWS_MESSAGE(analyzer.type_check(*exp), fname);
     }
   }
@@ -100,7 +100,8 @@ TEST_SUITE("seman_analyzer")
 #define SHOULD_THROW(filename, msg)                                                                \
   TEST_CASE(filename)                                                                              \
   {                                                                                                \
-    lexer::Scanner scanner(std::filesystem::path("../tests/seman/invalid/" filename));             \
+    auto input = std::filesystem::path(filename);                                                  \
+    lexer::Scanner scanner(input);                                                                 \
     auto string_table = symbol::StringTable();                                                     \
     std::ostringstream serr;                                                                       \
     parser::Parser parser(serr, scanner, string_table);                                            \
@@ -109,64 +110,140 @@ TEST_SUITE("seman_analyzer")
     ir::Translator translator;                                                                     \
     CHECK_THROWS_WITH(                                                                             \
       {                                                                                            \
-        seman::Analyzer analyzer(string_table, translator);                                        \
+        seman::Analyzer analyzer(input, string_table, translator);                                 \
         analyzer.type_check(*exp);                                                                 \
       },                                                                                           \
       msg);                                                                                        \
   }
 
   // clang-format off
+SHOULD_THROW("../tests/seman/invalid/array/elem_access.tig", 
+  "[../tests/seman/invalid/array/elem_access.tig:7:4] Err: expression between '[]' must be an integer");
 
-SHOULD_THROW("array/elem_access.tig", "[line 7:4] Err: expression between '[]' must be an integer");
-SHOULD_THROW("array/init_type_mismatch.tig", "[line 7:12] Err: array type mismatch: 'string' != 'int'");
-SHOULD_THROW("array/size_not_int.tig", "[line 7:12] Err: array size must be an integer");
-SHOULD_THROW("array/undefined.tig", "[line 6:12] Err: undefined array type 'StrArray'");
+SHOULD_THROW("../tests/seman/invalid/array/init_type_mismatch.tig", 
+  "[../tests/seman/invalid/array/init_type_mismatch.tig:7:12] Err: array type mismatch: 'string' != 'int'");
 
-SHOULD_THROW("function/arg_type_mismatch.tig", "[line 7:4] Err: argument 0 expects type 'int', got 'string'");
-SHOULD_THROW("function/args.tig", "[line 6:4] Err: expected 0 arguments, got 1");
-SHOULD_THROW("function/redecl.tig", "[line 8:3] Err: redeclaration of function 'g'");
-SHOULD_THROW("function/return_body_mismatch.tig", "[line 5:24] Err: return type 'int' does not match body type 'string'");
-SHOULD_THROW("function/undef_param_type.tig", "[line 6:14] Err: undefined parameter type 'U'");
-SHOULD_THROW("function/undef_return_type.tig", "[line 5:18] Err: undefined return type 'T'");
-SHOULD_THROW("function/undefined.tig", "[line 6:11] Err: undefined function 'g'");
+SHOULD_THROW("../tests/seman/invalid/array/size_not_int.tig", 
+  "[../tests/seman/invalid/array/size_not_int.tig:7:12] Err: array size must be an integer");
 
-SHOULD_THROW("if/cond_not_int.tig", "[line 3:1] Err: the condition must be an integer");
-SHOULD_THROW("if/then_else_mismatch.tig", "[line 6:3] Err: types of then and else branches must match");
-SHOULD_THROW("if/then_value.tig", "[line 3:1] Err: the then branch must not produce any value");
+SHOULD_THROW("../tests/seman/invalid/array/undefined.tig", 
+  "[../tests/seman/invalid/array/undefined.tig:6:12] Err: undefined array type 'StrArray'");
 
-SHOULD_THROW("loops/break_outside.tig", "[line 20:3] Err: break statement not within a loop");
-SHOULD_THROW("loops/for_body_value.tig", "[line 3:1] Err: the body of the for loop must not produce any value");
-SHOULD_THROW("loops/for_high.tig", "[line 3:1] Err: the upper bound must be an integer");
-SHOULD_THROW("loops/for_low.tig", "[line 3:1] Err: the lower bound must be an integer");
-SHOULD_THROW("loops/while_body_value.tig", "[line 3:1] Err: the body of the while loop must not produce any value");
-SHOULD_THROW("loops/while_cond.tig", "[line 3:1] Err: the condition must be an integer");
+SHOULD_THROW("../tests/seman/invalid/function/arg_type_mismatch.tig", 
+  "[../tests/seman/invalid/function/arg_type_mismatch.tig:7:4] Err: argument 0 expects type 'int', got 'string'");
 
-SHOULD_THROW("op/array_eq_nil.tig", "[line 7:5] Err: invalid operand types");
-SHOULD_THROW("op/assign.tig", "[line 7:5] Err: cannot assign 'string' to 'int'");
-SHOULD_THROW("op/dot.tig", "[line 10:5] Err: 'string' is not a record type");
-SHOULD_THROW("op/int_eq_str.tig", "[line 4:5] Err: invalid operand types");
-SHOULD_THROW("op/int_plus_str.tig", "[line 4:5] Err: invalid operand types");
-SHOULD_THROW("op/record_eq_array.tig", "[line 9:5] Err: invalid operand types");
-SHOULD_THROW("op/subscript.tig", "[line 10:4] Err: 'string' is not an array type");
+SHOULD_THROW("../tests/seman/invalid/function/args.tig", 
+  "[../tests/seman/invalid/function/args.tig:6:4] Err: expected 0 arguments, got 1");
 
-SHOULD_THROW("record/dot_unexpected_field_name.tig", "[line 7:5] Err: unexpected record field name 'c'");
-SHOULD_THROW("record/fields.tig", "[line 6:3] Err: expected 2 fields, got 1");
-SHOULD_THROW("record/undefined.tig", "[line 6:3] Err: undefined record type 'S'");
-SHOULD_THROW("record/unexpected_field_name.tig", "[line 6:13] Err: expected field 'b', got 'c'");
-SHOULD_THROW("record/unexpected_field_type.tig", "[line 6:13] Err: expected type 'string' for field 'b', got 'int'");
+SHOULD_THROW("../tests/seman/invalid/function/redecl.tig", 
+  "[../tests/seman/invalid/function/redecl.tig:8:3] Err: redeclaration of function 'g'");
 
-SHOULD_THROW("type/cycle1.tig", "[line 4:3] Err: cycle in type declaration");
-SHOULD_THROW("type/cycle2.tig", "[line 4:3] Err: cycle in type declaration");
-SHOULD_THROW("type/cycle3.tig", "[line 4:3] Err: cycle in type declaration");
-SHOULD_THROW("type/redecl.tig", "[line 8:3] Err: redeclaration of type 'A'");
-SHOULD_THROW("type/undef_array.tig", "[line 6:21] Err: undefined type 'T'");
-SHOULD_THROW("type/undef_name.tig", "[line 5:12] Err: undefined type 'T'");
-SHOULD_THROW("type/undef_record.tig", "[line 4:21] Err: undefined type 'T'");
+SHOULD_THROW("../tests/seman/invalid/function/return_body_mismatch.tig", 
+  "[../tests/seman/invalid/function/return_body_mismatch.tig:5:24] Err: return type 'int' does not match body type 'string'");
 
-SHOULD_THROW("var/init_nil.tig", "[line 6:3] Err: nil must be constrained by a record type");
-SHOULD_THROW("var/init_type_mismatch.tig", "[line 5:11] Err: decl type 'R' does not match expr type 'int'");
-SHOULD_THROW("var/undef_type.tig", "[line 5:11] Err: undefined type 'R'");
-SHOULD_THROW("var/undefined.tig", "[line 3:5] Err: undefined variable 'a'");
+SHOULD_THROW("../tests/seman/invalid/function/undef_param_type.tig", 
+  "[../tests/seman/invalid/function/undef_param_type.tig:6:14] Err: undefined parameter type 'U'");
 
+SHOULD_THROW("../tests/seman/invalid/function/undef_return_type.tig", 
+  "[../tests/seman/invalid/function/undef_return_type.tig:5:18] Err: undefined return type 'T'");
+
+SHOULD_THROW("../tests/seman/invalid/function/undefined.tig", 
+  "[../tests/seman/invalid/function/undefined.tig:6:11] Err: undefined function 'g'");
+
+SHOULD_THROW("../tests/seman/invalid/if/cond_not_int.tig", 
+  "[../tests/seman/invalid/if/cond_not_int.tig:3:1] Err: the condition must be an integer");
+
+SHOULD_THROW("../tests/seman/invalid/if/then_else_mismatch.tig", 
+  "[../tests/seman/invalid/if/then_else_mismatch.tig:6:3] Err: types of then and else branches must match");
+
+SHOULD_THROW("../tests/seman/invalid/if/then_value.tig", 
+  "[../tests/seman/invalid/if/then_value.tig:3:1] Err: the then branch must not produce any value");
+
+SHOULD_THROW("../tests/seman/invalid/loops/break_outside.tig", 
+  "[../tests/seman/invalid/loops/break_outside.tig:20:3] Err: break statement not within a loop");
+
+SHOULD_THROW("../tests/seman/invalid/loops/for_body_value.tig", 
+  "[../tests/seman/invalid/loops/for_body_value.tig:3:1] Err: the body of the for loop must not produce any value");
+
+SHOULD_THROW("../tests/seman/invalid/loops/for_high.tig", 
+  "[../tests/seman/invalid/loops/for_high.tig:3:1] Err: the upper bound must be an integer");
+
+SHOULD_THROW("../tests/seman/invalid/loops/for_low.tig", 
+  "[../tests/seman/invalid/loops/for_low.tig:3:1] Err: the lower bound must be an integer");
+
+SHOULD_THROW("../tests/seman/invalid/loops/while_body_value.tig", 
+  "[../tests/seman/invalid/loops/while_body_value.tig:3:1] Err: the body of the while loop must not produce any value");
+
+SHOULD_THROW("../tests/seman/invalid/loops/while_cond.tig", 
+  "[../tests/seman/invalid/loops/while_cond.tig:3:1] Err: the condition must be an integer");
+
+SHOULD_THROW("../tests/seman/invalid/op/array_eq_nil.tig", 
+  "[../tests/seman/invalid/op/array_eq_nil.tig:7:5] Err: invalid operand types");
+
+SHOULD_THROW("../tests/seman/invalid/op/assign.tig", 
+  "[../tests/seman/invalid/op/assign.tig:7:5] Err: cannot assign 'string' to 'int'");
+
+SHOULD_THROW("../tests/seman/invalid/op/dot.tig", 
+  "[../tests/seman/invalid/op/dot.tig:10:5] Err: 'string' is not a record type");
+
+SHOULD_THROW("../tests/seman/invalid/op/int_eq_str.tig", 
+  "[../tests/seman/invalid/op/int_eq_str.tig:4:5] Err: invalid operand types");
+
+SHOULD_THROW("../tests/seman/invalid/op/int_plus_str.tig", 
+  "[../tests/seman/invalid/op/int_plus_str.tig:4:5] Err: invalid operand types");
+
+SHOULD_THROW("../tests/seman/invalid/op/record_eq_array.tig", 
+  "[../tests/seman/invalid/op/record_eq_array.tig:9:5] Err: invalid operand types");
+
+SHOULD_THROW("../tests/seman/invalid/op/subscript.tig", 
+  "[../tests/seman/invalid/op/subscript.tig:10:4] Err: 'string' is not an array type");
+
+SHOULD_THROW("../tests/seman/invalid/record/dot_unexpected_field_name.tig", 
+  "[../tests/seman/invalid/record/dot_unexpected_field_name.tig:7:5] Err: unexpected record field name 'c'");
+
+SHOULD_THROW("../tests/seman/invalid/record/fields.tig", 
+  "[../tests/seman/invalid/record/fields.tig:6:3] Err: expected 2 fields, got 1");
+  
+SHOULD_THROW("../tests/seman/invalid/record/undefined.tig", 
+  "[../tests/seman/invalid/record/undefined.tig:6:3] Err: undefined record type 'S'");
+
+SHOULD_THROW("../tests/seman/invalid/record/unexpected_field_name.tig", 
+  "[../tests/seman/invalid/record/unexpected_field_name.tig:6:13] Err: expected field 'b', got 'c'");
+
+SHOULD_THROW("../tests/seman/invalid/record/unexpected_field_type.tig", 
+  "[../tests/seman/invalid/record/unexpected_field_type.tig:6:13] Err: expected type 'string' for field 'b', got 'int'");
+
+SHOULD_THROW("../tests/seman/invalid/type/cycle1.tig", 
+  "[../tests/seman/invalid/type/cycle1.tig:4:3] Err: cycle in type declaration");
+
+SHOULD_THROW("../tests/seman/invalid/type/cycle2.tig", 
+  "[../tests/seman/invalid/type/cycle2.tig:4:3] Err: cycle in type declaration");
+
+SHOULD_THROW("../tests/seman/invalid/type/cycle3.tig", 
+  "[../tests/seman/invalid/type/cycle3.tig:4:3] Err: cycle in type declaration");
+
+SHOULD_THROW("../tests/seman/invalid/type/redecl.tig", 
+  "[../tests/seman/invalid/type/redecl.tig:8:3] Err: redeclaration of type 'A'");
+  
+SHOULD_THROW("../tests/seman/invalid/type/undef_array.tig", 
+  "[../tests/seman/invalid/type/undef_array.tig:6:21] Err: undefined type 'T'");
+
+SHOULD_THROW("../tests/seman/invalid/type/undef_name.tig", 
+  "[../tests/seman/invalid/type/undef_name.tig:5:12] Err: undefined type 'T'");
+
+SHOULD_THROW("../tests/seman/invalid/type/undef_record.tig", 
+  "[../tests/seman/invalid/type/undef_record.tig:4:21] Err: undefined type 'T'");
+
+SHOULD_THROW("../tests/seman/invalid/var/init_nil.tig", 
+  "[../tests/seman/invalid/var/init_nil.tig:6:3] Err: nil must be constrained by a record type");
+
+SHOULD_THROW("../tests/seman/invalid/var/init_type_mismatch.tig", 
+  "[../tests/seman/invalid/var/init_type_mismatch.tig:5:11] Err: decl type 'R' does not match expr type 'int'");
+
+SHOULD_THROW("../tests/seman/invalid/var/undef_type.tig", 
+  "[../tests/seman/invalid/var/undef_type.tig:5:11] Err: undefined type 'R'");
+
+SHOULD_THROW("../tests/seman/invalid/var/undefined.tig", 
+  "[../tests/seman/invalid/var/undefined.tig:3:5] Err: undefined variable 'a'");
   // clang-format on
 }

@@ -11,7 +11,6 @@
 #include <seman/analyzer.hpp>
 #include <seman/env.hpp>
 #include <seman/types.hpp>
-#include <stdexcept>
 #include <string>
 #include <symbol.hpp>
 #include <unordered_set>
@@ -27,9 +26,12 @@ static auto string_type = std::make_shared<String>();
 static auto nil_type = std::make_shared<Nil>();
 static auto unit_type = std::make_shared<Unit>();
 
-Analyzer::Analyzer(symbol::StringTable& string_table, ir::Translator& translator)
+Analyzer::Analyzer(const std::filesystem::path& filename,
+                   symbol::StringTable& string_table,
+                   ir::Translator& translator)
   : string_table(string_table)
   , translator(translator)
+  , filename(filename)
 {
   add_predefined_types();
   add_predefined_functions();
@@ -73,7 +75,7 @@ void Analyzer::add_predefined_functions()
 
 void Analyzer::error_at(const lexer::Position& pos, const std::string& err_msg)
 {
-  throw std::runtime_error(std::format("[line {}:{}] Err: {}", pos.line, pos.column, err_msg));
+  throw Exception(std::format("[{}:{}:{}] Err: {}", filename, pos.line, pos.column, err_msg));
 }
 
 ir::Exp Analyzer::type_check(const parser::ast::Expression& exp)
@@ -466,8 +468,6 @@ Result Analyzer::visit_let_exp(const parser::ast::LetExp& exp)
   auto res = exp.body->accept(*this);
   exp_list.emplace_back(std::move(res.ir));
   res.ir = translator.seq_exp(std::move(exp_list));
-
-  //std::cout << venv.dump() << std::endl;
 
   venv.end_scope();
   tenv.end_scope();

@@ -32,10 +32,11 @@
 
 enum class Error
 {
+  LEX_ERR,
   PARSE_ERR,
+  SEMAN_ERR,
   USAGE_ERR,
   IO_ERR,
-  SEMANT_ERR,
 };
 
 void terminal_enter_error()
@@ -184,17 +185,30 @@ std::string strip_extension(const std::string& filename)
 
 std::optional<Error> compile(const std::filesystem::path& source, const char* oname = nullptr)
 {
-  lexer::Scanner scanner(source);
   symbol::StringTable string_table;
-  parser::Parser parser(std::cerr, scanner, string_table);
+  std::string out_name = oname ? oname : strip_extension(source.filename().string()) + ".s";
 
-  terminal_enter_error();
-  auto exp = parser.parse();
-  terminal_exit_error();
-
-  if(parser.had_error())
+  std::unique_ptr<parser::ast::Expression> exp;
+  try
   {
-    return Error::PARSE_ERR;
+    terminal_enter_error();
+    lexer::Scanner scanner(source);
+    parser::Parser parser(std::cerr, scanner, string_table);
+    exp = parser.parse();
+
+    // the parser does not at the first error
+    if(parser.had_error())
+    {
+      terminal_exit_error();
+      return Error::PARSE_ERR;
+    }
+    terminal_exit_error();
+  }
+  catch(lexer::Exception& e)
+  {
+    std::cerr << e.what() << "\n";
+    terminal_exit_error();
+    return Error::LEX_ERR;
   }
 
   // find escape variables
@@ -202,30 +216,26 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
   exp->accept(esc_finder);
 
   ir::Translator translator;
-  seman::Analyzer type_checker(string_table, translator);
+  seman::Analyzer type_checker(source, string_table, translator);
   ir::Exp ir;
   try
   {
     ir = type_checker.type_check(*exp);
   }
-  catch(std::exception& e)
+  catch(seman::Exception& e)
   {
     terminal_enter_error();
     std::cerr << e.what() << "\n";
     terminal_exit_error();
-    return Error::SEMANT_ERR;
+    return Error::SEMAN_ERR;
   }
 
   translator.translate_main_program(std::move(ir));
-
-  std::string in_name = source.filename().string();
-  std::string out_name = oname ? oname : strip_extension(in_name) + ".s";
   auto out_file = fopen(out_name.c_str(), "w");
-
   if(!out_file)
   {
     terminal_enter_error();
-    std::cerr << std::format("tigerc: could not write assembly output for {}\n", in_name);
+    std::cerr << std::format("tigerc: could not write assembly output for {}\n", source.string());
     terminal_exit_error();
     return Error::IO_ERR;
   }
