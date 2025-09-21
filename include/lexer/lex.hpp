@@ -18,6 +18,7 @@ namespace lexer
 class Scanner {
   public:
   Scanner(const std::filesystem::path& filename)
+    : filename_(filename)
   {
     auto f = std::ifstream(filename);
 
@@ -38,6 +39,11 @@ class Scanner {
     contents = src;
     current = row = contents.c_str();
     line = 1;
+  }
+
+  std::string filename()
+  {
+    return filename_;
   }
 
   Token next()
@@ -86,7 +92,7 @@ class Scanner {
 
   void error_at(const std::string& err_msg, int exit_code = EX_DATAERR)
   {
-    error(std::format("[line {}] Err: {}\n", line, err_msg), exit_code);
+    error(std::format("[{}:{}] Err: {}\n", filename_, line, err_msg), exit_code);
   }
 
   void error(const std::string& err_msg, int exit_code = EX_DATAERR)
@@ -127,6 +133,7 @@ class Scanner {
   }
 
   private:
+  std::string filename_;
   std::string contents;
   int line;
   const char* row;

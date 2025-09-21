@@ -691,7 +691,8 @@ void Parser::skip(const std::unordered_set<lexer::TokenType>& list)
 void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
 {
   had_error_ = true;
-  auto str = std::format("[line {}:{}] Err at {}: {}", tok.pos.line, tok.pos.column, tok, err_msg);
+  auto str = std::format(
+    "[{}:{}:{}] Err at {}: {}", scanner.filename(), tok.pos.line, tok.pos.column, tok, err_msg);
 
   ostream << str << std::endl;
   throw std::runtime_error(str);

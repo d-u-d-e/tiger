@@ -36,3 +36,5 @@ generated/*
 .vscode/*
 .cache/*
 dist/*
+*.tig
+*.s
