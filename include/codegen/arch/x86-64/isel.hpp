@@ -190,5 +190,4 @@ class MuxMunchGen : public ::codegen::Generator {
 
 std::string format(std::function<std::string(const ir::TempGen::Temp& t)> mapper,
                    const ::codegen::assem::Instruction& ins);
-
 } // namespace arch::codegen

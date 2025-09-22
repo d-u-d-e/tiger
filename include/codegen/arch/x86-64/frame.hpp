@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -23,7 +24,8 @@ namespace arch
 
 class Frame {
   public:
-  private:
+  using stack_offset_t = int64_t;
+
   struct InReg {
     InReg(ir::TempGen::Temp t)
       : t(t)
@@ -33,13 +35,12 @@ class Frame {
 
   struct InFrame {
     // offset from the frame pointer
-    InFrame(int16_t offset)
+    InFrame(stack_offset_t offset)
       : offset(offset)
     { }
-    int16_t offset;
+    stack_offset_t offset;
   };
 
-  public:
   using Access = std::variant<std::monostate, InReg, InFrame>;
   static inline constexpr uint8_t word_size = 8;
 
@@ -139,7 +140,7 @@ class Frame {
     // the remaining params are passed on the stack, but recall that with respect to the
     // current fp, we need to go past the saved fp and the return address which are on the stack
     // so we start at off = 3 * word_size
-    int16_t off = 3 * word_size;
+    stack_offset_t off = 3 * word_size;
     for(size_t i = params_on_regs.size(); i < formals.size(); i++)
     {
       formals_.push_back(InFrame(off));
@@ -195,7 +196,7 @@ class Frame {
     // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
 
     // we will need to make the stack 16-byte aligned just before the CALL instruction
-    uint16_t outgoing_params{};
+    uint32_t outgoing_params{};
     for(auto& i : list)
     {
       if(std::holds_alternative<::codegen::assem::Oper>(i))
@@ -230,6 +231,83 @@ class Frame {
     list.push_back(::codegen::assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
   }
 
+  void rewrite_program(std::list<::codegen::assem::Instruction>& list,
+                       const std::unordered_set<ir::TempGen::Temp>& spilled_temps)
+  {
+    using namespace ::codegen;
+    std::unordered_map<ir::TempGen::Temp, stack_offset_t> locations;
+
+    auto get_off = [&locations, this](ir::TempGen::Temp t) {
+      stack_offset_t off{};
+      if(locations.contains(t))
+      {
+        off = locations.at(t);
+      }
+      else
+      {
+        off = alloc_spilled_temporary();
+        locations.emplace(t, off);
+      }
+      return off;
+    };
+
+    for(auto iter = list.begin(); iter != list.end(); iter++)
+    {
+      auto& i = *iter;
+      std::vector<ir::TempGen::Temp> dst;
+      std::vector<ir::TempGen::Temp> src;
+      if(std::holds_alternative<assem::Move>(i))
+      {
+        auto& move = std::get<assem::Move>(i);
+        dst = {move.dst};
+        src = {move.src};
+      }
+      else if(std::holds_alternative<assem::Oper>(i))
+      {
+        auto& oper = std::get<assem::Oper>(i);
+        dst = oper.dst;
+        src = oper.src;
+      }
+
+      // fetch each spilled src temporary from memory
+      for(auto t : src)
+      {
+        // TODO: make this more efficient
+        // we should take into account that instructions can access memory, so that instead of rewriting
+        // something like: mov t1, t2 -> mov t, [x]; mov t1, t
+        // we should simply do: mov t1, [x], assuming t2 is spilled at address x
+        // and we should not alloc a new frame local for each spilled reg, but instead
+        // create enough locals to accomodate all spilled regs
+        // (requires an interference graph for spilled temporaries)
+
+        if(spilled_temps.contains(t))
+        {
+          auto off = get_off(t);
+          list.insert(
+            iter,
+            assem::Instruction{assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", off),
+                                           .dst{t},
+                                           .src{arch::Frame::FP},
+                                           .jmp{}}});
+        }
+      }
+      // store each spilled dst temporary to memory
+      for(auto t : dst)
+      {
+        if(spilled_temps.contains(t))
+        {
+          auto off = get_off(t);
+          iter = list.insert(
+            std::next(iter),
+            assem::Instruction{assem::Oper{.assem = std::format("mov  [`s1{:+}], `s0\n", off),
+                                           .dst{},
+                                           .src{t, arch::Frame::FP},
+                                           .jmp{}}});
+        }
+      }
+    }
+  }
+
   std::pair<std::string, std::string>
   proc_entry_exit3(std::list<::codegen::assem::Instruction>& list)
   {
@@ -239,9 +317,11 @@ class Frame {
     // stack space is allocated as follows (going downwards):
     // locals
     // max outgoing params
+    // spilled temporaries
 
     (void)list; // actually not used
-    uint16_t space = -locals_stack_offset + max_outgoing_params * word_size;
+    size_t space =
+      -locals_stack_offset + max_outgoing_params * word_size + spilled_temps * word_size;
     // let's align the stack on a 16 byte boundary, keeping in mind that we also save indirectly
     // the return address and the old fp (2 * word_size == 16)
     space = (space + 15) & ~15;
@@ -249,8 +329,7 @@ class Frame {
     std::string prologue;
     if(label.str() == "tiger_main")
     {
-      prologue = ".intel_syntax noprefix\n"
-                 ".global tiger_main\n";
+      prologue = ".global tiger_main\n";
     }
 
     prologue += std::format(".type {}, @function\n"
@@ -293,7 +372,6 @@ class Frame {
     locals++;
     if(escape)
     {
-      assert(locals_stack_offset - word_size < locals_stack_offset); // overflow
       locals_stack_offset -= word_size;
       return InFrame(locals_stack_offset);
     }
@@ -345,14 +423,21 @@ class Frame {
                                                std::move(args));
   }
 
-  ir::tree::Stmt view_shift{};
-  uint16_t max_outgoing_params{};
-
   private:
-  int16_t locals_stack_offset{};
+  stack_offset_t alloc_spilled_temporary()
+  {
+    spilled_temps++;
+    auto next = locals_stack_offset - (max_outgoing_params + spilled_temps) * word_size;
+    return next;
+  }
+
+  ir::tree::Stmt view_shift{};
+  uint32_t max_outgoing_params{};
+  stack_offset_t locals_stack_offset{};
+  uint32_t spilled_temps{};
+  uint32_t locals{};
   std::vector<Access> formals_;
   ir::TempGen::Label label;
-  uint16_t locals{};
 };
 
 } // namespace arch

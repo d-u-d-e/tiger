@@ -70,18 +70,6 @@ void output(FILE* ofile,
   std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
 
-void rewrite_program(std::list<::codegen::assem::Instruction>& list,
-                     const std::vector<ir::TempGen::Temp>& spilled_temps)
-{
-  // TODO: implement spilling
-  static_cast<void>(list);
-  std::cerr << "\033[1;31m";
-  std::cerr << std::format("spilling not implemented yet, aborting with {} spilled nodes\n",
-                           spilled_temps.size());
-  std::cerr << "\033[0m";
-  exit(1);
-}
-
 void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 {
 
@@ -149,7 +137,6 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   }
 
   f.proc_entry_exit2(all);
-  auto [pro, epi] = f.proc_entry_exit3(all);
 
 #if DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC
   auto print_instr = [](const std::list<::codegen::assem::Instruction>& instrs) {
@@ -195,11 +182,12 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     if(!spilling_required)
     {
       auto color_map = allocator.get_color_mapping();
+      auto [pro, epi] = f.proc_entry_exit3(all);
       output(ofile, color_map, all, pro, epi);
     }
     else
     {
-      rewrite_program(all, spilled_nodes);
+      f.rewrite_program(all, spilled_nodes);
     }
   } while(spilling_required);
 }
@@ -271,6 +259,9 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
     return Error::IO_ERR;
   }
 
+  std::string assembler_directives_begin = ".intel_syntax noprefix\n";
+  std::fwrite(assembler_directives_begin.c_str(), 1, assembler_directives_begin.size(), out_file);
+
   // dump procedure fragments
   for(auto& frag : translator.fragments())
   {
@@ -281,8 +272,8 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
     }
   }
 
-  std::string ending = ".section .note.GNU-stack,\"\",@progbits\n";
-  std::fwrite(ending.c_str(), 1, ending.size(), out_file);
+  std::string assembler_directives_end = ".section .note.GNU-stack,\"\",@progbits\n";
+  std::fwrite(assembler_directives_end.c_str(), 1, assembler_directives_end.size(), out_file);
   fclose(out_file);
   return std::nullopt;
 }

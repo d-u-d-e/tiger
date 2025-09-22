@@ -11,7 +11,7 @@ namespace register_allocator
 class RegisterAllocator {
   public:
   RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg);
-  std::vector<ir::TempGen::Temp> perform_allocation();
+  const std::unordered_set<ir::TempGen::Temp>& perform_allocation();
   std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> get_color_mapping()
   {
     return [this](const ir::TempGen::Temp& t) -> arch::Frame::register_t {
@@ -55,11 +55,11 @@ class RegisterAllocator {
   std::vector<INode> nodes;
   std::unordered_set<edge_t, EdgeHash> edges;
 
-  // lists used during the allocation algorithm
+  // sets/lists used during the allocation algorithm
   std::list<node_id_t> simplify_list;
   std::list<node_id_t> select_stack;
   std::list<node_id_t> spill_list;
-  std::vector<ir::TempGen::Temp> spilled_nodes;
+  std::unordered_set<ir::TempGen::Temp> spilled_nodes;
 
   static inline auto colors =
     std::ranges::to<std::unordered_set>(std::ranges::views::values(arch::Frame::temp_map));

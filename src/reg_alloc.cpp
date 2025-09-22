@@ -148,7 +148,7 @@ void RegisterAllocator::assign_colors()
       }
       if(ok_colors.empty())
       {
-        spilled_nodes.push_back(nodes[top].t);
+        spilled_nodes.insert(nodes[top].t);
       }
       else
       {
@@ -183,7 +183,7 @@ void RegisterAllocator::make_lists()
   }
 }
 
-std::vector<ir::TempGen::Temp> RegisterAllocator::perform_allocation()
+const std::unordered_set<ir::TempGen::Temp>& RegisterAllocator::perform_allocation()
 {
   make_lists();
   do
