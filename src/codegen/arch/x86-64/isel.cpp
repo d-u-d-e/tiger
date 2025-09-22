@@ -94,9 +94,15 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
   }
   else if(exp->op == ir::tree::BinaryOp::div)
   {
-    // BinOpExp(reg1, reg2, div) -> mov rax, reg1; idiv reg2; mov new_reg, rax
+    // BinOpExp(reg1, reg2, div) -> mov rax, reg1; cqo; idiv reg2; mov new_reg, rax
     list.emplace_back(
       ::codegen::assem::Move{.assem = "mov  `d0, `s0\n", .dst = arch::Frame::RAX, .src = left});
+    list.emplace_back(::codegen::assem::Oper{
+      .assem{"cqo\n"},
+      .dst{arch::Frame::RDX},
+      .src{},
+      .jmp{},
+    });
     list.emplace_back(::codegen::assem::Oper{
       .assem{"idiv `s0\n"},
       .dst{arch::Frame::RAX, arch::Frame::RDX},

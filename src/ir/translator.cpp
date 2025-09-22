@@ -120,7 +120,7 @@ Exp Translator::strings_equal(Exp&& left, Exp&& right)
   std::vector<Ex> args_as_ex;
   args_as_ex.emplace_back(unex(std::move(left)));
   args_as_ex.emplace_back(unex(std::move(right)));
-  return arch::Frame::external_call(TempGen::named_label("stringEqual"), std::move(args_as_ex));
+  return arch::Frame::external_call(TempGen::named_label("string_equal"), std::move(args_as_ex));
 }
 
 Exp Translator::strings_nequal(Exp&& left, Exp&& right)

@@ -63,7 +63,7 @@ void Analyzer::add_predefined_functions()
 {
   add_predef_func(string_table.symbol("print"), unit_type, string_type);
   add_predef_func(string_table.symbol("flush"), unit_type);
-  add_predef_func(string_table.symbol("getchar"), string_type);
+  add_predef_func(string_table.symbol("getchr"), string_type);
   add_predef_func(string_table.symbol("ord"), int_type, string_type);
   add_predef_func(string_table.symbol("chr"), string_type, int_type);
   add_predef_func(string_table.symbol("size"), int_type, string_type);

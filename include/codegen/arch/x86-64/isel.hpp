@@ -47,7 +47,7 @@ reg : TempExp(temp) :: :: 0
 reg : BinOpExp(reg1, reg2, plus)  :: mov new_reg, reg1; add new_reg, reg2 :: 0.25 + 0.3 = 0.55 
 reg : BinOpExp(reg1, reg2, minus) :: mov new_reg, reg1; sub new_reg, reg2 :: 0.25 + 0.3 = 0.55
 reg : BinOpExp(reg1, reg2, mul)   :: mov rax, reg1; imul reg2; mov new_reg, rax :: 0.25 + 1 + 0.25 = 1.5 
-reg : BinOpExp(reg1, reg2, div)   :: mov rax, reg1; idiv reg2; mov new_reg, rax :: 0.25 + 13 + 0.25 = 13.5 
+reg : BinOpExp(reg1, reg2, div)   :: mov rax, reg1; cqo; idiv reg2; mov new_reg, rax :: 0.25 + 13 + 0.25 = 13.5 
 
 reg : MemExp(reg1) 	:: mov new_reg, [reg1] :: 0.5
 reg : MemExp(a1)   	:: mov new_reg, [a1.reg1 + a1.reg2] :: 0.5
@@ -95,7 +95,7 @@ TempExp(temp)   ->
 BinOpExp(reg1, reg2, plus)  -> mov new_reg, reg1; add new_reg, reg2
 BinOpExp(reg1, reg2, minus) -> mov new_reg, reg1; sub new_reg, reg2
 BinOpExp(reg1, reg2, mul)   -> mov rax, reg1; imul reg2; mov new_reg, rax
-BinOpExp(reg1, reg2, div)   -> mov rax, reg1; idiv reg2; mov new_reg, rax
+BinOpExp(reg1, reg2, div)   -> mov rax, reg1; cqo; idiv reg2; mov new_reg, rax
 
 MemExp(BinOpExp(ConstExp(const32), reg1, plus))     -> mov new_reg, [reg1 + const32]
 MemExp(BinOpExp(reg1, ConstExp(const32), plus))   	-> mov new_reg, [reg1 + const32]
