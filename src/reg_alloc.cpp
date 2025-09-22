@@ -118,6 +118,15 @@ void RegisterAllocator::simplify()
   }
 }
 
+void RegisterAllocator::select_spill()
+{
+  // TODO: should pick temporaries that are not
+  // resulting from the fetches of previously spilled registers
+  auto t = *spill_list.begin();
+  spill_list.pop_front();
+  simplify_list.push_back(t);
+}
+
 RegisterAllocator::node_id_t RegisterAllocator::add_node(ir::TempGen::Temp t)
 {
   nodes.push_back(INode{.id = nodes.size(), .t = t});
@@ -139,7 +148,7 @@ void RegisterAllocator::assign_colors()
       }
       if(ok_colors.empty())
       {
-        spill_list.push_front(top);
+        spilled_nodes.push_back(nodes[top].t);
       }
       else
       {
@@ -174,22 +183,23 @@ void RegisterAllocator::make_lists()
   }
 }
 
-void RegisterAllocator::perform_allocation()
+std::vector<ir::TempGen::Temp> RegisterAllocator::perform_allocation()
 {
   make_lists();
-  while(!simplify_list.empty())
+  do
   {
-    simplify();
-  }
+    if(!simplify_list.empty())
+    {
+      simplify();
+    }
+    else if(!spill_list.empty())
+    {
+      select_spill();
+    }
+  } while(!simplify_list.empty() || !spill_list.empty());
+
   assign_colors();
-  if(!spill_list.empty())
-  {
-    // TODO: implement spilling
-    std::cerr << "\033[1;31m";
-    std::cerr << "spilling not implemented yet, aborting\n";
-    std::cerr << "\033[0m";
-    exit(1);
-  }
+  return spilled_nodes;
 }
 
 #ifdef CONFIG_WITH_GRAPHVIZ

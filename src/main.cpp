@@ -70,6 +70,18 @@ void output(FILE* ofile,
   std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
 
+void rewrite_program(std::list<::codegen::assem::Instruction>& list,
+                     const std::vector<ir::TempGen::Temp>& spilled_temps)
+{
+  // TODO: implement spilling
+  static_cast<void>(list);
+  std::cerr << "\033[1;31m";
+  std::cerr << std::format("spilling not implemented yet, aborting with {} spilled nodes\n",
+                           spilled_temps.size());
+  std::cerr << "\033[0m";
+  exit(1);
+}
+
 void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 {
 
@@ -77,7 +89,8 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 
 #if DEBUG_PRETTY_PRINT_IR
   ir::tree::PrettyPrinter ir_pretty_printer;
-  std::cout << "IR" << "\n";
+  std::cout << "IR"
+            << "\n";
   std::cout << std::visit(ir_pretty_printer, stmt) << "\n" << sep << "\n";
 #endif
 
@@ -85,7 +98,8 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   auto list = canon.linearize(std::move(stmt));
 
 #if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_CANONICALIZED_IR
-  std::cout << "Reduced IR" << "\n";
+  std::cout << "Reduced IR"
+            << "\n";
   for(auto& s : list)
   {
     std::string reduced = std::visit(ir_pretty_printer, s);
@@ -97,15 +111,18 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   auto [blocks, ldone] = canon.basic_blocks(std::move(list));
 
 #if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_BLOCKS
-  std::cout << "Basic blocks" << "\n";
+  std::cout << "Basic blocks"
+            << "\n";
   for(auto& b : blocks)
   {
-    std::cout << "<<<< block start" << "\n";
+    std::cout << "<<<< block start"
+              << "\n";
     for(auto& s : b.stmts)
     {
       std::cout << std::visit(ir_pretty_printer, s) << "\n";
     }
-    std::cout << ">>>> block end" << "\n\n";
+    std::cout << ">>>> block end"
+              << "\n\n";
   }
   std::cout << sep << "\n";
 #endif
@@ -113,7 +130,8 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   auto sched = canon.trace_schedule(std::move(blocks), ldone);
 
 #if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_TRACE
-  std::cout << "Trace" << "\n";
+  std::cout << "Trace"
+            << "\n";
   for(auto& s : sched)
   {
     std::string irstr = std::visit(ir_pretty_printer, s);
@@ -146,31 +164,44 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   std::cout << sep << "\n";
 #endif
 
-  // Create the control flow graph
-  auto flow_g = std::make_shared<flow::FlowGraph>(all);
+  bool spilling_required{false};
+  do
+  {
+    // Create the control flow graph
+    auto flow_g = std::make_shared<flow::FlowGraph>(all);
 
 #if DEBUG_RENDER_FLOW_GRAPH
-  std::string name = f.name().str() + "_flow";
-  flow_g->render(name, name);
+    std::string name = f.name().str() + "_flow";
+    flow_g->render(name, name);
 #endif
 
-  liveness::LivenessAnalyzer analyzer(*flow_g);
+    liveness::LivenessAnalyzer analyzer(*flow_g);
+
 #if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
-  std::cout << analyzer.dump_result() << sep << "\n";
+    std::cout << analyzer.dump_result() << sep << "\n";
 #endif
 
-  // Create the register allocator
-  register_allocator::RegisterAllocator allocator(flow_g);
+    // Create the register allocator
+    register_allocator::RegisterAllocator allocator(flow_g);
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
-  name = f.name().str() + "_interference";
-  allocator.render_igraph_dot(name, name);
+    name = f.name().str() + "_interference";
+    allocator.render_igraph_dot(name, name);
 #endif
 
-  allocator.perform_allocation();
-  auto color_map = allocator.get_color_mapping();
+    auto spilled_nodes = allocator.perform_allocation();
+    spilling_required = !spilled_nodes.empty();
 
-  output(ofile, color_map, all, pro, epi);
+    if(!spilling_required)
+    {
+      auto color_map = allocator.get_color_mapping();
+      output(ofile, color_map, all, pro, epi);
+    }
+    else
+    {
+      rewrite_program(all, spilled_nodes);
+    }
+  } while(spilling_required);
 }
 
 std::string strip_extension(const std::string& filename)

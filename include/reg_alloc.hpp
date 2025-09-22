@@ -11,7 +11,7 @@ namespace register_allocator
 class RegisterAllocator {
   public:
   RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg);
-  void perform_allocation();
+  std::vector<ir::TempGen::Temp> perform_allocation();
   std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> get_color_mapping()
   {
     return [this](const ir::TempGen::Temp& t) -> arch::Frame::register_t {
@@ -59,12 +59,14 @@ class RegisterAllocator {
   std::list<node_id_t> simplify_list;
   std::list<node_id_t> select_stack;
   std::list<node_id_t> spill_list;
+  std::vector<ir::TempGen::Temp> spilled_nodes;
 
   static inline auto colors =
     std::ranges::to<std::unordered_set>(std::ranges::views::values(arch::Frame::temp_map));
 
   void build_interference_graph();
   void simplify();
+  void select_spill();
   void make_lists();
   void assign_colors();
   bool is_colored(node_id_t n)
