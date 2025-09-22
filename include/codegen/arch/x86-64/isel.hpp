@@ -41,7 +41,7 @@ const: const32 | const64 | 0
 lab : NameExp(label) :: :: 0
 
 reg : ConstExp(const) :: mov new_reg, const :: 0.25
-reg : NameExp(label)  :: mov new_reg, label :: 0.25
+reg : NameExp(label)  :: lea new_reg, [rip+label] :: 0.25
 reg : TempExp(temp) :: :: 0
 
 reg : BinOpExp(reg1, reg2, plus)  :: mov new_reg, reg1; add new_reg, reg2 :: 0.25 + 0.3 = 0.55 
@@ -89,7 +89,7 @@ stmt : CJumpStmt(ge, reg1, reg2, tlab, flab) :: cmp reg1, reg2; jge tlab :: 0.25
 Instruction selection using maximal munch:
 
 ConstExp(const) -> mov new_reg, const
-NameExp(label)  -> mov new_reg, label
+NameExp(label)  -> lea new_reg, [rip+label]
 TempExp(temp)   -> 
 
 BinOpExp(reg1, reg2, plus)  -> mov new_reg, reg1; add new_reg, reg2

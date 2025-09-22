@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ir/temp.hpp>
-#include <ir/level.hpp>
 #include <ir/tree.hpp>
 #include <memory>
 #include <string>
@@ -9,6 +8,7 @@
 
 namespace ir
 {
+class Level;
 struct ProcedureFragment {
   Nx body;
   std::shared_ptr<Level> level;

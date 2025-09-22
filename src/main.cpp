@@ -262,13 +262,18 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
   std::string assembler_directives_begin = ".intel_syntax noprefix\n";
   std::fwrite(assembler_directives_begin.c_str(), 1, assembler_directives_begin.size(), out_file);
 
-  // dump procedure fragments
+  // dump fragments
   for(auto& frag : translator.fragments())
   {
     if(std::holds_alternative<ir::ProcedureFragment>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment>(frag);
       code_gen(out_file, std::move(pf.body), *pf.level->frame);
+    }
+    else if(std::holds_alternative<ir::StringFragment>(frag))
+    {
+      auto str = arch::emit_string(std::get<ir::StringFragment>(frag)) + "\n";
+      std::fwrite(str.c_str(), 1, str.size(), out_file);
     }
   }
 

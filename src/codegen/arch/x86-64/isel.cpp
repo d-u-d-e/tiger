@@ -27,10 +27,10 @@ std::vector<::codegen::assem::Instruction> MuxMunchGen::gen(const ir::tree::Stmt
 
 ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::NameExp>& exp)
 {
-  // NameExp(label) -> mov new_reg, label
+  // NameExp(label) -> lea new_reg, label
   auto result = ir::TempGen::new_temp();
   list.emplace_back(::codegen::assem::Oper{
-    .assem = std::format("mov  `d0, {}\n", exp->label.str()), .dst{result}, .src{}, .jmp{}});
+    .assem = std::format("lea  `d0, [rip+{}]\n", exp->label.str()), .dst{result}, .src{}, .jmp{}});
   return result;
 }
 
