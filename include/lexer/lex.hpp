@@ -68,7 +68,7 @@ class Scanner {
   Token integer_literal();
   Token punctuation();
   void skip_multiline_comment();
-  char escape_sequence(const char** current);
+  std::string escape_sequence();
 
   char peek(int offset = 0)
   {

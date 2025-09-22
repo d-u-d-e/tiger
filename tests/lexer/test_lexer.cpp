@@ -122,14 +122,14 @@ TEST_SUITE("lexer")
 
     {lexer::TokenType::identifier, "print", lexer::Position(17, 11)},
     {lexer::TokenType::lparen, "(", lexer::Position(17, 16)},
-    {lexer::TokenType::string_literal, "\n", lexer::Position(17, 17)},
+    {lexer::TokenType::string_literal, "\\n", lexer::Position(17, 17)},
     {lexer::TokenType::rparen, ")", lexer::Position(17, 21)},
     {lexer::TokenType::rparen, ")", lexer::Position(17, 22)},
     {lexer::TokenType::semicolon, ";", lexer::Position(17, 23)},
 
     {lexer::TokenType::identifier, "print", lexer::Position(18, 10)},
     {lexer::TokenType::lparen, "(", lexer::Position(18, 15)},
-    {lexer::TokenType::string_literal, "\n", lexer::Position(18, 16)},
+    {lexer::TokenType::string_literal, "\\n", lexer::Position(18, 16)},
     {lexer::TokenType::rparen, ")", lexer::Position(18, 20)},
     {lexer::TokenType::rparen, ")", lexer::Position(18, 21)},
 
@@ -298,7 +298,7 @@ TEST_CASE("multiline-string")
     scanner.next() == lexer::Token(lexer::TokenType::colon, ":", lexer::Position(1, 7)) &&
     scanner.next() == lexer::Token(lexer::TokenType::identifier, "string", lexer::Position(1, 9)) &&
     scanner.next() == lexer::Token(lexer::TokenType::equal_op, "=", lexer::Position(1, 16)) &&
-    scanner.next() == lexer::Token(lexer::TokenType::string_literal, "hello \nworld!!!", lexer::Position(1, 18)))););
+    scanner.next() == lexer::Token(lexer::TokenType::string_literal, "hello \\nworld!!!", lexer::Position(1, 18)))););
     // clang-format on
   }
 }

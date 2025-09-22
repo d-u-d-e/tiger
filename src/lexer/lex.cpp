@@ -9,13 +9,14 @@
 namespace lexer
 {
 
-char Scanner::escape_sequence(const char** current)
+std::string Scanner::escape_sequence()
 {
   // current points to the backslash
+  std::string s(1, *current);
+
   char ch1 = peek(1);
   char ch2 = peek(2);
   char ch3 = peek(3);
-
   // 3-digit octal
   if(std::isdigit(ch1) && std::isdigit(ch2) && std::isdigit(ch3))
   {
@@ -25,25 +26,12 @@ char Scanner::escape_sequence(const char** current)
     {
       error_at("3-digit octal escape sequence out of range");
     }
-    *current += 4;
-    return (char)v;
+    return s + ch1 + ch2 + ch3;
   }
-  switch(ch1)
+
+  if(ch1 == '"' || ch1 == '\\' || ch1 == 'n' || ch1 == 't')
   {
-  case '"':
-    *current += 2;
-    return '"';
-  case '\\':
-    *current += 2;
-    return '\\';
-  case 'n':
-    *current += 2;
-    return '\n';
-  case 't':
-    *current += 2;
-    return '\t';
-  default:
-    break;
+    return s + ch1;
   }
   error_at(std::format("invalid escape sequence '\\{}'", ch1));
   std::unreachable();
@@ -156,7 +144,8 @@ Token Scanner::string_literal()
   We don't support escaping control characters like ^c. 
   */
 
-  current++; // first token is the opening quote
+  // first token is the opening quote
+  current++; // skip it
   std::string value;
   int sline = line;
   int spos = int(current - row);
@@ -171,23 +160,25 @@ Token Scanner::string_literal()
       }
       else
       {
-        char ch = escape_sequence(&current);
-        value += ch;
+        auto seq = escape_sequence();
+        value += seq;
+        current += seq.size();
       }
     }
     else if(*current == '\n' || *current == '\r')
     {
       error_at("unterminated string literal");
     }
-    else if(*current != '"')
+    else if(*current == '"')
     {
-      value += *current;
-      current++;
+      // closing quote
+      current++; // skip it
+      return Token{TokenType::string_literal, value, Position(sline, spos)};
     }
     else
     {
-      current++; // closing quote
-      return Token{TokenType::string_literal, value, Position(sline, spos)};
+      value += *current;
+      current++;
     }
   }
 
