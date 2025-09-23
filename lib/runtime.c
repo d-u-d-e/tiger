@@ -5,6 +5,18 @@
 
 extern int tiger_main();
 
+char* consts[256];
+int main()
+{
+  for(int i = 0; i < 256; i++)
+  {
+    consts[i] = (char*)malloc(1);
+    consts[i][0] = (char)i;
+    consts[i][1] = '\0';
+  }
+  return tiger_main();
+}
+
 const char* getchr()
 {
   int ch = getchar();
@@ -12,10 +24,7 @@ const char* getchr()
   {
     return "";
   }
-  char* out = (char*)malloc(2);
-  out[0] = (char)(ch);
-  out[1] = '\0';
-  return out;
+  return consts[ch];
 }
 
 void* init_array(uint64_t size, int64_t value)
@@ -51,15 +60,12 @@ int ord(const char* s)
   {
     return -1;
   }
-  return *s;
+  return s[0];
 }
 
-char* chr(char v)
+char* chr(uint8_t i)
 {
-  char* out = (char*)malloc(2);
-  out[0] = v;
-  out[1] = '\0';
-  return out;
+  return consts[i];
 }
 
 int string_equal(const char* a, const char* b)
@@ -70,9 +76,4 @@ int string_equal(const char* a, const char* b)
 void* alloc_record(int64_t fields)
 {
   return malloc(fields * sizeof(uint64_t));
-}
-
-int main()
-{
-  return tiger_main();
 }
