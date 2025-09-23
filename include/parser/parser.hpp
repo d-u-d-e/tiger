@@ -45,6 +45,13 @@ class PrecedenceRule {
 
 class Parser {
   public:
+  class Exception : public std::runtime_error {
+public:
+    Exception(const std::string& what)
+      : std::runtime_error(what)
+    { }
+  };
+
   Parser(std::ostream& ostream, lexer::Scanner& scanner, symbol::StringTable& symbol_table)
     : ostream(ostream)
     , scanner(scanner)

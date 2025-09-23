@@ -81,7 +81,7 @@ std::unique_ptr<ast::Expression> Parser::parse()
     expect(lexer::TokenType::eof, "unexpected token after expression");
     return exp;
   }
-  catch(std::runtime_error& e)
+  catch(Exception& e)
   {
     return nullptr;
   }
@@ -130,7 +130,7 @@ std::unique_ptr<ast::SeqExp> Parser::sequencing()
     {
       exps.emplace_back(expression(Precedence::None), pos);
     }
-    catch(std::runtime_error& e)
+    catch(Exception& e)
     {
       skip({lexer::TokenType::semicolon, lexer::TokenType::rparen});
     }
@@ -284,7 +284,7 @@ std::unique_ptr<ast::LetExp> Parser::let_expr()
       {
         exps.emplace_back(expression(Precedence::None), exp_pos);
       }
-      catch(std::runtime_error& e)
+      catch(Exception& e)
       {
         skip({lexer::TokenType::semicolon, lexer::TokenType::end_keyword});
       }
@@ -452,7 +452,7 @@ std::unique_ptr<ast::Declaration> Parser::decl()
       std::unreachable();
     }
   }
-  catch(std::runtime_error& e)
+  catch(Exception& e)
   {
     skip({lexer::TokenType::var_keyword,
           lexer::TokenType::function_keyword,
@@ -695,7 +695,7 @@ void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
     "[{}:{}:{}] Err at {}: {}", scanner.filename(), tok.pos.line, tok.pos.column, tok, err_msg);
 
   ostream << str << std::endl;
-  throw std::runtime_error(str);
+  throw Exception(str);
 }
 
 ast::Operator Parser::map_operator(lexer::TokenType type)

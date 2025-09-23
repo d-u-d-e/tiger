@@ -118,10 +118,8 @@ Token Scanner::punctuation()
     current++;
     return Token{TokenType::rbracket, "]", Position(line, int(current - row))};
   default:
-    break;
+    error_at(std::format("invalid character '{}'", *current));
   }
-
-  error_at(std::format("invalid character '{}'", *current));
   std::unreachable();
 }
 
