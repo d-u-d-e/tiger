@@ -33,15 +33,17 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
   // create nodes for labels
   for(; citer != ins.end(); citer++)
   {
-    auto& i = *citer;
-    if(std::holds_alternative<::codegen::assem::Label>(i))
+    bool nid_created{};
+    node_id_t nid;
+    while(std::holds_alternative<::codegen::assem::Label>(*citer))
     {
-      // next instruction must exist and must not be a label
-      auto next_iter = std::next(citer);
-      assert(next_iter != ins.end());
-      assert(!std::holds_alternative<::codegen::assem::Label>(*next_iter));
-      auto l = std::get<::codegen::assem::Label>(i).label;
-      label_map[l] = add_node(FlowNode());
+      // consecutive labels point at the same node
+      if(!nid_created)
+      {
+        nid = add_node(FlowNode());
+        nid_created = true;
+      }
+      label_map[std::get<::codegen::assem::Label>(*citer++).label] = nid;
     }
   }
 
@@ -50,9 +52,9 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
   {
     if(std::holds_alternative<::codegen::assem::Label>(*citer))
     {
-      // skip the label
       curr = label_map[std::get<::codegen::assem::Label>(*citer).label];
-      citer++;
+      while(std::holds_alternative<::codegen::assem::Label>(*++citer)) // skip labels
+      { }
     }
     else
     {

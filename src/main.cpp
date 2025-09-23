@@ -75,8 +75,12 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 
   [[maybe_unused]] auto sep = "-----------------------------";
 
-#if DEBUG_PRETTY_PRINT_IR
+#if DEBUG_PRETTY_PRINT_IR || DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS ||   \
+  DEBUG_PRETTY_PRINT_TRACE
   ir::tree::PrettyPrinter ir_pretty_printer;
+#endif
+
+#if DEBUG_PRETTY_PRINT_IR
   std::cout << "IR"
             << "\n";
   std::cout << std::visit(ir_pretty_printer, stmt) << "\n" << sep << "\n";
@@ -85,7 +89,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
   ir::tree::Canon canon;
   auto list = canon.linearize(std::move(stmt));
 
-#if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_CANONICALIZED_IR
+#if DEBUG_PRETTY_PRINT_CANONICALIZED_IR
   std::cout << "Reduced IR"
             << "\n";
   for(auto& s : list)
@@ -98,7 +102,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 
   auto [blocks, ldone] = canon.basic_blocks(std::move(list));
 
-#if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_BLOCKS
+#if DEBUG_PRETTY_PRINT_BLOCKS
   std::cout << "Basic blocks"
             << "\n";
   for(auto& b : blocks)
@@ -117,7 +121,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 
   auto sched = canon.trace_schedule(std::move(blocks), ldone);
 
-#if DEBUG_PRETTY_PRINT_IR && DEBUG_PRETTY_PRINT_TRACE
+#if DEBUG_PRETTY_PRINT_TRACE
   std::cout << "Trace"
             << "\n";
   for(auto& s : sched)
@@ -145,9 +149,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
       std::cout << arch::codegen::format(helpers::map_temp, i);
     }
   };
-  std::cout << pro;
   print_instr(all);
-  std::cout << epi;
   std::cout << sep << "\n";
 #endif
 
