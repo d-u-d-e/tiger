@@ -39,5 +39,6 @@ dist/*
 /*.tig
 *.s
 
-/tools/*
-!tools/*.sh
+/tests/misc/*
+!tests/misc/*.sh
+!tests/misc/*.tig

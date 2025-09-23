@@ -22,7 +22,7 @@ expected_outputs=(
 )
 
 shopt -s nullglob
-for src in ../tests/exec/*.tig; do
+for src in *.tig; do
     name="$(basename "$src")"
     base="${name%.tig}"
     # Compile
