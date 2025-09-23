@@ -72,6 +72,5 @@ for SRC in "${SOURCES[@]}"; do
     gcc -c "$ASM_FILE" -o "$OBJ_FILE"
     gcc "$OBJ_FILE" $RUNTIME_DIR/runtime.o -o "$EXE"
 
-    echo "✓ Built $EXE"
-    echo
+    echo "Built $EXE"
 done

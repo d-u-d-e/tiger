@@ -1,0 +1,6 @@
+let
+  var a := "hello "
+  var b := "world!\n"
+in
+  print(concat(a, b))
+end

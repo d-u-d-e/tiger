@@ -38,3 +38,6 @@ generated/*
 dist/*
 /*.tig
 *.s
+
+/tools/*
+!tools/*.sh
