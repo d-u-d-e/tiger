@@ -1,15 +1,23 @@
 #pragma once
+#include "codegen/arch/x86-64/frame.hpp"
+#include "codegen/assem.hpp"
+#include <cstddef>
 #include <flow.hpp>
 #include <generated/config.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
+#include <optional>
 #include <ranges>
+#include <sys/types.h>
+#include <unordered_set>
 
 namespace register_allocator
 {
 
 class RegisterAllocator {
   public:
+  static inline size_t K = arch::Frame::no_registers;
+
   RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg);
   const std::unordered_set<ir::TempGen::Temp>& perform_allocation();
   std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> get_color_mapping()
@@ -35,18 +43,31 @@ class RegisterAllocator {
     }
   };
 
+  struct MoveHash {
+    std::size_t operator()(const ::codegen::assem::Move& p) const noexcept
+    {
+      return std::rotl(std::hash<ir::TempGen::Temp>{}(p.dst), 1) ^
+             std::hash<ir::TempGen::Temp>{}(p.src);
+    }
+  };
+
   struct INode {
     node_id_t id;
     ir::TempGen::Temp t;
     size_t degree{};
     std::optional<arch::Frame::register_t> color{};
     std::unordered_set<node_id_t> adj{};
+    std::optional<node_id_t> alias{};
+    std::unordered_set<::codegen::assem::Move, MoveHash> moves_list{};
 
     std::string to_string() const
     {
       return std::format("{}", helpers::map_temp(t));
     }
   };
+
+  std::vector<std::pair<RegisterAllocator::node_id_t, std::string>>
+  mapSet(const std::unordered_set<node_id_t>& s);
 
   private:
   std::shared_ptr<flow::FlowGraph> fgraph;
@@ -55,20 +76,33 @@ class RegisterAllocator {
   std::vector<INode> nodes;
   std::unordered_set<edge_t, EdgeHash> edges;
 
-  // sets/lists used during the allocation algorithm
+  // data structures used by the allocation algorithm
   std::list<node_id_t> simplify_list;
   std::list<node_id_t> select_stack;
   std::list<node_id_t> spill_list;
-  std::unordered_set<ir::TempGen::Temp> spilled_nodes;
+  std::unordered_set<ir::TempGen::Temp> spilled_temps;
+  std::unordered_set<node_id_t> coalesced_nodes;
+  std::unordered_set<::codegen::assem::Move, MoveHash> worklist_moves;
+  std::unordered_set<::codegen::assem::Move, MoveHash> active_moves;
+  std::list<node_id_t> freeze_worklist;
 
   static inline auto colors =
     std::ranges::to<std::unordered_set>(std::ranges::views::values(arch::Frame::temp_map));
 
   void build_interference_graph();
   void simplify();
+  void freeze();
   void select_spill();
   void make_lists();
   void assign_colors();
+  void enable_moves(const std::unordered_set<node_id_t>& nodes);
+  std::unordered_set<::codegen::assem::Move, MoveHash> node_moves(node_id_t);
+  void freeze_moves(node_id_t n);
+  node_id_t get_alias(node_id_t n);
+  void coalesce();
+  void combine(node_id_t u, node_id_t v);
+  bool is_move_related(node_id_t n);
+  void list_push_front(std::list<node_id_t>& l, node_id_t a);
   bool is_colored(node_id_t n)
   {
     return nodes[n].color.has_value();

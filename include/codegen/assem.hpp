@@ -26,6 +26,10 @@ struct Move {
   std::string assem;
   ir::TempGen::Temp dst;
   ir::TempGen::Temp src;
+  bool operator==(const Move& rhs) const
+  {
+    return dst == rhs.dst && src == rhs.src;
+  }
 };
 
 using Instruction = std::variant<Oper, Label, Move>;
