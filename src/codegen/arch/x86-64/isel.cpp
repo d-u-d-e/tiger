@@ -54,9 +54,9 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
       .src = left,
     });
     list.emplace_back(::codegen::assem::Oper{
-      .assem{"add  `d0, `s0\n"},
+      .assem{"add  `d0, `s1\n"},
       .dst{result},
-      .src{right},
+      .src{result, right},
       .jmp{},
     });
   }
@@ -69,9 +69,9 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
       .src = left,
     });
     list.emplace_back(::codegen::assem::Oper{
-      .assem{"sub  `d0, `s0\n"},
+      .assem{"sub  `d0, `s1\n"},
       .dst{result},
-      .src{right},
+      .src{result, right},
       .jmp{},
     });
   }
@@ -86,7 +86,7 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
     list.emplace_back(::codegen::assem::Oper{
       .assem{"imul `s0\n"},
       .dst{arch::Frame::RAX, arch::Frame::RDX},
-      .src{right},
+      .src{right, arch::Frame::RAX},
       .jmp{},
     });
     list.emplace_back(
@@ -100,13 +100,13 @@ ir::TempGen::Temp MuxMunchGen::operator()(const std::unique_ptr<ir::tree::BinOpE
     list.emplace_back(::codegen::assem::Oper{
       .assem{"cqo\n"},
       .dst{arch::Frame::RDX},
-      .src{},
+      .src{arch::Frame::RAX},
       .jmp{},
     });
     list.emplace_back(::codegen::assem::Oper{
       .assem{"idiv `s0\n"},
       .dst{arch::Frame::RAX, arch::Frame::RDX},
-      .src{right},
+      .src{right, arch::Frame::RAX},
       .jmp{},
     });
     list.emplace_back(

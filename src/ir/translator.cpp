@@ -370,7 +370,7 @@ void Translator::proc_entry_exit(std::shared_ptr<Level> level, Exp&& body)
   auto pee1 = level->frame->proc_entry_exit1(std::move(rv));
   add_fragment(ProcedureFragment{std::move(pee1), std::move(level)});
 
-  // proc_entry_2 and proc_entry_3 are called later after code generation
+  // proc_entry_exit2 and proc_entry_exit3 are called later after code generation
 }
 
 Exp Translator::call_exp(TempGen::Label name,

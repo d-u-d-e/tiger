@@ -7,7 +7,6 @@
 #include <ir/temp.hpp>
 #include <list>
 #include <string>
-#include <vector>
 
 namespace flow
 {
