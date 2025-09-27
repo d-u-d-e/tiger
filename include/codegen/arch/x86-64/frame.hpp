@@ -99,7 +99,7 @@ class Frame {
   };
   // clang-format on
 
-  static inline auto no_registers = temp_map.size();
+  static inline size_t no_registers = temp_map.size();
   static inline std::vector<ir::TempGen::Temp> special_regs{FP, RV, SP};
   static inline std::vector<ir::TempGen::Temp> caller_saved{RDI, RSI, RCX, RDX, R8, R9, R10, R11};
   static inline std::vector<ir::TempGen::Temp> callee_saved{RBX, R12, R13, R14, R15};
@@ -214,7 +214,7 @@ class Frame {
             .assem{std::format("mov  [`s0{}], `s1\n",
                                locals_stack_offset - word_size * outgoing_params)},
             .dst{},
-            .src{SP, oper.src[0]},
+            .src{FP, oper.src[0]},
             .jmp{}};
         }
         else if(oper.assem.starts_with("call"))

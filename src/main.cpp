@@ -160,8 +160,8 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     auto flow_g = std::make_shared<flow::FlowGraph>(all);
 
 #if DEBUG_RENDER_FLOW_GRAPH
-    std::string name = f.name().str() + "_flow";
-    flow_g->render(name, name);
+    std::string namef = f.name().str() + "_flow";
+    flow_g->render(namef, namef);
 #endif
 
     liveness::LivenessAnalyzer analyzer(*flow_g);
@@ -174,8 +174,8 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     register_allocator::RegisterAllocator allocator(flow_g);
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
-    name = f.name().str() + "_interference";
-    allocator.render_igraph_dot(name, name);
+    std::string namei = f.name().str() + "_interference";
+    allocator.render_igraph_dot(namei, namei);
 #endif
 
     auto spilled_nodes = allocator.perform_allocation();

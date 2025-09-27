@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <codegen/assem.hpp>
 #include <flow.hpp>
 #include <generated/config.hpp>
@@ -26,48 +27,42 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
 {
   using node_id_t = Digraph<GraphNode>::node_id_t;
   node_id_t curr{};
-  auto citer = ins.begin();
   std::optional<node_id_t> prev{};
   std::unordered_map<ir::TempGen::Label, node_id_t> label_map;
 
   // create nodes for labels
-  for(; citer != ins.end(); citer++)
+  for(auto& i : ins)
   {
-    bool nid_created{};
-    node_id_t nid;
-    while(std::holds_alternative<::codegen::assem::Label>(*citer))
+    if(std::holds_alternative<::codegen::assem::Label>(i))
     {
-      // consecutive labels point at the same node
-      if(!nid_created)
-      {
-        nid = add_node(FlowNode());
-        nid_created = true;
-      }
-      label_map[std::get<::codegen::assem::Label>(*citer++).label] = nid;
+      auto nid = add_node(FlowNode{.i = i});
+      label_map[std::get<::codegen::assem::Label>(i).label] = nid;
     }
   }
 
-  citer = ins.begin();
-  while(citer != ins.end())
+  for(auto& i : ins)
   {
-    if(std::holds_alternative<::codegen::assem::Label>(*citer))
+    if(std::holds_alternative<::codegen::assem::Label>(i))
     {
-      curr = label_map[std::get<::codegen::assem::Label>(*citer).label];
-      while(std::holds_alternative<::codegen::assem::Label>(*++citer)) // skip labels
-      { }
+      curr = label_map[std::get<::codegen::assem::Label>(i).label];
     }
     else
     {
       // create a new node if not a label
-      curr = add_node(FlowNode());
+      curr = add_node(FlowNode{.i = i});
     }
-    auto& i = *citer;
 
+    if(prev)
+    {
+      // add an edge between the prev instruction and the current one
+      add_edge(*prev, curr);
+    }
+
+    bool curr_is_jmp{};
     if(std::holds_alternative<::codegen::assem::Oper>(i))
     {
       auto oper = std::get<::codegen::assem::Oper>(i);
       auto& data = get_node(curr).data();
-      data.i = i;
       std::sort(oper.dst.begin(), oper.dst.end());
       std::sort(oper.src.begin(), oper.src.end());
       data.def = std::list(oper.dst.begin(), oper.dst.end());
@@ -75,6 +70,7 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
       // add edges to jump nodes
       if(oper.jmp)
       {
+        curr_is_jmp = true;
         for(auto l : oper.jmp.value())
         {
           add_edge(curr, label_map[l]);
@@ -86,24 +82,11 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
       auto move = std::get<::codegen::assem::Move>(i);
       auto& data = get_node(curr).data();
       data.is_move = true;
-      data.i = i;
       data.def = {move.dst};
       data.use = {move.src};
     }
-    else
-    {
-      assert(false);
-    }
 
-    if(prev)
-    {
-      // add an edge between the prev instruction and the current one
-      add_edge(*prev, curr);
-    }
-
-    // update prev
-    prev = curr;
-    citer++;
+    prev = curr_is_jmp ? std::nullopt : std::optional(curr);
   }
 }
 
