@@ -233,6 +233,14 @@ class Frame {
   void rewrite_program(std::list<::codegen::assem::Instruction>& list,
                        const std::unordered_set<ir::TempGen::Temp>& spilled_temps)
   {
+    // TODO: make this more efficient
+    // we should take into account that instructions can access memory, so that instead of rewriting
+    // something like: add t1, t2 -> mov t, [x]; add t1, t
+    // we should simply do: add t1, [x], assuming t2 is spilled at address x
+    // and we should not alloc a new frame local for each spilled reg, but instead
+    // create enough locals to accomodate all spilled regs
+    // (requires an interference graph for spilled temporaries)
+
     using namespace ::codegen;
     std::unordered_map<ir::TempGen::Temp, stack_offset_t> locations;
 
@@ -258,6 +266,26 @@ class Frame {
       if(std::holds_alternative<assem::Move>(i))
       {
         auto& move = std::get<assem::Move>(i);
+        if(move.assem == "mov  `d0, `s0\n")
+        {
+          if(spilled_temps.contains(move.dst) && !spilled_temps.contains(move.src))
+          {
+            *iter = assem::Oper{.assem =
+                                  std::format("mov  QWORD PTR [`s0{:+}], `s1\n", get_off(move.dst)),
+                                .dst = {},
+                                .src = {FP, move.src},
+                                .jmp = {}};
+            continue;
+          }
+          else if(spilled_temps.contains(move.src) && !spilled_temps.contains(move.dst))
+          {
+            *iter = assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", get_off(move.src)),
+                                .dst = {move.dst},
+                                .src = {FP},
+                                .jmp = {}};
+            continue;
+          }
+        }
         dst = {move.dst};
         src = {move.src};
       }
@@ -271,14 +299,6 @@ class Frame {
       // fetch each spilled src temporary from memory
       for(auto t : src)
       {
-        // TODO: make this more efficient
-        // we should take into account that instructions can access memory, so that instead of rewriting
-        // something like: mov t1, t2 -> mov t, [x]; mov t1, t
-        // we should simply do: mov t1, [x], assuming t2 is spilled at address x
-        // and we should not alloc a new frame local for each spilled reg, but instead
-        // create enough locals to accomodate all spilled regs
-        // (requires an interference graph for spilled temporaries)
-
         if(spilled_temps.contains(t))
         {
           auto off = get_off(t);
