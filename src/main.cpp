@@ -171,7 +171,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 #endif
 
     // Create the register allocator
-    register_allocator::RegisterAllocator allocator(flow_g);
+    register_allocator::IteratedRegisterCoalescing allocator(flow_g);
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
     std::string namei = f.name().str() + "_interference";

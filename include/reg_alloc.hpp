@@ -14,11 +14,11 @@
 namespace register_allocator
 {
 
-class RegisterAllocator {
+class IteratedRegisterCoalescing {
   public:
   static inline size_t K = arch::Frame::no_registers;
 
-  RegisterAllocator(std::shared_ptr<flow::FlowGraph> fg);
+  IteratedRegisterCoalescing(std::shared_ptr<flow::FlowGraph> fg);
   const std::unordered_set<ir::TempGen::Temp>& perform_allocation();
   std::function<arch::Frame::register_t(const ir::TempGen::Temp&)> get_color_mapping()
   {
@@ -66,9 +66,6 @@ class RegisterAllocator {
     }
   };
 
-  std::vector<std::pair<RegisterAllocator::node_id_t, std::string>>
-  mapSet(const std::unordered_set<node_id_t>& s);
-
   private:
   std::shared_ptr<flow::FlowGraph> fgraph;
   // a mapping between temporaries and nodes in the interference graph
@@ -84,7 +81,7 @@ class RegisterAllocator {
   std::unordered_set<node_id_t> coalesced_nodes;
   std::unordered_set<::codegen::assem::Move, MoveHash> worklist_moves;
   std::unordered_set<::codegen::assem::Move, MoveHash> active_moves;
-  std::list<node_id_t> freeze_worklist;
+  std::unordered_set<node_id_t> freeze_worklist;
 
   static inline auto colors =
     std::ranges::to<std::unordered_set>(std::ranges::views::values(arch::Frame::temp_map));

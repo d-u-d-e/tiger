@@ -156,19 +156,18 @@ class Frame {
     // - restore callee saved registers
     // callee saved regs should be saved to the frame depending whether the reg allocator implements spilling
 
-    // TODO: review when spilling is implemented
     std::vector<ir::tree::Stmt> save;
     std::vector<ir::tree::Stmt> restore;
+
     for(auto& reg : callee_saved)
     {
-      auto ax = alloc_local(true);
-      save.push_back(
-        std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(FP)),
-                                             std::make_unique<ir::tree::TempExp>(reg)));
-      restore.push_back(
-        std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(reg),
-                                             exp(ax, std::make_unique<ir::tree::TempExp>(FP))));
+      auto t = ir::TempGen::new_temp();
+      save.push_back(std::make_unique<ir::tree::MoveStmt>(
+        std::make_unique<ir::tree::TempExp>(t), std::make_unique<ir::tree::TempExp>(reg)));
+      restore.push_back(std::make_unique<ir::tree::MoveStmt>(
+        std::make_unique<ir::tree::TempExp>(reg), std::make_unique<ir::tree::TempExp>(t)));
     }
+
     auto folder = [](auto&& arg1, auto&& arg2) {
       return ir::tree::Stmt(std::make_unique<ir::tree::SeqStmt>(std::move(arg1), std::move(arg2)));
     };
@@ -225,7 +224,7 @@ class Frame {
       }
     }
 
-    // append sink instruction (is this enough? TODO)
+    // append sink instruction
     auto live = std::vector({arch::Frame::RAX, arch::Frame::SP, arch::Frame::FP});
     std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(live));
     list.push_back(::codegen::assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
