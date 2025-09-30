@@ -106,13 +106,10 @@ void IteratedRegisterCoalescing::add_edge(node_id_t a, node_id_t b)
 #if ENABLE_REG_ALLOC_ASSERTS
   assert(a != b);
 #endif
-  if(a > b)
-  {
-    std::swap(a, b);
-  }
   if(!edges.contains({a, b}))
   {
     edges.insert({a, b});
+    edges.insert({b, a});
     if(!is_colored(a))
     {
       nodes[a].adj.insert(b);
@@ -195,6 +192,8 @@ void IteratedRegisterCoalescing::simplify()
   assert(!simplify_list.empty());
 #endif
   auto n = simplify_list.front();
+
+  //std::cout << std::format("simp {}\n", helpers::map_temp(nodes[n].t));
 
 #if ENABLE_REG_ALLOC_ASSERTS
   auto s = adjacent(n);
@@ -297,7 +296,10 @@ void IteratedRegisterCoalescing::coalesce()
     // in general nodes a and r can be coalesced if
     // for every neighbor t of a, either t already interferes with r
     // or t is of insignificant degree
-    return nodes[t].degree < K || is_colored(t) || edges.contains(edge_t{t, r});
+    auto c1 = nodes[t].degree < K;
+    auto c2 = is_colored(t);
+    auto c3 = edges.contains(edge_t{t, r});
+    return c1 || c2 || c3;
   };
 
   auto briggs_test = [this](const std::unordered_set<node_id_t>& set) {
@@ -374,6 +376,9 @@ IteratedRegisterCoalescing::node_id_t IteratedRegisterCoalescing::get_alias(node
 
 void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
 {
+  /*std::cout << std::format(
+    "coal {} -> {}\n", helpers::map_temp(nodes[v].t), helpers::map_temp(nodes[u].t));*/
+
   // remove v from its list
   if(auto p = std::find(freeze_worklist.begin(), freeze_worklist.end(), v);
      p != freeze_worklist.end())
