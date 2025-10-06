@@ -191,10 +191,9 @@ class Frame {
   void proc_entry_exit2(std::list<::codegen::assem::Instruction>& list)
   {
     // proc_entry_exit2 does the following:
-    // - append a sink instruction to the body to tell the register allocator that certain regs are live at procedure exit
-    // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
+    // - find the max number of outgoing parameters for proc_entry_exit3
+    // - append a sink instruction for live registers at the end of the procedure call
 
-    // we will need to make the stack 16-byte aligned just before the CALL instruction
     uint32_t outgoing_params{};
     for(auto& i : list)
     {
@@ -203,18 +202,8 @@ class Frame {
         auto& oper = std::get<::codegen::assem::Oper>(i);
         if(oper.assem.starts_with("*"))
         {
-          // instruction that need to be patched
           outgoing_params++;
-          if(outgoing_params > max_outgoing_params)
-          {
-            max_outgoing_params = outgoing_params;
-          }
-          i = ::codegen::assem::Oper{
-            .assem{std::format("mov  [`s0{}], `s1\n",
-                               locals_stack_offset - word_size * outgoing_params)},
-            .dst{},
-            .src{FP, oper.src[0]},
-            .jmp{}};
+          max_outgoing_params = std::max(outgoing_params, max_outgoing_params);
         }
         else if(oper.assem.starts_with("call"))
         {
@@ -318,7 +307,7 @@ class Frame {
           auto off = get_off(t);
           iter = list.insert(
             std::next(iter),
-            assem::Instruction{assem::Oper{.assem = std::format("mov  [`s1{:+}], `s0\n", off),
+            assem::Instruction{assem::Oper{.assem = std::format("mov  QWORD PTR [`s1{:+}], `s0\n", off),
                                            .dst{},
                                            .src{t, arch::Frame::FP},
                                            .jmp{}}});
@@ -330,20 +319,49 @@ class Frame {
   std::pair<std::string, std::string>
   proc_entry_exit3(std::list<::codegen::assem::Instruction>& list)
   {
+    (void)list; // actually not used
+
     // proc_entry_exit3 does the following:
+    // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
     // - implement the prologue/epilogue
 
     // stack space is allocated as follows (going downwards):
     // locals
-    // max outgoing params
     // spilled temporaries
+    // extra alignment for 16 bytes if needed
+    // max outgoing params
 
-    (void)list; // actually not used
+    // we align down to a multiple of 16 bytes
+    // we indirectly save the return address and the old fp for a total of 16 bytes
+
     size_t space =
-      -locals_stack_offset + max_outgoing_params * word_size + spilled_temps * word_size;
-    // let's align the stack on a 16 byte boundary, keeping in mind that we also save indirectly
-    // the return address and the old fp (2 * word_size == 16)
-    space = (space + 15) & ~15;
+      (-locals_stack_offset + spilled_temps * word_size + word_size * max_outgoing_params + 15) &
+      ~15;
+    stack_offset_t off = -static_cast<stack_offset_t>(space) + word_size * max_outgoing_params;
+
+    // patch instructions
+    uint32_t outgoing_param{};
+    for(auto& i : list)
+    {
+      if(std::holds_alternative<::codegen::assem::Oper>(i))
+      {
+        auto& oper = std::get<::codegen::assem::Oper>(i);
+        if(oper.assem.starts_with("*"))
+        {
+          // instruction that need to be patched
+          outgoing_param++;
+          i = ::codegen::assem::Oper{
+            .assem{std::format("mov  QWORD [`s0{}], `s1\n", off - word_size * outgoing_param)},
+            .dst{},
+            .src{oper.src},
+            .jmp{}};
+        }
+        else if(oper.assem.starts_with("call"))
+        {
+          outgoing_param = 0;
+        }
+      }
+    }
 
     std::string prologue;
     if(label.str() == "tiger_main")

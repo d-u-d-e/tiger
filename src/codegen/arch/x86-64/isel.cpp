@@ -1,3 +1,4 @@
+#include "codegen/arch/x86-64/frame.hpp"
 #include <algorithm>
 #include <cassert>
 #include <codegen/arch.hpp>
@@ -595,7 +596,8 @@ std::vector<ir::TempGen::Temp> MuxMunchGen::munch_args(const std::vector<ir::tre
     auto t = std::visit(*this, args[i]);
     // the instruction will be patched later by proc_entry_exit2, since we need to alloc space on the current
     // stack frame for outgoing parameters, but this space should be calculated based on all calls
-    list.emplace_back(::codegen::assem::Oper{.assem{"*\n"}, .dst{}, .src{t}, .jmp{}});
+    list.emplace_back(
+      ::codegen::assem::Oper{.assem{"*\n"}, .dst{}, .src{arch::Frame::FP, t}, .jmp{}});
   }
   return srcs_call;
 }

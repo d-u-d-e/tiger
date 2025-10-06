@@ -1,0 +1,23 @@
+let
+  var a := "he"
+  var b := "ll"
+  var c := "o "
+  var d := "wo"
+  var e := "rl"
+  var f := "d!"
+  var g := "\n"
+  var h := concat(a, b)
+  function concat_six(a: string, b: string, c: 
+      string, d: string, e: string, f: string): string =
+    let
+      var i := concat(a, b)
+      var l := concat(i, c)
+      var m := concat(l, d)
+      var n := concat(m, e)
+      var o := concat(n, f)
+    in
+      o
+    end
+in
+  print(concat_six(h, c, d, e, f, g))
+end

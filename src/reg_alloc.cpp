@@ -255,7 +255,7 @@ void IteratedRegisterCoalescing::coalesce()
 #if ENABLE_REG_ALLOC_ASSERTS
   assert(!worklist_moves.empty());
 #endif
-  auto& move = *worklist_moves.begin();
+  auto move = *worklist_moves.begin();
   worklist_moves.erase(move);
   auto x = get_alias(map_tnode[move.src]);
   auto y = get_alias(map_tnode[move.dst]);
