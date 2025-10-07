@@ -305,12 +305,12 @@ class Frame {
         if(spilled_temps.contains(t))
         {
           auto off = get_off(t);
-          iter = list.insert(
-            std::next(iter),
-            assem::Instruction{assem::Oper{.assem = std::format("mov  QWORD PTR [`s1{:+}], `s0\n", off),
-                                           .dst{},
-                                           .src{t, arch::Frame::FP},
-                                           .jmp{}}});
+          iter = list.insert(std::next(iter),
+                             assem::Instruction{assem::Oper{
+                               .assem = std::format("mov  QWORD PTR [`s1{:+}], `s0\n", off),
+                               .dst{},
+                               .src{t, arch::Frame::FP},
+                               .jmp{}}});
         }
       }
     }
@@ -332,10 +332,10 @@ class Frame {
     // we align down to a multiple of 16 bytes
     // we indirectly save the return address and the old fp for a total of 16 bytes
 
-    size_t space =
+    auto space =
       (-locals_stack_offset + spilled_temps * word_size + word_size * max_outgoing_params + 15) &
       ~15;
-    stack_offset_t off = -static_cast<stack_offset_t>(space) + word_size * max_outgoing_params;
+    stack_offset_t off = -space + word_size * max_outgoing_params;
 
     // patch instructions
     uint32_t outgoing_param{};
