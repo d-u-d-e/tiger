@@ -479,10 +479,22 @@ void IteratedRegisterCoalescing::freeze_moves(node_id_t u)
 
 void IteratedRegisterCoalescing::select_spill()
 {
-  // TODO: should pick temporaries that are not
-  // resulting from the fetches of previously spilled registers
-  auto u = *spill_list.begin();
-  spill_list.pop_front();
+  // we should pick temporaries that are not
+  // resulting from the fetches of previously spilled temps
+
+  // one common heuristic is this:
+  // spill cost = [10 * (uses + defs inside loops) + (uses + defs outside loops)] / degree
+  // we choose to spill the node with the highest degree
+  // temporaries that were previously spilled should have very low degree
+  // TODO: maybe compute the cost as above
+
+  auto p = std::max_element(
+    spill_list.begin(), spill_list.end(), [this](const node_id_t a, const node_id_t b) {
+      return nodes[a].degree < nodes[b].degree;
+    });
+
+  auto u = *p;
+  spill_list.erase(p);
   list_push_front(simplify_list, u);
   freeze_moves(u);
 }
