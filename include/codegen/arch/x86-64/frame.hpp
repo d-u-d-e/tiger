@@ -319,8 +319,6 @@ class Frame {
   std::pair<std::string, std::string>
   proc_entry_exit3(std::list<::codegen::assem::Instruction>& list)
   {
-    (void)list; // actually not used
-
     // proc_entry_exit3 does the following:
     // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
     // - implement the prologue/epilogue
