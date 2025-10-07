@@ -139,8 +139,8 @@ class Frame {
 
     // the remaining params are passed on the stack, but recall that with respect to the
     // current fp, we need to go past the saved fp and the return address which are on the stack
-    // so we start at off = 3 * word_size
-    stack_offset_t off = 3 * word_size;
+    // so we start at off = 2 * word_size
+    stack_offset_t off = 2 * word_size;
     for(size_t i = params_on_regs.size(); i < formals.size(); i++)
     {
       formals_.push_back(InFrame(off));
@@ -351,7 +351,7 @@ class Frame {
           // instruction that need to be patched
           outgoing_param++;
           i = ::codegen::assem::Oper{
-            .assem{std::format("mov  QWORD [`s0{}], `s1\n", off - word_size * outgoing_param)},
+            .assem{std::format("mov  QWORD PTR [`s0{}], `s1\n", off - word_size * outgoing_param)},
             .dst{},
             .src{oper.src},
             .jmp{}};
@@ -464,7 +464,7 @@ class Frame {
   stack_offset_t alloc_spilled_temporary()
   {
     spilled_temps++;
-    auto next = locals_stack_offset - (max_outgoing_params + spilled_temps) * word_size;
+    auto next = locals_stack_offset - spilled_temps * word_size;
     return next;
   }
 
