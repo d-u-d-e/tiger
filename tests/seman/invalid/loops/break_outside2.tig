@@ -1,0 +1,11 @@
+let
+  var a := 2
+in
+  while 1 do
+    let
+      function f(i: int) =
+        break
+    in
+      f(1)
+    end
+end

@@ -339,11 +339,12 @@ Result Analyzer::visit_if_exp(const parser::ast::IfExp& exp)
 
 Result Analyzer::visit_break_exp(const parser::ast::BreakExp& exp)
 {
-  if(lbreak == nullptr)
+  // a break in a procedure p cannot terminate a loop in procedure q, even if p is nested within q
+  if(!current_loop.lbreak.has_value() || current_level.get() != current_loop.level)
   {
     error_at(exp.position, "break statement not within a loop");
   }
-  return Result{unit_type, translator.break_exp(*lbreak)};
+  return Result{unit_type, translator.break_exp(*current_loop.lbreak)};
 };
 
 Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
@@ -355,9 +356,10 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
     error_at(exp.position, "the condition must be an integer");
   }
 
-  ir::TempGen::Label* break_saved = lbreak;
-  auto blab = ir::TempGen::new_label();
-  lbreak = &blab;
+  auto current_loop_saved = current_loop;
+  auto breakl = ir::TempGen::new_label();
+  current_loop.lbreak = breakl;
+  current_loop.level = current_level.get();
 
   // body must not produce any value
   auto rbody = exp.body->accept(*this);
@@ -365,9 +367,9 @@ Result Analyzer::visit_while_exp(const parser::ast::WhileExp& exp)
   {
     error_at(exp.position, "the body of the while loop must not produce any value");
   }
-  lbreak = break_saved;
+  current_loop = current_loop_saved;
 
-  return Result{unit_type, translator.while_exp(std::move(rcond.ir), std::move(rbody.ir), blab)};
+  return Result{unit_type, translator.while_exp(std::move(rcond.ir), std::move(rbody.ir), breakl)};
 };
 
 Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
@@ -385,25 +387,26 @@ Result Analyzer::visit_for_exp(const parser::ast::ForExp& exp)
     error_at(exp.position, "the upper bound must be an integer");
   }
 
-  ir::TempGen::Label* break_saved = lbreak;
-  auto blab = ir::TempGen::new_label();
-  lbreak = &blab;
+  auto current_loop_saved = current_loop;
+  auto breakl = ir::TempGen::new_label();
+  current_loop.lbreak = breakl;
+  current_loop.level = current_level.get();
 
   venv.begin_scope();
   auto access = translator.alloc_local(*current_level, *exp.escape);
   venv.enter(exp.var, env::VarEntry(int_type, access));
   auto rbody = exp.body->accept(*this);
   venv.end_scope();
-  lbreak = break_saved;
+  current_loop = current_loop_saved;
 
   if(!is_type<Unit>(rbody.type))
   {
     error_at(exp.position, "the body of the for loop must not produce any value");
   }
 
-  return Result{
-    unit_type,
-    translator.for_exp(access, std::move(rlow.ir), std::move(rhigh.ir), std::move(rbody.ir), blab)};
+  return Result{unit_type,
+                translator.for_exp(
+                  access, std::move(rlow.ir), std::move(rhigh.ir), std::move(rbody.ir), breakl)};
 };
 
 Result Analyzer::visit_call_exp(const parser::ast::CallExp& exp)

@@ -74,10 +74,8 @@ void EscapeFinder::visit_for_exp(parser::ast::ForExp& exp)
   exp.low->accept(*this);
   exp.high->accept(*this);
   *exp.escape = false;
-  env.begin_scope();
   env.enter(exp.var, Escape(env.depth(), exp.escape));
   exp.body->accept(*this);
-  env.end_scope();
 }
 
 void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
@@ -90,13 +88,11 @@ void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 
 void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 {
-  env.begin_scope();
   for(auto& d : exp.decls)
   {
     d->accept(*this);
   }
   exp.body->accept(*this);
-  env.end_scope();
 }
 
 void EscapeFinder::visit_simple_var(parser::ast::SimpleVar& var)

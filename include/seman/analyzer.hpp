@@ -82,9 +82,15 @@ class Analyzer : public TypeCheckerExprVisitor,
   }
   void error_at(const lexer::Position& pos, const std::string& err_msg);
 
+  struct CurrentLoop {
+    std::optional<ir::TempGen::Label>
+      lbreak{}; // where we should jump to when we break inside a loop
+    ir::Level* level{}; // the level of the function where the loop resides
+  };
+
   void detect_cycles(const parser::ast::TypeDecl& decl);
   SharedType skip_name_types(const SharedType& t);
-  ir::TempGen::Label* lbreak{nullptr};
+  CurrentLoop current_loop{};
   symbol::StringTable& string_table;
   ir::Translator& translator;
   std::shared_ptr<ir::Level> current_level{};

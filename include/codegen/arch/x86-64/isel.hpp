@@ -5,7 +5,7 @@ Instruction selection using dynamic programming:
 The following grammar is definitely coarse for any x86-64 ISA.
 It's just a good start to make instruction selection work. For example, arithmetic operations
 can access memory, but here we show rules that operate on registers only.
-TODO: some temporaries will turn out to be memory locations. They cannot be regarded as registers.
+Some temporaries will turn out to be memory locations. They cannot be regarded as registers.
 Numbers are appended to each nonterminal on the RHS in order to see how to perform
 the code generation. Code to be emitted is shown after the first '::' token.
 An instruction "cost" is shown after the second '::' token. This is taken from

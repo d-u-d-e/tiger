@@ -22,7 +22,7 @@
 #  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
 #  define DEBUG_PRETTY_PRINT_BLOCKS 0
 #  define DEBUG_PRETTY_PRINT_TRACE 0
-#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
 #  if CONFIG_WITH_GRAPHVIZ
 #    define DEBUG_RENDER_FLOW_GRAPH 0
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
@@ -171,7 +171,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 #endif
 
     // Create the register allocator
-    register_allocator::RegisterAllocator allocator(flow_g);
+    register_allocator::IteratedRegisterCoalescing allocator(flow_g);
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
     std::string namei = f.name().str() + "_interference";

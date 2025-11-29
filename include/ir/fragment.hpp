@@ -8,7 +8,7 @@
 
 namespace ir
 {
-class Level;
+struct Level;
 struct ProcedureFragment {
   Nx body;
   std::shared_ptr<Level> level;

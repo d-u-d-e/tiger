@@ -8,8 +8,6 @@ namespace ir
 {
 
 struct Level {
-
-  public:
   struct Access {
     const Level* l{};
     arch::Frame::Access fax;
