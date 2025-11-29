@@ -329,6 +329,75 @@ Similarly, type declarations may be hidden by the redeclaration of the same name
 ## 1.5 Programs
 
 Tiger programs do not have arguments: a program is just an expression `exp`.
+The following are examples of Tiger programs:
+
+### 1.5.1 Hello World
+These are all equivalent:
+```
+print("Hello World!\n")
+```
+
+```
+let
+    var s := "Hello World!\n"
+in
+    print(s)
+end
+```
+### 1.5.2 Sieve of Eratosthenes
+
+This will print all prime numbers up to 200.
+<br>
+It's a bit verbose because there's no standard function that can print integers.
+<br>
+`int_array` is an array of booleans. `int_array[i]` is true iff `i` is prime.
+
+```
+let
+  var N := 200
+  type int_array = array of int
+
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+        then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+        else if i > 0 then f(i)
+        else print("0")
+    end
+
+  function get_primes(primes: int_array) =
+    (
+      primes[0] := 0;
+      primes[1] := 0;
+      for i := 2 to N do
+      (
+        if i * i > N then break;
+        if primes[i] then
+          let var j := i * i in
+            while j <= N do
+            (
+              primes[j] := 0;
+              j := j + i
+            )
+          end
+      )
+    )
+in
+  let
+    var primes := int_array[N+1] of 1
+    function print_array(a: int_array) =
+      for j := 0 to N do
+          if a[j] then (printint(j); print(" "))
+  in
+    get_primes(primes);
+    print_array(primes)
+  end
+end
+```
+
+### 1.5.3 Book examples
+
+See `tests/book` for more examples from the book.
 
 ## 1.6 Standard library
 
