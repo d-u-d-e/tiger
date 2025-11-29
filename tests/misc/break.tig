@@ -1,0 +1,19 @@
+let
+  var a := 3
+in
+  while 1 do
+    (
+      let
+        function f(i: int) =
+          for j := i to (i + 4) do
+            (
+              print(chr(48 + j));
+              if j = 5 then break
+            )
+      in
+        f(a)
+      end;
+      a := a - 1;
+      if a = 1 then break
+    )
+end

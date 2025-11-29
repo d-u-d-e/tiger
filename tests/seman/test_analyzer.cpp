@@ -162,6 +162,9 @@ SHOULD_THROW("../tests/seman/invalid/if/then_value.tig",
 SHOULD_THROW("../tests/seman/invalid/loops/break_outside.tig", 
   "[../tests/seman/invalid/loops/break_outside.tig:20:3] Err: break statement not within a loop");
 
+SHOULD_THROW("../tests/seman/invalid/loops/break_outside2.tig", 
+  "[../tests/seman/invalid/loops/break_outside2.tig:7:9] Err: break statement not within a loop");
+
 SHOULD_THROW("../tests/seman/invalid/loops/for_body_value.tig", 
   "[../tests/seman/invalid/loops/for_body_value.tig:3:1] Err: the body of the for loop must not produce any value");
 
