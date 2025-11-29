@@ -1,4 +1,4 @@
-# The Tiger language (vanilla)
+# 1. The Tiger language (vanilla)
 
 The Tiger language is a small language with nested functions, record values with implicit pointers, arrays, integer and string variables and a few simple structured control constructs.
 
@@ -349,6 +349,6 @@ The following functions are predefined:
 `function concat(s1: string, s2: string): string` : Concatenation of `s1` and `s2`.
 <br>
 
-# TODO
+# 2. TODO
 
 - Implement all standard library functions
