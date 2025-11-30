@@ -1,7 +1,9 @@
 #pragma once
-#include <generated/config.hpp>
+#include <generated/autoconf.hpp>
 
-#ifdef CONFIG_TARGET_x86_64
+// TODO: only one target must be set
+
+#if CONFIG_TARGET_x86_64
   #include "arch/x86-64/frame.hpp"
   #include "arch/x86-64/isel.hpp"
   #include "arch/x86-64/helpers.hpp"

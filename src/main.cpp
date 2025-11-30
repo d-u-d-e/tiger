@@ -1,7 +1,7 @@
 #include <codegen/arch.hpp>
 #include <cstdlib>
 #include <cstring>
-#include <generated/config.hpp>
+#include <generated/autoconf.hpp>
 #include <iostream>
 #include <ir/canon.hpp>
 #include <ir/fragment.hpp>

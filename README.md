@@ -6,7 +6,10 @@
     4. [Scope rules](#scope)
     5. [Programs](#prog)
     6. [Standard Library](#sl)
-2. [TODO](#todo)
+2. [Requirements](#req)
+3. [Build instructions](#build)
+4. [Compilation](#compile)
+5. [TODO](#todo)
 
 <a id="tiger"></a>
 # 1. The Tiger language (vanilla)
@@ -435,8 +438,51 @@ The following functions are predefined:
 `function concat(s1: string, s2: string): string` : Concatenation of `s1` and `s2`.
 <br>
 
+<a id="req"></a>
+
+# 2. Requirements
+Currently, the compiler can be compiled for Linux only, with the usual `gcc` supporting c++23.
+Additionally, `libgraphviz-dev` is required to compile the compiler with support for graphviz.
+
+<a id="build"></a>
+
+# 3. Build instructions
+
+The supported targets are:
+- `x86_64`
+
+To build for a specific target, pass `CONFIG_TARGET_x=1`, where `x` is one of the value listed above to CMake. Eg:
+
+```bash
+cmake -B build -DCMAKE_INSTALL_PREFIX=$PWD/dist -DCONFIG_TARGET_x86_64=1
+```
+
+To build with Graphviz support, pass `-DCONFIG_WITH_GRAPHVIZ=1`. Graphviz is used to pretty print graphs while debugging the compiler.
+
+
+<a id="compile"></a>
+
+# 4. Compilation
+
+Once installed, the compiler directory looks like:
+```
+.
+├── bin
+│   └── tigerc
+├── lib
+│   └── runtime.o
+└── tools
+    └── driver.sh
+```
+
+`tigerc` produces an assembly file as output. `driver.sh` will call the assembler and link the runtime library inside `lib`. For example, to produce executable `example` from `example.tig` use:
+```bash
+driver.sh example.tig -o example
+```
+`driver.sh` calls `gcc` assembler and linker.
+
+
 <a id="todo"></a>
 
-# 2. TODO
-
+# 5. TODO
 - Implement all standard library functions

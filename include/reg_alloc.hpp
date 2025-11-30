@@ -3,7 +3,6 @@
 #include <codegen/assem.hpp>
 #include <cstddef>
 #include <flow.hpp>
-#include <generated/config.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
 #include <optional>
