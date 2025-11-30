@@ -1,8 +1,6 @@
 #include <codegen/arch.hpp>
-#include <cstdlib>
-#include <cstring>
-#include <generated/autoconf.hpp>
-#include <iostream>
+#include <concepts>
+#include <format>
 #include <ir/canon.hpp>
 #include <ir/fragment.hpp>
 #include <ir/pretty_printer.hpp>
@@ -13,16 +11,20 @@
 #include <optional>
 #include <parser/ast.hpp>
 #include <parser/parser.hpp>
+#include <print>
 #include <reg_alloc.hpp>
 #include <seman/analyzer.hpp>
 #include <seman/escape.hpp>
+#include <string_view>
+
+using namespace std::literals;
 
 #ifndef NDEBUG
 #  define DEBUG_PRETTY_PRINT_IR 0
 #  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
 #  define DEBUG_PRETTY_PRINT_BLOCKS 0
 #  define DEBUG_PRETTY_PRINT_TRACE 0
-#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
 #  if CONFIG_WITH_GRAPHVIZ
 #    define DEBUG_RENDER_FLOW_GRAPH 0
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
@@ -58,14 +60,10 @@ void output(FILE* ofile,
   // remove instructions that move a register to itself
   std::string result{prologue};
   helpers::delete_coalesced_moves(instrs, mapper);
-  auto print_instr_reg_allocated =
-    [&mapper, &result](const std::list<::codegen::assem::Instruction>& instrs) {
-      for(auto& i : instrs)
-      {
-        result += arch::codegen::format(mapper, i);
-      }
-    };
-  print_instr_reg_allocated(instrs);
+  for(auto& i : instrs)
+  {
+    result += arch::codegen::format(mapper, i);
+  }
   result += epilogue + "\n";
   std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
@@ -73,65 +71,61 @@ void output(FILE* ofile,
 void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
 {
 
-  [[maybe_unused]] auto sep = "-----------------------------";
+  [[maybe_unused]] auto constexpr sep = "-----------------------------";
 
 #if DEBUG_PRETTY_PRINT_IR || DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS ||   \
   DEBUG_PRETTY_PRINT_TRACE
   ir::tree::PrettyPrinter ir_pretty_printer;
+
+  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(const C& container)
+    requires std::same_as<typename C::value_type, ir::tree::Stmt>
+  {
+    for(auto& s : container)
+    {
+      std::println("{}", std::visit(ir_pretty_printer, s));
+    }
+  };
 #endif
 
 #if DEBUG_PRETTY_PRINT_IR
-  std::cout << "IR"
-            << "\n";
-  std::cout << std::visit(ir_pretty_printer, stmt) << "\n" << sep << "\n";
+  std::println("IR");
+  std::println("{}\n{}", std::visit(ir_pretty_printer, stmt), sep);
 #endif
 
+  // canonicalize the IR tree
   ir::tree::Canon canon;
   auto list = canon.linearize(std::move(stmt));
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR
-  std::cout << "Reduced IR"
-            << "\n";
-  for(auto& s : list)
-  {
-    std::string reduced = std::visit(ir_pretty_printer, s);
-    std::cout << reduced << "\n";
-  }
-  std::cout << sep << "\n";
+  std::println("Reduced IR");
+  pretty_print_stmts(list);
+  std::println(sep);
 #endif
 
+  // compute the basic blocks
   auto [blocks, ldone] = canon.basic_blocks(std::move(list));
 
 #if DEBUG_PRETTY_PRINT_BLOCKS
-  std::cout << "Basic blocks"
-            << "\n";
+  std::println("Basic blocks");
   for(auto& b : blocks)
   {
-    std::cout << "<<<< block start"
-              << "\n";
-    for(auto& s : b.stmts)
-    {
-      std::cout << std::visit(ir_pretty_printer, s) << "\n";
-    }
-    std::cout << ">>>> block end"
-              << "\n\n";
+    std::println("<<<< block start");
+    pretty_print_stmts(b.stmts);
+    std::println(">>>> block end\n");
   }
-  std::cout << sep << "\n";
+  std::println(sep);
 #endif
 
+  // lay out the blocks by following a trace
   auto sched = canon.trace_schedule(std::move(blocks), ldone);
 
 #if DEBUG_PRETTY_PRINT_TRACE
-  std::cout << "Trace"
-            << "\n";
-  for(auto& s : sched)
-  {
-    std::string irstr = std::visit(ir_pretty_printer, s);
-    std::cout << irstr << "\n";
-  }
-  std::cout << sep << "\n";
+  std::println("Trace");
+  pretty_print_stmts(sched);
+  std::println(sep);
 #endif
 
+  // generate target code, with an infinite number of machine registers
   arch::codegen::MuxMunchGen gen;
   std::list<::codegen::assem::Instruction> all;
   for(auto& s : sched)
@@ -140,23 +134,23 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     std::move(v.begin(), v.end(), std::back_inserter(all));
   }
 
+  // prepare for register allocation
   f.proc_entry_exit2(all);
 
 #if DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC
-  auto print_instr = [](const std::list<::codegen::assem::Instruction>& instrs) {
-    for(auto& i : instrs)
-    {
-      std::cout << arch::codegen::format(helpers::map_temp, i);
-    }
-  };
-  print_instr(all);
-  std::cout << sep << "\n";
+  std::println("Assembly before register allocation");
+  for(auto& i : all)
+  {
+    std::print("{}", arch::codegen::format(helpers::map_temp, i));
+  }
+  std::println(sep);
 #endif
 
+  // do register allocation using the IteratedRegisterCoalescing algorithm
   bool spilling_required{false};
   do
   {
-    // Create the control flow graph
+    // create the control flow graph
     auto flow_g = std::make_shared<flow::FlowGraph>(all);
 
 #if DEBUG_RENDER_FLOW_GRAPH
@@ -167,10 +161,10 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     liveness::LivenessAnalyzer analyzer(*flow_g);
 
 #if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
-    std::cout << analyzer.dump_result() << sep << "\n";
+    std::println("Results of liveness analysis");
+    std::println("{}{}", analyzer.dump_result(), sep);
 #endif
 
-    // Create the register allocator
     register_allocator::IteratedRegisterCoalescing allocator(flow_g);
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
@@ -184,6 +178,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     if(!spilling_required)
     {
       auto color_map = allocator.get_color_mapping();
+      // once we know the number of spilled temporaries, we can evaluate the required stack space for the frame
       auto [pro, epi] = f.proc_entry_exit3(all);
       output(ofile, color_map, all, pro, epi);
     }
@@ -227,7 +222,7 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
   }
   catch(lexer::Exception& e)
   {
-    std::cerr << e.what() << "\n";
+    std::println(std::cerr, "{}", e.what());
     terminal_exit_error();
     return Error::LEX_ERR;
   }
@@ -246,17 +241,18 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
   catch(seman::Exception& e)
   {
     terminal_enter_error();
-    std::cerr << e.what() << "\n";
+    std::println(std::cerr, "{}", e.what());
     terminal_exit_error();
     return Error::SEMAN_ERR;
   }
 
+  // semantic analyzer passed, so we add the main program fragment
   translator.translate_main_program(std::move(ir));
   auto out_file = fopen(out_name.c_str(), "w");
   if(!out_file)
   {
     terminal_enter_error();
-    std::cerr << std::format("tigerc: could not write assembly output for {}\n", source.string());
+    std::println(std::cerr, "tigerc: could not write assembly output for {}", source.string());
     terminal_exit_error();
     return Error::IO_ERR;
   }
@@ -294,11 +290,9 @@ int main(int argc, char** argv)
 
   const char* oname{nullptr};
   std::vector<std::filesystem::path> input_files;
-  std::filesystem::path input;
-  std::vector<std::filesystem::path> link_dir;
   for(int i = 1; i < argc; i++)
   {
-    if(strcmp(argv[i], "-o") == 0 && (i + 1) < argc)
+    if(std::string_view(argv[i]) == "-o" && (i + 1) < argc)
     {
       oname = argv[i + 1];
       i += 1;
@@ -313,7 +307,7 @@ int main(int argc, char** argv)
   if(input_files.empty())
   {
     terminal_enter_error();
-    std::cerr << "tigerc: no input files\n";
+    std::println(std::cerr, "tigerc: no input files");
     terminal_exit_error();
     return RC_NO_INPUT_ERR;
   }
@@ -321,7 +315,7 @@ int main(int argc, char** argv)
   if(oname && input_files.size() > 1)
   {
     terminal_enter_error();
-    std::cerr << "tigerc: cannot specify '-o' with multiple input files\n";
+    std::println(std::cerr, "tigerc: cannot specify '-o' with multiple input files");
     terminal_exit_error();
     return RC_USAGE_ERR;
   }
