@@ -16,6 +16,8 @@
 #include <seman/escape.hpp>
 #include <string_view>
 
+#include "frame.hpp"
+
 using namespace std::literals;
 
 #ifndef NDEBUG
