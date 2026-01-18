@@ -1,5 +1,4 @@
 #include <codegen/arch.hpp>
-#include <concepts>
 #include <format>
 #include <ir/canon.hpp>
 #include <ir/fragment.hpp>
