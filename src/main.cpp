@@ -16,6 +16,7 @@
 #include <seman/escape.hpp>
 #include <string_view>
 
+#include "arch/x86_64/frame.hpp"
 #include "frame.hpp"
 
 using namespace std::literals;
@@ -232,6 +233,7 @@ std::optional<Error> compile(const std::filesystem::path& source, const char* on
   seman::EscapeFinder esc_finder;
   exp->accept(esc_finder);
 
+  arch2::X86FrameFactoryImpl factory;
   ir::Translator translator;
   seman::Analyzer type_checker(source, string_table, translator);
   ir::Exp ir;

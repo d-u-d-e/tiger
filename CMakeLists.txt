@@ -37,7 +37,9 @@ set(sources_common
 # Change this to include more targets
 set(sources_target_specific)
 if (CONFIG_TARGET_x86_64)
-    list(APPEND sources_target_specific src/codegen/arch/x86-64/isel.cpp)
+    list(APPEND sources_target_specific 
+      src/codegen/arch/x86-64/isel.cpp 
+      src/arch/x86_64/frame.cpp)
 endif()
 
 add_executable(

@@ -1,27 +1,37 @@
 #pragma once
 
+#include <codegen/assem.hpp>
 #include <ir/temp.hpp>
+#include <ir/tree.hpp>
+#include <list>
 #include <memory>
+#include <unordered_set>
 #include <vector>
-
-// TODO: How should we make the translator, frames and other stuff not dependant on the target with inheritance
-
-namespace example1
-{
-
-class FrameAccess
-{ };
 
 class Frame
 {
   public:
+  struct Access
+  {
+    virtual ~Access() = default;
+  };
+
+  using register_t = std::string;
   virtual ~Frame() = default;
-  virtual const std::vector<FrameAccess*>& formals() const = 0;
+  virtual std::vector<std::reference_wrapper<const Access>> formals() const = 0;
+  virtual ir::TempGen::Temp frame_pointer() const = 0;
+  virtual std::unordered_map<ir::TempGen::Temp, register_t> get_register_mapping() const = 0;
+  virtual size_t number_of_registers() const = 0;
+  virtual void rewrite_program(std::list<codegen::assem::Instruction>& list,
+                               const std::unordered_set<ir::TempGen::Temp>& spilled_temps) = 0;
+  virtual ir::TempGen::Label name() const = 0;
+  virtual Access& alloc_local(bool escape) = 0;
+  virtual size_t locals_count() const = 0;
+  virtual ir::Ex exp(const Access& fax, ir::Ex&& fp) const = 0;
 };
 
-class FrameFactory
+struct FrameFactory
 {
-  public:
   virtual ~FrameFactory() = default;
   virtual std::unique_ptr<Frame> make_frame(ir::TempGen::Label label,
                                             const std::vector<bool>& formals) const = 0;
@@ -32,7 +42,7 @@ struct Level
   struct Access
   {
     const Level* l{};
-    FrameAccess& fax;
+    const Frame::Access& fax;
   };
 
   Level(const Level* parent, std::unique_ptr<Frame> f)
@@ -41,7 +51,7 @@ struct Level
   {
     for(auto& formal : frame->formals())
     {
-      formals.emplace_back(this, *formal);
+      formals.emplace_back(Access{this, formal.get()});
     }
   }
 
@@ -49,32 +59,3 @@ struct Level
   const Level* parent{};
   std::unique_ptr<Frame> frame;
 };
-
-class Translator
-{
-  public:
-  Translator(const FrameFactory& ff)
-    : frame_factory(ff)
-  {
-    lvl_outermost = std::make_shared<Level>(
-      nullptr,
-      frame_factory.make_frame(ir::TempGen::named_label("tiger_outermost"), std::vector<bool>{}));
-
-    lvl_main = std::make_shared<Level>(
-      nullptr,
-      frame_factory.make_frame(ir::TempGen::named_label("tiger_main"), std::vector<bool>{}));
-  }
-
-  private:
-  std::shared_ptr<Level> lvl_outermost;
-  std::shared_ptr<Level> lvl_main;
-  const FrameFactory& frame_factory;
-};
-
-} // namespace example1
-
-// TODO: How should we make the translator, frames and other stuff not dependant on the target with templates and traits
-namespace example2
-{
-
-}
