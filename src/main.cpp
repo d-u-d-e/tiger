@@ -19,6 +19,8 @@
 #include "arch/x86_64/frame.hpp"
 #include "frame.hpp"
 
+seman::env::Environment<ir::VEntryT<ir::LevelT<ir::FrameExample>>> e;
+
 using namespace std::literals;
 
 #ifndef NDEBUG
