@@ -2,12 +2,10 @@
 #include <cassert>
 #include <codegen/assem.hpp>
 #include <flow.hpp>
-#include <generated/config.hpp>
 #include <graph.hpp>
 #include <ir/temp.hpp>
 #include <list>
 #include <optional>
-#include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>

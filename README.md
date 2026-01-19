@@ -1,9 +1,24 @@
+# Table of Contents
+1. [The Tiger language (vanilla)](#tiger)
+    1. [Lexical issues](#lex)
+    2. [Declarations](#dec)
+    3. [Expressions](#exp)
+    4. [Scope rules](#scope)
+    5. [Programs](#prog)
+    6. [Standard Library](#sl)
+2. [Requirements](#req)
+3. [Build instructions](#build)
+4. [Compilation](#compile)
+5. [TODO](#todo)
+
+<a id="tiger"></a>
 # 1. The Tiger language (vanilla)
 
 The Tiger language is a small language with nested functions, record values with implicit pointers, arrays, integer and string variables and a few simple structured control constructs.
 
 The predefined function `getchar` has been renamed to `getchr` to avoid link problems with the C function. Not all escape sequences are supported. See 1.3.4.
 
+<a id="lex"></a>
 ## 1.1 Lexical issues
 
 An **identifier** is a sequence of letters, digits and underscores, starting with a letter. Identifiers are case sensitive.
@@ -14,6 +29,7 @@ In the following `ε` denotes an empty string, while `{x}` stands for a possibil
 <br>
 Words containing the term 'id' are identifiers.
 
+<a id="dec"></a>
 ## 1.2 Declarations
 A *declaration-sequence* is a sequence of type, value, and function declarations;
 no punctuation separates or terminates individual declarations.
@@ -95,7 +111,7 @@ function tree_list_leaves(l: treelist): int =
     if l = nil then 0
     else tree_leaves(l.hd) + tree_list_leaves(l.tl)
 ```
-
+<a id="exp"></a>
 ## 1.3 Expressions
 
 We use `exp` to denote an expression in the grammar. We also use `exp1`, `exp2` `exp3` do denote `exp` in case we want to reference that particular expression in the discussion.
@@ -290,6 +306,7 @@ exp    -> 'let' decs 'in' expseq 'end'
 
 The `let` expression evaluates the declarations `decs`, binding types, variables, and functions whose scope then extends over the `expseq`. The `expseq` is a sequence of zero or more expressions, separated by semicolons. The result (if any) of the last exp in the sequence is then the result of the entire `let` expression. A `let` expression with nothing between the `in` and `end` yields no value.
 
+<a id="scope"></a>
 ## 1.4 Scope rules
 
 **Local variables**: in the expression `'let' ... vardec ... 'in' exp 'end'` the scope of the declared variable starts just after its `vardec` and lasts until the `end`.
@@ -326,11 +343,83 @@ function f(v: int) =
 is applied to `5` it will print `6 7 6 8 6`.
 Similarly, type declarations may be hidden by the redeclaration of the same name in a smaller scope. However, no two functions in a sequence of mutually recursive functions may have the same name; and no two types in a sequence of mutually recursive types may have the same name.
 
+<a id="prog"></a>
 ## 1.5 Programs
 
 Tiger programs do not have arguments: a program is just an expression `exp`.
+The following are examples of Tiger programs:
 
-## 1.6 Standard library
+### 1.5.1 Hello World
+These are all equivalent:
+```
+print("Hello World!\n")
+```
+
+```
+let
+    var s := "Hello World!\n"
+in
+    print(s)
+end
+```
+### 1.5.2 Sieve of Eratosthenes
+
+This will print all prime numbers up to 200.
+<br>
+It's a bit verbose because there's no standard function that can print integers.
+<br>
+`int_array` is an array of booleans. `int_array[i]` is true iff `i` is prime.
+
+```
+let
+  var N := 200
+  type int_array = array of int
+
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+        then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+        else if i > 0 then f(i)
+        else print("0")
+    end
+
+  function get_primes(primes: int_array) =
+    (
+      primes[0] := 0;
+      primes[1] := 0;
+      for i := 2 to N do
+      (
+        if i * i > N then break;
+        if primes[i] then
+          let var j := i * i in
+            while j <= N do
+            (
+              primes[j] := 0;
+              j := j + i
+            )
+          end
+      )
+    )
+in
+  let
+    var primes := int_array[N+1] of 1
+    function print_array(a: int_array) =
+      for j := 0 to N do
+          if a[j] then (printint(j); print(" "))
+  in
+    get_primes(primes);
+    print_array(primes)
+  end
+end
+```
+
+### 1.5.3 Book examples
+
+See `tests/book` for more examples from the book.
+
+<a id="sl"></a>
+
+## 1.6 Standard Library
 
 The following functions are predefined:
 
@@ -349,6 +438,51 @@ The following functions are predefined:
 `function concat(s1: string, s2: string): string` : Concatenation of `s1` and `s2`.
 <br>
 
-# 2. TODO
+<a id="req"></a>
 
+# 2. Requirements
+Currently, the compiler can be compiled for Linux only, with the usual `gcc` supporting c++23.
+Additionally, `libgraphviz-dev` is required to compile the compiler with support for graphviz.
+
+<a id="build"></a>
+
+# 3. Build instructions
+
+The supported targets are:
+- `x86_64`
+
+To build for a specific target, pass `CONFIG_TARGET_x=1`, where `x` is one of the value listed above to CMake. Eg:
+
+```bash
+cmake -B build -DCMAKE_INSTALL_PREFIX=$PWD/dist -DCONFIG_TARGET_x86_64=1
+```
+
+To build with Graphviz support, pass `-DCONFIG_WITH_GRAPHVIZ=1`. Graphviz is used to pretty print graphs while debugging the compiler.
+
+
+<a id="compile"></a>
+
+# 4. Compilation
+
+Once installed, the compiler directory looks like:
+```
+.
+├── bin
+│   └── tigerc
+├── lib
+│   └── runtime.o
+└── tools
+    └── driver.sh
+```
+
+`tigerc` produces an assembly file as output. `driver.sh` will call the assembler and link the runtime library inside `lib`. For example, to produce executable `example` from `example.tig` use:
+```bash
+driver.sh example.tig -o example
+```
+`driver.sh` calls `gcc` assembler and linker.
+
+
+<a id="todo"></a>
+
+# 5. TODO
 - Implement all standard library functions

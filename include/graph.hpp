@@ -1,11 +1,12 @@
 #pragma once
+#include <algorithm>
 #include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <format>
-#include <list>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 /* A directed graph */
@@ -20,12 +21,10 @@ class Digraph {
       , uid(uid)
     { }
 
-    std::string str() const requires requires(const T& t)
-    {
-      {
-        t.to_string()
-        } -> std::same_as<std::string>;
-    }
+    std::string str() const
+      requires requires(const T& t) {
+        { t.to_string() } -> std::same_as<std::string>;
+      }
     {
       return std::format("{}: {}", uid, data_.to_string());
     }
@@ -60,10 +59,11 @@ private:
     nodes[to].prec.insert(from);
   }
 
-  node_id_t add_node(T node_data)
+  template<typename U = T>
+  node_id_t add_node(U&& node_data)
   {
     node_id_t node_id = nodes.size();
-    nodes.emplace_back(node_id, std::move(node_data));
+    nodes.emplace_back(node_id, std::forward<U>(node_data));
     return node_id;
   }
 
@@ -90,13 +90,10 @@ private:
     return nodes[nid];
   }
 
-  std::list<node_id_t> get_nodes()
+  std::vector<node_id_t> get_nodes() const
   {
-    std::list<node_id_t> out;
-    for(auto& n : nodes)
-    {
-      out.push_back(n.id());
-    }
+    std::vector<node_id_t> out(nodes.size());
+    std::ranges::transform(nodes, out.begin(), [](const GraphNode& n) { return n.uid; });
     return out;
   }
 

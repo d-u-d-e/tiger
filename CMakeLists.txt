@@ -8,12 +8,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # add dependencies
 include(cmake/CPM.cmake)
 
-# TODO: where to put this?
-set(CONFIG_WITH_GRAPHVIZ 1)
-set(CONFIG_TARGET_x86_64 1)
+function(configure_optional_define VAR DEFAULT)
+    # If user did not pass -DVAR=...
+    if(NOT DEFINED ${VAR})
+        set(${VAR} "${DEFAULT}" PARENT_SCOPE)
+    endif()
+endfunction()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/config.hpp.in 
-  ${CMAKE_CURRENT_BINARY_DIR}/generated/config.hpp @ONLY)
+# All variables must have a default, otherwise autoconf.hpp will contain empty macros
+configure_optional_define(CONFIG_TARGET_x86_64 0)
+configure_optional_define(CONFIG_WITH_GRAPHVIZ 0)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/autoconf.hpp.in 
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/autoconf.hpp @ONLY)
 
 set(sources_common
     src/lexer/lex.cpp
