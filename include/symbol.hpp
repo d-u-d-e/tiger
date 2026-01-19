@@ -1,17 +1,11 @@
 #pragma once
-#include <cstddef>
-#include <functional>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
-#include <unordered_map>
 
-namespace symbol
+class Symbol
 {
-
-using Identifier = uint32_t;
-
-class Symbol {
   public:
+  using Identifier = uint32_t;
   Symbol(const std::string& name, Identifier id)
     : name(name)
     , id_(id){};
@@ -35,29 +29,11 @@ class Symbol {
   Identifier id_;
 };
 
-class StringTable {
-  public:
-  std::string name(const Symbol& symbol) const
-  {
-    return symbol.str();
-  }
-  const Symbol& symbol(const std::string& name);
-  std::string dump() const;
-
-  private:
-  Identifier identifier{1};
-  std::unordered_map<std::string, Symbol> table;
-};
-
-} // namespace symbol
-
-namespace std
-{
 template <>
-struct hash<symbol::Symbol> {
-  size_t operator()(const symbol::Symbol& s) const
+struct std::hash<Symbol>
+{
+  size_t operator()(const Symbol& s) const
   {
     return s.id();
   }
 };
-} // namespace std

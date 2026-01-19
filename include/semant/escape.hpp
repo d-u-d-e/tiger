@@ -1,16 +1,11 @@
 #pragma once
-#include <cassert>
-#include <format>
-#include <memory>
-#include <seman/env.hpp>
-#include <seman/visitor.hpp>
-#include <string>
-#include <symbol.hpp>
-#include <utility>
+#include "semant/env.hpp"
+#include "semant/visitor.hpp"
 
-namespace seman
+namespace semant
 {
-struct Escape {
+struct Escape
+{
   Escape(int depth, std::shared_ptr<bool> ref)
     : depth(depth)
     , ref(std::move(ref))
@@ -25,7 +20,8 @@ struct Escape {
 
 class EscapeFinder : public FindEscapeExprVisitor,
                      public FindEscapeDeclVisitor,
-                     public FindEscapeVarVisitor {
+                     public FindEscapeVarVisitor
+{
 
   public:
   EscapeFinder() = default;
@@ -53,7 +49,7 @@ class EscapeFinder : public FindEscapeExprVisitor,
   void visit_field_var(parser::ast::FieldVar& var) override;
   void visit_subscript_var(parser::ast::SubscriptVar& var) override;
 
-  Escape lookup(const symbol::Symbol& name)
+  Escape lookup(const Symbol& name)
   {
     auto v = env.lookup(name);
     assert(v != nullptr);
@@ -61,7 +57,7 @@ class EscapeFinder : public FindEscapeExprVisitor,
   }
 
   private:
-  seman::env::Environment<Escape> env;
+  Environment<Escape> env;
 };
 
-} // namespace seman
+} // namespace semant

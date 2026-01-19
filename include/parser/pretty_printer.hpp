@@ -1,9 +1,6 @@
 #pragma once
-#include <cstddef>
-#include <format>
-#include <parser/ast.hpp>
-#include <parser/visitor.hpp>
-#include <string>
+#include "parser/ast.hpp"
+#include "parser/visitor.hpp"
 
 namespace parser::ast
 {
@@ -11,7 +8,8 @@ namespace parser::ast
 class PrettyPrinter : public PrettyPrinterExprVisitor,
                       public PrettyPrinterTypeVisitor,
                       public PrettyPrinterDeclVisitor,
-                      public PrettyPrinterVarVisitor {
+                      public PrettyPrinterVarVisitor
+{
 
   public:
   std::string visit_simple_var(const parser::ast::SimpleVar& var) override

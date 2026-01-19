@@ -1,13 +1,116 @@
-#include <cctype>
+#include "lexer/lex.hpp"
+#include "lexer/position.hpp"
 #include <format>
-#include <lexer/lex.hpp>
-#include <lexer/position.hpp>
-#include <lexer/token.hpp>
-#include <string>
+#include <fstream>
 #include <utility>
 
 namespace lexer
 {
+
+Scanner::Scanner(const std::filesystem::path& filename)
+  : filename_(filename)
+{
+  auto f = std::ifstream(filename);
+
+  if(!f.is_open())
+  {
+    error(std::format("Err: could not open file '{}'", filename.generic_string()));
+  }
+
+  std::stringstream buffer;
+  buffer << f.rdbuf();
+  contents = buffer.str();
+  current = row = contents.c_str();
+  line = 1;
+}
+
+Scanner::Scanner(const std::string& src)
+{
+  contents = src;
+  current = row = contents.c_str();
+  line = 1;
+}
+
+std::string Scanner::filename()
+{
+  return filename_;
+}
+
+Token Scanner::next()
+{
+  skip_whitespaces();
+  skip_comments();
+  return read_token();
+}
+
+char Scanner::peek(int offset)
+{
+  if(current + offset >= contents.c_str() + contents.size())
+  {
+    return '\0';
+  }
+  return *(current + offset);
+}
+
+void Scanner::expect(char ch, const std::string& err_msg)
+{
+  if(*current != ch)
+  {
+    error_at(err_msg);
+  }
+  current++;
+}
+
+bool Scanner::match(char ch)
+{
+  if(*current == ch)
+  {
+    current++;
+    return true;
+  }
+  return false;
+}
+
+void Scanner::error_at(const std::string& err_msg)
+{
+  error(std::format("[{}:{}] Err: {}", filename_, line, err_msg));
+}
+
+void Scanner::error(const std::string& err_msg)
+{
+  throw Exception(err_msg);
+}
+
+Token Scanner::eof_token()
+{
+  return Token(TokenType::eof, "$", Position(line, int(current - row) + 1));
+}
+
+bool Scanner::is_eof(const char* current)
+{
+  return current >= (contents.c_str() + contents.size());
+}
+
+void Scanner::skip_comments()
+{
+  while(!is_eof(current) && *current == '/' && peek(1) == '*')
+  {
+    skip_multiline_comment();
+  }
+}
+
+void Scanner::skip_whitespaces()
+{
+  while(!is_eof(current) && std::isspace(*current))
+  {
+    if(*current == '\n')
+    {
+      line++;
+      row = current + 1;
+    }
+    current++;
+  }
+}
 
 std::string Scanner::escape_sequence()
 {

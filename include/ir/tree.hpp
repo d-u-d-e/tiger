@@ -1,9 +1,8 @@
 #pragma once
+#include "temp.hpp"
 #include <cstdint>
 #include <functional>
-#include <ir/temp.hpp>
 #include <memory>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -45,7 +44,6 @@ using Ex = tree::Exp;
 using Nx = tree::Stmt;
 using Cx = std::move_only_function<tree::Stmt(TempGen::Label, TempGen::Label)>;
 using Exp = std::variant<std::monostate, Ex, Nx, Cx>;
-
 } // namespace ir
 
 namespace ir::tree
@@ -81,28 +79,32 @@ enum class RelOp
 
 RelOp not_relop(RelOp op);
 
-struct ConstExp {
+struct ConstExp
+{
   ConstExp(int64_t v)
     : v(v)
   { }
   int64_t v;
 };
 
-struct NameExp {
+struct NameExp
+{
   NameExp(TempGen::Label label)
     : label(label)
   { }
   TempGen::Label label;
 };
 
-struct TempExp {
+struct TempExp
+{
   TempExp(TempGen::Temp temp)
     : temp(temp)
   { }
   TempGen::Temp temp;
 };
 
-struct BinOpExp {
+struct BinOpExp
+{
   BinOpExp(BinaryOp op, ir::Ex&& left, ir::Ex&& right)
     : op(op)
     , left(std::move(left))
@@ -113,13 +115,15 @@ struct BinOpExp {
   ir::Ex right;
 };
 
-struct MemExp {
+struct MemExp
+{
   MemExp(ir::Ex&& address)
     : a(std::move(address)){};
   ir::Ex a;
 };
 
-struct CallExp {
+struct CallExp
+{
   CallExp(ir::Ex&& fun, std::vector<ir::Ex>&& args)
     : fun(std::move(fun))
     , args(std::move(args)){};
@@ -127,7 +131,8 @@ struct CallExp {
   std::vector<ir::Ex> args;
 };
 
-struct ESeqExp {
+struct ESeqExp
+{
   ESeqExp(ir::Nx&& stmt, ir::Ex&& exp)
     : stmt(std::move(stmt))
     , exp(std::move(exp)){};
@@ -135,7 +140,8 @@ struct ESeqExp {
   ir::Ex exp;
 };
 
-struct MoveStmt {
+struct MoveStmt
+{
   MoveStmt(ir::Ex&& left, ir::Ex&& right)
     : left(std::move(left))
     , right(std::move(right))
@@ -144,14 +150,16 @@ struct MoveStmt {
   ir::Ex right;
 };
 
-struct ExpStmt {
+struct ExpStmt
+{
   ExpStmt(ir::Ex&& exp)
     : exp(std::move(exp))
   { }
   ir::Ex exp;
 };
 
-struct JumpStmt {
+struct JumpStmt
+{
   JumpStmt(ir::Ex&& address, std::vector<TempGen::Label> labels)
     : a(std::move(address))
     , labels(std::move(labels))
@@ -160,7 +168,8 @@ struct JumpStmt {
   std::vector<TempGen::Label> labels;
 };
 
-struct CJumpStmt {
+struct CJumpStmt
+{
   CJumpStmt(RelOp op, ir::Ex&& lexp, ir::Ex&& rexp, TempGen::Label tlabel, TempGen::Label flabel)
     : op(op)
     , lexp(std::move(lexp))
@@ -175,7 +184,8 @@ struct CJumpStmt {
   TempGen::Label flabel;
 };
 
-struct SeqStmt {
+struct SeqStmt
+{
   SeqStmt(ir::Nx&& stm1, ir::Nx&& stm2)
     : stm1(std::move(stm1))
     , stm2(std::move(stm2))
@@ -184,7 +194,8 @@ struct SeqStmt {
   ir::Nx stm2;
 };
 
-struct LabelStmt {
+struct LabelStmt
+{
   LabelStmt(TempGen::Label label)
     : label(label)
   { }

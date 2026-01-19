@@ -1,10 +1,5 @@
-#include <cassert>
+#include "string_table.hpp"
 #include <format>
-#include <string>
-#include <symbol.hpp>
-
-namespace symbol
-{
 
 const Symbol& StringTable::symbol(const std::string& name)
 {
@@ -30,5 +25,3 @@ std::string StringTable::dump() const
   }
   return result;
 }
-
-} // namespace symbol

@@ -1,7 +1,7 @@
-#include <parser/ast.hpp>
-#include <seman/escape.hpp>
+#include "semant/escape.hpp"
+#include "parser/ast.hpp"
 
-namespace seman
+namespace semant
 {
 
 void EscapeFinder::visit_type_decl(parser::ast::TypeDecl&) { }
@@ -136,4 +136,4 @@ void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
   env.end_scope();
 }
 
-} // namespace seman
+} // namespace semant

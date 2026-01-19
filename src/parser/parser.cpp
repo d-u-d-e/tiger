@@ -1,23 +1,4 @@
-
-#include <cassert>
-#include <cstdint>
-#include <format>
-#include <functional>
-#include <lexer/position.hpp>
-#include <lexer/token.hpp>
-#include <limits>
-#include <memory>
-#include <optional>
-#include <ostream>
-#include <parser/ast.hpp>
-#include <parser/parser.hpp>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <symbol.hpp>
-#include <unordered_set>
-#include <utility>
-#include <vector>
+#include "parser/parser.hpp"
 
 namespace parser
 {
@@ -331,7 +312,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
     expect(lexer::TokenType::rparen, "expected ')' in function declaration");
 
     // parse return type
-    std::optional<std::pair<symbol::Symbol, lexer::Position>> result;
+    std::optional<std::pair<Symbol, lexer::Position>> result;
     if(match(lexer::TokenType::colon))
     {
       expect(lexer::TokenType::identifier, "expected function return type");
@@ -418,7 +399,7 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
   auto pos = previous.pos;
   expect(lexer::TokenType::identifier, "expected variable identifier");
   auto var_id = symbol(previous.value);
-  std::optional<std::pair<symbol::Symbol, lexer::Position>> var_type;
+  std::optional<std::pair<Symbol, lexer::Position>> var_type;
   if(match(lexer::TokenType::colon))
   {
     expect(lexer::TokenType::identifier, "expected variable type after ':' token");

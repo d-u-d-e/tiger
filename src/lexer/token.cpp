@@ -1,7 +1,6 @@
+#include "lexer/token.hpp"
 #include <cassert>
 #include <format>
-#include <lexer/token.hpp>
-#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -133,11 +132,4 @@ std::string to_string(const Token& token)
   return std::format(
     "[{}: '{}' ({}, {})]", to_string(token.type), token.value, token.pos.line, token.pos.column);
 }
-
-std::ostream& operator<<(std::ostream& os, const Token& value)
-{
-  os << to_string(value);
-  return os;
-}
-
 } // namespace lexer

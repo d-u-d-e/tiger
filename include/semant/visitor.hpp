@@ -1,5 +1,5 @@
 #pragma once
-#include <seman/types.hpp>
+#include <semant/types.hpp>
 
 namespace parser::ast
 {
@@ -29,10 +29,11 @@ class ArrayType;
 class RecordType;
 } // namespace parser::ast
 
-namespace seman
+namespace semant
 {
 
-class TypeCheckerExprVisitor {
+class TypeCheckerExprVisitor
+{
   public:
   types::Result virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
   types::Result virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
@@ -51,28 +52,32 @@ class TypeCheckerExprVisitor {
   types::Result virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
 };
 
-class TypeCheckerDeclVisitor {
+class TypeCheckerDeclVisitor
+{
   public:
   types::Result virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
   types::Result virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
   types::Result virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
 };
 
-class TypeCheckerTypeVisitor {
+class TypeCheckerTypeVisitor
+{
   public:
   types::SharedType virtual visit_name_type(const parser::ast::NameType& type) = 0;
   types::SharedType virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   types::SharedType virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };
 
-class TypeCheckerVarVisitor {
+class TypeCheckerVarVisitor
+{
   public:
   types::Result virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   types::Result virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
   types::Result virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
 };
 
-class FindEscapeExprVisitor {
+class FindEscapeExprVisitor
+{
   public:
   void virtual visit_string_exp(parser::ast::StringExp& exp) = 0;
   void virtual visit_assign_exp(parser::ast::AssignExp& exp) = 0;
@@ -91,18 +96,20 @@ class FindEscapeExprVisitor {
   void virtual visit_let_exp(parser::ast::LetExp& exp) = 0;
 };
 
-class FindEscapeDeclVisitor {
+class FindEscapeDeclVisitor
+{
   public:
   void virtual visit_func_decl(parser::ast::FuncDecl& decl) = 0;
   void virtual visit_var_decl(parser::ast::VarDecl& decl) = 0;
   void virtual visit_type_decl(parser::ast::TypeDecl& decl) = 0;
 };
 
-class FindEscapeVarVisitor {
+class FindEscapeVarVisitor
+{
   public:
   void virtual visit_simple_var(parser::ast::SimpleVar& var) = 0;
   void virtual visit_field_var(parser::ast::FieldVar& var) = 0;
   void virtual visit_subscript_var(parser::ast::SubscriptVar& var) = 0;
 };
 
-}; // namespace seman
+}; // namespace semant

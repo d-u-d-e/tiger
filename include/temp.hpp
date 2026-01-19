@@ -1,15 +1,14 @@
 #pragma once
+#include "string_table.hpp"
+#include "symbol.hpp"
 #include <cstdint>
 #include <format>
 #include <string>
-#include <symbol.hpp>
 
-namespace ir
+class TempGen
 {
-
-class TempGen {
   public:
-  using Label = symbol::Symbol;
+  using Label = Symbol;
   using Temp = uint32_t;
 
   TempGen(const TempGen&) = delete;
@@ -46,9 +45,7 @@ class TempGen {
   private:
   TempGen() = default;
 
-  symbol::StringTable table;
+  StringTable table;
   uint32_t lid{0};
   uint32_t tid{0};
 };
-
-} // namespace ir

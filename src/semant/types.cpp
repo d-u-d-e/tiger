@@ -1,8 +1,8 @@
+#include "semant/types.hpp"
 #include <cstddef>
-#include <seman/types.hpp>
 #include <string>
 
-namespace seman::types
+namespace semant::types
 {
 
 std::string to_string(const SharedType& t)
@@ -53,4 +53,4 @@ std::string Name::to_string()
   return name.str();
 }
 
-} // namespace seman::types
+} // namespace semant::types

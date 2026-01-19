@@ -1,8 +1,8 @@
 #pragma once
+#include "ir/tree.hpp"
 #include <cassert>
 #include <cstddef>
 #include <format>
-#include <ir/tree.hpp>
 #include <memory>
 #include <string>
 #include <variant>
@@ -10,7 +10,8 @@
 namespace ir::tree
 {
 
-class PrettyPrinter {
+class PrettyPrinter
+{
 
   public:
   std::string operator()(const std::unique_ptr<ConstExp>& exp)

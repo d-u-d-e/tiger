@@ -1,5 +1,5 @@
+#include "ir/tree.hpp"
 #include <cassert>
-#include <ir/tree.hpp>
 #include <utility>
 
 namespace ir::tree
