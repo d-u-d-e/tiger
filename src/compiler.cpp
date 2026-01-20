@@ -1,7 +1,10 @@
 #include "compiler.hpp"
+#include "ir/translator.hpp"
 #include "parser/parser.hpp"
+#include "semant/analyzer.hpp"
 #include "semant/escape.hpp"
 #include "string_table.hpp"
+#include "target.hpp"
 #include "terminal.hpp"
 #include <optional>
 
@@ -19,12 +22,6 @@ std::string strip_extension(const std::string& filename)
 }
 
 } // namespace
-
-template <typename Target>
-auto make_translator()
-{
-  
-}
 
 std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& source,
                                                  const char* oname)
@@ -59,5 +56,35 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   semant::EscapeFinder esc_finder;
   exp->accept(esc_finder);
 
+  using Translator = ir::Translator<FrameImpl>;
+  Translator translator;
+  semant::Analyzer<Translator> type_checker(source, string_table, translator);
+  ir::Exp ir;
+  try
+  {
+    ir = type_checker.type_check(*exp);
+  }
+  catch(semant::Exception& e)
+  {
+    terminal_enter_error();
+    std::println(std::cerr, "{}", e.what());
+    terminal_exit_error();
+    return Error::SEMAN_ERR;
+  }
+
+  // AST to IR
+  translator.translate_main_program(std::move(ir));
+  auto out_file = fopen(out_name.c_str(), "w");
+  if(!out_file)
+  {
+    terminal_enter_error();
+    std::println(std::cerr, "tigerc: could not write assembly output for {}", source.string());
+    terminal_exit_error();
+    return Error::IO_ERR;
+  }
+
+  // IR to Assembly
+  
+  // TODO
   return std::nullopt;
 }

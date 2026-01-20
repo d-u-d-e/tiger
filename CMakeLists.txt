@@ -30,10 +30,7 @@ set(sources_common
     src/parser/parser.cpp
     src/semant/types.cpp
     src/semant/escape.cpp
-
     src/ir/tree.cpp
-    #src/seman/analyzer.cpp
-    #src/ir/translator.cpp
 )
 
 # Change this to include more targets
@@ -41,7 +38,7 @@ set(sources_target_specific)
 if (CONFIG_TARGET_x86_64)
     list(APPEND sources_target_specific 
       #src/codegen/arch/x86-64/isel.cpp 
-      #src/arch/x86_64/frame.cpp
+      src/arch/x86_64/frame.cpp
       )
 endif()
 
@@ -49,7 +46,6 @@ add_executable(
     tigerc
     src/main.cpp
     #src/ir/canon.cpp
-    #src/ir/tree.cpp
     #src/flow.cpp
     #src/liveness.cpp
     #src/reg_alloc.cpp

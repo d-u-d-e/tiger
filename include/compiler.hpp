@@ -14,7 +14,4 @@ class Compiler
     IO_ERR,
   };
   std::optional<Error> compile(const std::filesystem::path& source, const char* oname = nullptr);
-
-  template <typename Target>
-  auto make_translator();
 };

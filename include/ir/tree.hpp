@@ -44,6 +44,11 @@ using Ex = tree::Exp;
 using Nx = tree::Stmt;
 using Cx = std::move_only_function<tree::Stmt(TempGen::Label, TempGen::Label)>;
 using Exp = std::variant<std::monostate, Ex, Nx, Cx>;
+
+Cx uncx(Exp&& exp);
+Ex unex(Exp&& exp);
+Nx unnx(Exp&& exp);
+
 } // namespace ir
 
 namespace ir::tree
@@ -201,5 +206,4 @@ struct LabelStmt
   { }
   TempGen::Label label;
 };
-
 } // namespace ir::tree

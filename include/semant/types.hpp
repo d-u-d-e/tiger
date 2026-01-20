@@ -1,4 +1,5 @@
 #pragma once
+#include "ir/tree.hpp"
 #include "symbol.hpp"
 #include <memory>
 #include <string>
@@ -70,7 +71,7 @@ struct Name : public Type
 struct Result
 {
   SharedType type;
-  //ir::Exp ir; TODO
+  ir::Exp ir;
 };
 
 std::string to_string(const SharedType& t);
