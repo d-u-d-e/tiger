@@ -247,7 +247,7 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   catch(semant::Exception& e)
   {
     terminal_write_error(e.what());
-    return Error::SEMAN_ERR;
+    return Error::SEMANT_ERR;
   }
 
   // AST to IR

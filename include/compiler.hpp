@@ -11,7 +11,7 @@ class Compiler
   {
     LEX_ERR,
     PARSE_ERR,
-    SEMAN_ERR,
+    SEMANT_ERR,
     USAGE_ERR,
     IO_ERR,
   };
