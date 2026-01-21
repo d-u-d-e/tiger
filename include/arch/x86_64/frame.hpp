@@ -21,7 +21,6 @@ class X86Frame
 
   static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
-  static inline auto SP = TempGen::new_temp();
 
   struct InReg
   {
@@ -81,6 +80,7 @@ class X86Frame
   stack_offset_t alloc_spilled_temporary();
 
   private:
+  static inline auto SP = TempGen::new_temp();
   static inline auto RAX = RV;
   static inline auto RBX = TempGen::new_temp();
   static inline auto RDI = TempGen::new_temp();

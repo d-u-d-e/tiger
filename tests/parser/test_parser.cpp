@@ -55,7 +55,7 @@ TEST_SUITE("parser")
     {
       auto file_path = file.path();
 
-      if(file_path.filename().string() == "test49.tig")
+      if(file_path.string() == "test49.tig" || !file_path.string().ends_with(".tig"))
       {
         continue;
       }
