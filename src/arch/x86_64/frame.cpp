@@ -58,6 +58,15 @@ uint16_t X86Frame::locals_count() const
   return locals;
 }
 
+std::optional<X86Frame::register_t> X86Frame::map_temp(const TempGen::Temp& t)
+{
+  if(temp_map.find(t) != temp_map.end())
+  {
+    return temp_map[t];
+  }
+  return std::nullopt;
+}
+
 ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 {
   // proc_entry_exit1 does the following:

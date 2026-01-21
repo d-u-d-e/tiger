@@ -31,13 +31,14 @@ set(sources_common
     src/semant/types.cpp
     src/semant/escape.cpp
     src/ir/tree.cpp
+    src/assem.cpp
 )
 
 # Change this to include more targets
 set(sources_target_specific)
 if (CONFIG_TARGET_x86_64)
     list(APPEND sources_target_specific 
-      #src/codegen/arch/x86-64/isel.cpp 
+      src/arch/x86_64/generator.cpp
       src/arch/x86_64/frame.cpp
       )
 endif()

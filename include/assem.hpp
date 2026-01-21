@@ -1,5 +1,6 @@
 #pragma once
 #include "temp.hpp"
+#include <functional>
 #include <optional>
 #include <string>
 #include <variant>
@@ -35,4 +36,6 @@ struct Move
 
 using Instruction = std::variant<Oper, Label, Move>;
 
+std::string format(std::function<std::string(const TempGen::Temp& t)> mapper,
+                   const Instruction& ins);
 } // namespace assem

@@ -13,6 +13,8 @@ namespace arch
 class X86Frame
 {
   public:
+  friend class X86Generator;
+
   using stack_offset_t = int64_t;
   using Temp = TempGen::Temp;
   using Label = TempGen::Label;
@@ -69,6 +71,7 @@ class X86Frame
                        f.label.str(),
                        f.lit);
   }
+  static std::optional<register_t> map_temp(const TempGen::Temp& t);
 
   private:
   stack_offset_t alloc_spilled_temporary();
@@ -93,6 +96,27 @@ class X86Frame
   static inline std::vector<TempGen::Temp> caller_saved{RDI, RSI, RCX, RDX, R8, R9, R10, R11};
   static inline std::vector<Temp> callee_saved{RBX, R12, R13, R14, R15};
   static inline std::vector<Temp> params_on_regs{RDI, RSI, RDX, RCX, R8, R9};
+
+  // clang-format off
+  static inline std::unordered_map<TempGen::Temp, register_t> temp_map{
+    {FP, "rbp"},
+    {RV, "rax"},
+    {SP, "rsp"},
+    {RDI, "rdi"},
+    {RSI, "rsi"},
+    {RCX, "rcx"},
+    {RDX, "rdx"},
+    {R8, "r8"},
+    {R9, "r9"},
+    {R10, "r10"},
+    {R11, "r11"},
+    {RBX, "rbx"},
+    {R12, "r12"},
+    {R13, "r13"},
+    {R14, "r14"},
+    {R15, "r15"}
+  };
+  // clang-format on
 
   Label label;
   ir::tree::Stmt view_shift{};

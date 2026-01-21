@@ -1,4 +1,5 @@
 #include "compiler.hpp"
+#include "assem.hpp"
 #include "ir/canon.hpp"
 #include "ir/fragment.hpp"
 #include "ir/translator.hpp"
@@ -8,6 +9,7 @@
 #include "semant/escape.hpp"
 #include "string_table.hpp"
 #include "target.hpp"
+#include "temp.hpp"
 #include "terminal.hpp"
 #include <optional>
 #include <print>
@@ -17,7 +19,7 @@
 #  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 1
 #  define DEBUG_PRETTY_PRINT_BLOCKS 1
 #  define DEBUG_PRETTY_PRINT_TRACE 1
-#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
 #  if CONFIG_WITH_GRAPHVIZ
 #    define DEBUG_RENDER_FLOW_GRAPH 0
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
@@ -32,12 +34,42 @@
 namespace
 {
 
-template <typename FrameT>
-void emit_procedure_fragment(FILE* ofile, FrameT& f, std::list<ir::tree::Stmt>& body)
+[[maybe_unused]] auto constexpr sep = "-----------------------------";
+
+std::string temporary_mapper(const TempGen::Temp& t)
 {
+  auto mapped = FrameImpl::map_temp(t);
+  if(mapped)
+  {
+    return mapped.value();
+  }
+  return TempGen::to_string(t);
+}
+
+void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt>& body)
+{
+  // generate target code, with an infinite number of machine registers
+  GeneratorImpl gen;
+  std::list<assem::Instruction> all;
+  for(auto& s : body)
+  {
+    auto v = gen.gen(s);
+    std::move(v.begin(), v.end(), std::back_inserter(all));
+  }
+
+  // prepare for register allocation
+  f.proc_entry_exit2(all);
+
+#if DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC
+  std::println("Assembly before register allocation");
+  for(auto& i : all)
+  {
+    std::print("{}", assem::format(temporary_mapper, i));
+  }
+  std::println(sep);
+#endif
+
   static_cast<void>(ofile);
-  static_cast<void>(f);
-  static_cast<void>(body);
   // TODO
 }
 
@@ -55,8 +87,6 @@ std::string Compiler::strip_extension(const std::string& filename)
 
 std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 {
-  [[maybe_unused]] auto constexpr sep = "-----------------------------";
-
 #if DEBUG_PRETTY_PRINT_IR || DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS ||   \
   DEBUG_PRETTY_PRINT_TRACE
   ir::tree::PrettyPrinter ir_pretty_printer;
