@@ -28,17 +28,13 @@ int main(int argc, char** argv)
 
   if(input_files.empty())
   {
-    terminal_enter_error();
-    std::println(std::cerr, "tigerc: no input files");
-    terminal_exit_error();
+    terminal_write_error("tigerc: no input files");
     return RC_NO_INPUT_ERR;
   }
 
   if(oname && input_files.size() > 1)
   {
-    terminal_enter_error();
-    std::println(std::cerr, "tigerc: cannot specify '-o' with multiple input files");
-    terminal_exit_error();
+    terminal_write_error("tigerc: cannot specify '-o' with multiple input files");
     return RC_USAGE_ERR;
   }
 

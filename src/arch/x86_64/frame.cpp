@@ -58,7 +58,7 @@ uint16_t X86Frame::locals_count() const
   return locals;
 }
 
-std::optional<X86Frame::register_t> X86Frame::map_temp(const TempGen::Temp& t)
+std::optional<assem::register_t> X86Frame::map_temp(const TempGen::Temp& t)
 {
   if(temp_map.find(t) != temp_map.end())
   {

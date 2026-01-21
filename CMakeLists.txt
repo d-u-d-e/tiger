@@ -49,6 +49,7 @@ add_executable(
     src/ir/canon.cpp
     src/flow.cpp
     src/liveness.cpp
+    src/register_allocator.cpp
     ${sources_common}
     ${sources_target_specific}
 )

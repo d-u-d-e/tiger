@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+namespace utils
+{
+
 /* A directed graph */
 template <typename T>
 class Digraph
@@ -119,3 +122,5 @@ private:
   }
   std::vector<GraphNode> nodes;
 };
+
+} // namespace utils

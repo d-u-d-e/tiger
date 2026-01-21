@@ -2,8 +2,8 @@
 
 #include "assem.hpp"
 #include "generated/autoconf.hpp"
-#include "graph.hpp"
 #include "temp.hpp"
+#include "utils/graph.hpp"
 #include <functional>
 #include <list>
 #include <string>
@@ -30,7 +30,7 @@ struct FlowNode
   std::list<TempGen::Temp> live_out{};
 };
 
-class FlowGraph : public Digraph<FlowNode>
+class FlowGraph : public utils::Digraph<FlowNode>
 {
   public:
   FlowGraph(const std::list<assem::Instruction>& ins,

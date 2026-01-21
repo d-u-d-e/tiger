@@ -18,7 +18,6 @@ class X86Frame
   using stack_offset_t = int64_t;
   using Temp = TempGen::Temp;
   using Label = TempGen::Label;
-  using register_t = std::string;
 
   static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
@@ -71,8 +70,13 @@ class X86Frame
                        f.label.str(),
                        f.lit);
   }
-  static std::optional<register_t> map_temp(const TempGen::Temp& t);
-  
+  static std::optional<assem::register_t> map_temp(const TempGen::Temp& t);
+  static const std::unordered_map<TempGen::Temp, assem::register_t>&
+  get_temporary_register_mapping()
+  {
+    return temp_map;
+  }
+
   private:
   stack_offset_t alloc_spilled_temporary();
 
@@ -98,7 +102,7 @@ class X86Frame
   static inline std::vector<Temp> params_on_regs{RDI, RSI, RDX, RCX, R8, R9};
 
   // clang-format off
-  static inline std::unordered_map<TempGen::Temp, register_t> temp_map{
+  static inline std::unordered_map<TempGen::Temp, assem::register_t> temp_map{
     {FP, "rbp"},
     {RV, "rax"},
     {SP, "rsp"},

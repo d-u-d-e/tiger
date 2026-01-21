@@ -1,6 +1,7 @@
 #pragma once
 #include "temp.hpp"
 #include <functional>
+#include <list>
 #include <optional>
 #include <string>
 #include <variant>
@@ -8,6 +9,8 @@
 
 namespace assem
 {
+
+using register_t = std::string;
 
 struct Oper
 {
@@ -36,6 +39,9 @@ struct Move
 
 using Instruction = std::variant<Oper, Label, Move>;
 
-std::string format(std::function<std::string(const TempGen::Temp& t)> mapper,
+std::string format(std::function<register_t(const TempGen::Temp& t)> mapper,
                    const Instruction& ins);
+
+void delete_coalesced_moves(std::list<Instruction>& instrs,
+                            const std::function<register_t(const TempGen::Temp&)>& reg_mapper);
 } // namespace assem

@@ -7,6 +7,7 @@
 #include "ir/tree.hpp"
 #include "liveness.hpp"
 #include "parser/parser.hpp"
+#include "register_allocator.hpp"
 #include "semant/analyzer.hpp"
 #include "semant/escape.hpp"
 #include "string_table.hpp"
@@ -24,7 +25,7 @@
 #  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
 #  if CONFIG_WITH_GRAPHVIZ
 #    define DEBUG_RENDER_FLOW_GRAPH 1
-#    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
+#    define DEBUG_RENDER_INTERFERENCE_GRAPH 1
 #  endif
 #  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 1
 #endif
@@ -46,6 +47,24 @@ std::string temporary_mapper(const TempGen::Temp& t)
     return mapped.value();
   }
   return TempGen::to_string(t);
+}
+
+void write_instructions(FILE* ofile,
+                        std::function<assem::register_t(const TempGen::Temp&)> mapper,
+                        std::list<assem::Instruction>& instrs,
+                        std::string prologue,
+                        std::string epilogue)
+{
+  // remove instructions that move a register to itself
+  std::string result{std::move(prologue)};
+  assem::delete_coalesced_moves(instrs, mapper);
+  for(auto& i : instrs)
+  {
+    result += assem::format(mapper, i);
+  }
+  result += std::move(epilogue);
+  result += +"\n";
+  std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
 
 void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt>& body)
@@ -89,11 +108,28 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     std::println("{}{}", analyzer.dump_result(), sep);
 #endif
 
-    // TODO
+    IteratedRegisterCoalescing allocator(flow_g, FrameImpl::get_temporary_register_mapping());
 
+#if DEBUG_RENDER_INTERFERENCE_GRAPH
+    std::string namei = f.name().str() + "_interference";
+    allocator.render_igraph_dot(namei, namei);
+#endif
+
+    auto spilled_nodes = allocator.perform_allocation();
+    spilling_required = !spilled_nodes.empty();
+
+    if(!spilling_required)
+    {
+      auto color_map = allocator.get_color_mapping();
+      // once we know the number of spilled temporaries, we can evaluate the required stack space for the frame
+      auto [pro, epi] = f.proc_entry_exit3(all);
+      write_instructions(ofile, color_map, all, pro, epi);
+    }
+    else
+    {
+      f.rewrite_program(all, spilled_nodes);
+    }
   } while(spilling_required);
-
-  static_cast<void>(ofile);
 }
 
 } // namespace
@@ -210,9 +246,7 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   }
   catch(semant::Exception& e)
   {
-    terminal_enter_error();
-    std::println(std::cerr, "{}", e.what());
-    terminal_exit_error();
+    terminal_write_error(e.what());
     return Error::SEMAN_ERR;
   }
 
@@ -221,9 +255,8 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   auto out_file = fopen(out_name.c_str(), "w");
   if(!out_file)
   {
-    terminal_enter_error();
-    std::println(std::cerr, "tigerc: could not write assembly output for {}", source.string());
-    terminal_exit_error();
+    terminal_write_error(
+      std::format("tigerc: could not write assembly output for {}", source.string()));
     return Error::IO_ERR;
   }
 

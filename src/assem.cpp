@@ -3,7 +3,7 @@
 namespace assem
 {
 
-std::string format(std::function<std::string(const TempGen::Temp& t)> mapper,
+std::string format(std::function<register_t(const TempGen::Temp& t)> mapper,
                    const Instruction& ins)
 {
 
@@ -50,6 +50,23 @@ std::string format(std::function<std::string(const TempGen::Temp& t)> mapper,
     return std::get<Label>(ins).assem;
   }
   return "?\n";
+}
+
+void delete_coalesced_moves(std::list<Instruction>& instrs,
+                            const std::function<register_t(const TempGen::Temp&)>& reg_mapper)
+{
+  auto iter = std::remove_if(instrs.begin(), instrs.end(), [&reg_mapper](assem::Instruction& i) {
+    if(std::holds_alternative<assem::Move>(i))
+    {
+      auto m = std::get<assem::Move>(i);
+      if(reg_mapper(m.src) == reg_mapper(m.dst))
+      {
+        return true;
+      }
+    }
+    return false;
+  });
+  instrs.erase(iter, instrs.end());
 }
 
 } // namespace assem

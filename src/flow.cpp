@@ -2,11 +2,10 @@
 #include "assem.hpp"
 
 #if CONFIG_WITH_GRAPHVIZ
-#  include <cstdio>
+#  include "terminal.hpp"
 #  include <graphviz/cgraph.h>
 #  include <graphviz/gvc.h>
 #  include <graphviz/gvcext.h>
-#  include <iostream>
 #endif
 
 namespace flow
@@ -16,7 +15,7 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
                      std::function<std::string(const TempGen::Temp& t)> temporary_mapper)
   : temporary_mapper(temporary_mapper)
 {
-  using node_id_t = Digraph<GraphNode>::node_id_t;
+  using node_id_t = utils::Digraph<GraphNode>::node_id_t;
   node_id_t curr{};
   std::optional<node_id_t> prev{};
   std::unordered_map<TempGen::Label, node_id_t> label_map;
@@ -92,9 +91,7 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
 
   if(!graph || !gvc || !outFile)
   {
-    std::cerr << "\033[1;31m";
-    std::cerr << err_msg << std::endl;
-    std::cerr << "\033[0m";
+    terminal_write_error(err_msg);
     return;
   }
 
