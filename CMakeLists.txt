@@ -28,6 +28,7 @@ set(sources_common
     src/lexer/token.cpp
     src/parser/parser.cpp
     src/semant/types.cpp
+    src/ir/tree.cpp
 )
 
 # Change this to include more targets
@@ -43,7 +44,6 @@ add_executable(
     tigerc
     src/compiler.cpp
     src/semant/escape.cpp
-    src/ir/tree.cpp
     src/assem.cpp
     src/main.cpp
     src/ir/canon.cpp
@@ -94,13 +94,13 @@ if(BUILD_TEST_RUNNER)
         tests/lexer/test_lexer.cpp
         tests/parser/test_parser.cpp
         tests/semant/test_env.cpp
-        #tests/semant/test_analyzer.cpp
+        tests/semant/test_analyzer.cpp
         ${sources_common}
     )
 
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
-    target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -O2)
+    target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -g -O0) #-O2)
     
 endif(BUILD_TEST_RUNNER)
 

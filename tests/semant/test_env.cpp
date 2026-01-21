@@ -1,9 +1,11 @@
 #include "ir/level.hpp"
+#include "mock_frame.hpp"
 #include "semant/entry.hpp"
 #include "semant/env.hpp"
 #include "temp.hpp"
 #include <doctest/doctest.h>
 #include <symbol.hpp>
+#include <vector>
 
 using namespace semant;
 
@@ -25,17 +27,6 @@ auto lookup_ventry = [](Environment<VEntry<FrameT>>& venv, const Symbol& s) {
   if constexpr(expected)
   {
     CHECK(std::holds_alternative<T>(lookup->v));
-  }
-};
-
-class FrameMock
-{
-  public:
-  using Access = int;
-  FrameMock(TempGen::Label, const std::vector<bool>&) { }
-  std::vector<Access> formals() const
-  {
-    return {};
   }
 };
 
@@ -110,8 +101,8 @@ TEST_SUITE("environment")
     in
     end
   */
-    using LevelImpl = Level<FrameMock>;
-    Environment<VEntry<FrameMock>> venv;
+    using LevelImpl = Level<mock::Frame>;
+    Environment<VEntry<mock::Frame>> venv;
     auto a = Symbol("a", 1);
     auto b = Symbol("b", 2);
     auto f = Symbol("f", 3);
@@ -123,27 +114,27 @@ TEST_SUITE("environment")
     std::shared_ptr<LevelImpl> l = nullptr; // dummy
 
     venv.begin_scope();
-    venv.enter(a, VarEntry<FrameMock>(std::make_shared<Integer>(), ax));
-    lookup_ventry<FrameMock, VarEntry<FrameMock>>(venv, a);
+    venv.enter(a, VarEntry<mock::Frame>(std::make_shared<Integer>(), ax));
+    lookup_ventry<mock::Frame, VarEntry<mock::Frame>>(venv, a);
 
     venv.begin_scope();
-    venv.enter(b, VarEntry<FrameMock>(std::make_shared<types::String>(), ax));
-    lookup_ventry<FrameMock, VarEntry<FrameMock>>(venv, b);
+    venv.enter(b, VarEntry<mock::Frame>(std::make_shared<types::String>(), ax));
+    lookup_ventry<mock::Frame, VarEntry<mock::Frame>>(venv, b);
 
     std::vector<types::SharedType> formals;
     formals.push_back(std::make_shared<types::Integer>());
     formals.push_back(std::make_shared<types::String>());
     venv.enter(f, FuncEntry(TempGen::new_label(), formals, std::make_shared<types::String>(), l));
-    lookup_ventry<FrameMock, FuncEntry<FrameMock>>(venv, f);
+    lookup_ventry<mock::Frame, FuncEntry<mock::Frame>>(venv, f);
 
     venv.end_scope();
-    lookup_ventry<FrameMock, VarEntry<FrameMock>, false>(venv, b);
-    lookup_ventry<FrameMock, VarEntry<FrameMock>, false>(venv, f);
+    lookup_ventry<mock::Frame, VarEntry<mock::Frame>, false>(venv, b);
+    lookup_ventry<mock::Frame, VarEntry<mock::Frame>, false>(venv, f);
 
     formals.clear();
     formals.push_back(std::make_shared<types::String>());
     venv.enter(g, FuncEntry(TempGen::new_label(), formals, std::make_shared<types::String>(), l));
-    lookup_ventry<FrameMock, FuncEntry<FrameMock>>(venv, g);
+    lookup_ventry<mock::Frame, FuncEntry<mock::Frame>>(venv, g);
 
     venv.end_scope();
     CHECK(venv.size() == 0);
