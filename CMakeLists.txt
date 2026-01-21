@@ -23,15 +23,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/autoconf.hpp.in
   ${CMAKE_CURRENT_BINARY_DIR}/generated/autoconf.hpp @ONLY)
 
 set(sources_common
-    src/compiler.cpp
     src/string_table.cpp
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
-    src/semant/types.cpp
-    src/semant/escape.cpp
-    src/ir/tree.cpp
-    src/assem.cpp
 )
 
 # Change this to include more targets
@@ -45,12 +40,14 @@ endif()
 
 add_executable(
     tigerc
+    src/compiler.cpp
+    src/semant/types.cpp
+    src/semant/escape.cpp
+    src/ir/tree.cpp
+    src/assem.cpp
     src/main.cpp
     src/ir/canon.cpp
-    #src/flow.cpp
-    #src/liveness.cpp
-    #src/reg_alloc.cpp
-    #src/helpers.cpp
+    src/flow.cpp
     ${sources_common}
     ${sources_target_specific}
 )

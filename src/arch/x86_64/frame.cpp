@@ -122,6 +122,11 @@ X86Frame::Access X86Frame::alloc_local(bool escape)
   }
 }
 
+TempGen::Label X86Frame::name() const
+{
+  return label;
+}
+
 X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
 {
   spilled_temps++;

@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 #include "assem.hpp"
+#include "flow.hpp"
 #include "ir/canon.hpp"
 #include "ir/fragment.hpp"
 #include "ir/translator.hpp"
@@ -21,7 +22,7 @@
 #  define DEBUG_PRETTY_PRINT_TRACE 1
 #  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
 #  if CONFIG_WITH_GRAPHVIZ
-#    define DEBUG_RENDER_FLOW_GRAPH 0
+#    define DEBUG_RENDER_FLOW_GRAPH 1
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
 #  endif
 #  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
@@ -68,6 +69,19 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
   }
   std::println(sep);
 #endif
+
+  bool spilling_required{false};
+  do
+  {
+    // create the control flow graph
+    auto flow_g = std::make_shared<flow::FlowGraph>(all, temporary_mapper);
+
+#if DEBUG_RENDER_FLOW_GRAPH
+    std::string namef = f.name().str() + "_flow";
+    flow_g->render(namef, namef);
+#endif
+
+  } while(spilling_required);
 
   static_cast<void>(ofile);
   // TODO

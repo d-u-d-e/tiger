@@ -72,7 +72,7 @@ class X86Frame
                        f.lit);
   }
   static std::optional<register_t> map_temp(const TempGen::Temp& t);
-
+  
   private:
   stack_offset_t alloc_spilled_temporary();
 
