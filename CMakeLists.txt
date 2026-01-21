@@ -109,7 +109,7 @@ endif(BUILD_TEST_RUNNER)
 install(TARGETS tigerc RUNTIME DESTINATION bin)
 # Install runtime.o into lib/
 install(FILES ${RUNTIME_OBJ} DESTINATION lib)
-# Install runtime.o into lib/
+# Install driver.sh
 install(FILES tools/driver.sh 
     DESTINATION tools
     PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
