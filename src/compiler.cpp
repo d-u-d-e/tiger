@@ -1,6 +1,8 @@
 #include "compiler.hpp"
+#include "ir/canon.hpp"
 #include "ir/fragment.hpp"
 #include "ir/translator.hpp"
+#include "ir/tree.hpp"
 #include "parser/parser.hpp"
 #include "semant/analyzer.hpp"
 #include "semant/escape.hpp"
@@ -8,11 +10,40 @@
 #include "target.hpp"
 #include "terminal.hpp"
 #include <optional>
+#include <print>
+
+#ifndef NDEBUG
+#  define DEBUG_PRETTY_PRINT_IR 1
+#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 1
+#  define DEBUG_PRETTY_PRINT_BLOCKS 1
+#  define DEBUG_PRETTY_PRINT_TRACE 1
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
+#  if CONFIG_WITH_GRAPHVIZ
+#    define DEBUG_RENDER_FLOW_GRAPH 0
+#    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
+#  endif
+#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
+#endif
+
+#if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
+#  include <concepts>
+#endif
 
 namespace
 {
 
-std::string strip_extension(const std::string& filename)
+template <typename FrameT>
+void emit_procedure_fragment(FILE* ofile, FrameT& f, std::list<ir::tree::Stmt>& body)
+{
+  static_cast<void>(ofile);
+  static_cast<void>(f);
+  static_cast<void>(body);
+  // TODO
+}
+
+} // namespace
+
+std::string Compiler::strip_extension(const std::string& filename)
 {
   size_t dot = filename.find_last_of('.');
   if(dot == std::string::npos)
@@ -22,16 +53,66 @@ std::string strip_extension(const std::string& filename)
   return filename.substr(0, dot);
 }
 
-template <typename FrameT>
-void emit_procedure_fragment(FILE* ofile, ir::tree::Stmt&& stmt, FrameT& f)
+std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 {
-  static_cast<void>(ofile);
-  static_cast<void>(stmt);
-  static_cast<void>(f);
-  // TODO
-}
+  [[maybe_unused]] auto constexpr sep = "-----------------------------";
 
-} // namespace
+#if DEBUG_PRETTY_PRINT_IR || DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS ||   \
+  DEBUG_PRETTY_PRINT_TRACE
+  ir::tree::PrettyPrinter ir_pretty_printer;
+#endif
+
+#if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
+  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(const C& container)
+    requires std::same_as<typename C::value_type, ir::tree::Stmt>
+  {
+    for(auto& s : container)
+    {
+      std::println("{}", std::visit(ir_pretty_printer, s));
+    }
+  };
+#endif
+
+#if DEBUG_PRETTY_PRINT_IR
+  std::println("IR");
+  std::println("{}\n{}", std::visit(ir_pretty_printer, stmt), sep);
+#endif
+
+  // canonicalize the IR tree
+  ir::tree::Canon canon;
+  auto list = canon.linearize(std::move(stmt));
+
+#if DEBUG_PRETTY_PRINT_CANONICALIZED_IR
+  std::println("Reduced IR");
+  pretty_print_stmts(list);
+  std::println(sep);
+#endif
+
+  // compute the basic blocks
+  auto [blocks, ldone] = canon.basic_blocks(std::move(list));
+
+#if DEBUG_PRETTY_PRINT_BLOCKS
+  std::println("Basic blocks");
+  for(auto& b : blocks)
+  {
+    std::println("<<<< block start");
+    pretty_print_stmts(b.stmts);
+    std::println(">>>> block end\n");
+  }
+  std::println(sep);
+#endif
+
+  // lay out the blocks by following a trace
+  auto sched = canon.trace_schedule(std::move(blocks), ldone);
+
+#if DEBUG_PRETTY_PRINT_TRACE
+  std::println("Trace");
+  pretty_print_stmts(sched);
+  std::println(sep);
+#endif
+
+  return sched;
+}
 
 std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& source,
                                                  const char* oname)
@@ -103,7 +184,8 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
     if(std::holds_alternative<ir::ProcedureFragment<FrameImpl>>(frag))
     {
       auto& pf = std::get<ir::ProcedureFragment<FrameImpl>>(frag);
-      emit_procedure_fragment(out_file, std::move(pf.body), *pf.level->frame);
+      auto stmts_list = linearize_tree(std::move(pf.body));
+      emit_procedure_fragment(out_file, *pf.level->frame, stmts_list);
     }
     else if(std::holds_alternative<ir::StringFragment>(frag))
     {

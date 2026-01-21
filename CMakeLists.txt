@@ -45,7 +45,7 @@ endif()
 add_executable(
     tigerc
     src/main.cpp
-    #src/ir/canon.cpp
+    src/ir/canon.cpp
     #src/flow.cpp
     #src/liveness.cpp
     #src/reg_alloc.cpp
