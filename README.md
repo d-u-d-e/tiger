@@ -486,3 +486,5 @@ driver.sh example.tig -o example
 
 # 5. TODO
 - Implement all standard library functions
+- Explain how to add support for another target, leveraging `concept`s where it makes sense
+- Explain the differences with the standard Tiger language, if any (for example support for some escape sequences, see [The Tiger language (vanilla)](#tiger))
