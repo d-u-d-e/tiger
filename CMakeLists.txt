@@ -27,6 +27,7 @@ set(sources_common
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
+    src/semant/types.cpp
 )
 
 # Change this to include more targets
@@ -41,7 +42,6 @@ endif()
 add_executable(
     tigerc
     src/compiler.cpp
-    src/semant/types.cpp
     src/semant/escape.cpp
     src/ir/tree.cpp
     src/assem.cpp
@@ -85,7 +85,7 @@ set_target_properties(tigerc PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-set(BUILD_TEST_RUNNER OFF)
+set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
 if(BUILD_TEST_RUNNER)
     CPMAddPackage("https://github.com/doctest/doctest.git@2.4.11")
@@ -93,8 +93,8 @@ if(BUILD_TEST_RUNNER)
         tests/main.cpp
         tests/lexer/test_lexer.cpp
         tests/parser/test_parser.cpp
-        tests/seman/test_env.cpp
-        tests/seman/test_analyzer.cpp
+        tests/semant/test_env.cpp
+        #tests/semant/test_analyzer.cpp
         ${sources_common}
     )
 
