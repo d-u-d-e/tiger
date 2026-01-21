@@ -28,7 +28,8 @@ class NameType;
 class ArrayType;
 class RecordType;
 
-class PrettyPrinterExprVisitor {
+class PrettyPrinterExprVisitor
+{
   public:
   std::string virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
   std::string virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
@@ -47,21 +48,24 @@ class PrettyPrinterExprVisitor {
   std::string virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
 };
 
-class PrettyPrinterDeclVisitor {
+class PrettyPrinterDeclVisitor
+{
   public:
   std::string virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
   std::string virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
   std::string virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
 };
 
-class PrettyPrinterTypeVisitor {
+class PrettyPrinterTypeVisitor
+{
   public:
   std::string virtual visit_name_type(const parser::ast::NameType& type) = 0;
   std::string virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   std::string virtual visit_record_type(const parser::ast::RecordType& type) = 0;
 };
 
-class PrettyPrinterVarVisitor {
+class PrettyPrinterVarVisitor
+{
   public:
   std::string virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
   std::string virtual visit_field_var(const parser::ast::FieldVar& var) = 0;

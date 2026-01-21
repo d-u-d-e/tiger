@@ -23,32 +23,33 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/autoconf.hpp.in
   ${CMAKE_CURRENT_BINARY_DIR}/generated/autoconf.hpp @ONLY)
 
 set(sources_common
+    src/string_table.cpp
     src/lexer/lex.cpp
     src/lexer/token.cpp
     src/parser/parser.cpp
-    src/symbol.cpp
-    src/seman/types.cpp
-    src/seman/env.cpp
-    src/seman/analyzer.cpp
-    src/seman/escape.cpp
-    src/ir/translator.cpp
+    src/semant/types.cpp
+    src/ir/tree.cpp
 )
 
 # Change this to include more targets
 set(sources_target_specific)
 if (CONFIG_TARGET_x86_64)
-    list(APPEND sources_target_specific src/codegen/arch/x86-64/isel.cpp)
+    list(APPEND sources_target_specific 
+      src/arch/x86_64/generator.cpp
+      src/arch/x86_64/frame.cpp
+      )
 endif()
 
 add_executable(
     tigerc
+    src/compiler.cpp
+    src/semant/escape.cpp
+    src/assem.cpp
     src/main.cpp
     src/ir/canon.cpp
-    src/ir/tree.cpp
     src/flow.cpp
     src/liveness.cpp
-    src/reg_alloc.cpp
-    src/helpers.cpp
+    src/register_allocator.cpp
     ${sources_common}
     ${sources_target_specific}
 )
@@ -92,14 +93,14 @@ if(BUILD_TEST_RUNNER)
         tests/main.cpp
         tests/lexer/test_lexer.cpp
         tests/parser/test_parser.cpp
-        tests/seman/test_env.cpp
-        tests/seman/test_analyzer.cpp
+        tests/semant/test_env.cpp
+        tests/semant/test_analyzer.cpp
         ${sources_common}
     )
 
     target_link_libraries(test-runner doctest::doctest)
     target_include_directories(test-runner PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
-    target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -O2)
+    target_compile_options(test-runner PRIVATE -Werror -Wall -Wextra -Wno-maybe-uninitialized -g -O2)
     
 endif(BUILD_TEST_RUNNER)
 

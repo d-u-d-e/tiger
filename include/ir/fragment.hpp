@@ -1,24 +1,28 @@
 #pragma once
 
-#include <ir/temp.hpp>
-#include <ir/tree.hpp>
+#include "ir/tree.hpp"
+#include "level.hpp"
+#include "temp.hpp"
 #include <memory>
 #include <string>
 #include <variant>
 
 namespace ir
 {
-struct Level;
-struct ProcedureFragment {
+template <typename FrameT>
+struct ProcedureFragment
+{
   Nx body;
-  std::shared_ptr<Level> level;
+  std::shared_ptr<Level<FrameT>> level;
 };
 
-struct StringFragment {
+struct StringFragment
+{
   TempGen::Label label;
   std::string lit;
 };
 
-using Fragment = std::variant<StringFragment, ProcedureFragment>;
+template <typename FrameT>
+using Fragment = std::variant<StringFragment, ProcedureFragment<FrameT>>;
 
 } // namespace ir

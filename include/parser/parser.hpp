@@ -1,10 +1,10 @@
 #pragma once
+#include "lexer/lex.hpp"
+#include "lexer/token.hpp"
+#include "parser/ast.hpp"
+#include "string_table.hpp"
 #include <functional>
-#include <lexer/lex.hpp>
-#include <lexer/token.hpp>
-#include <memory>
 #include <ostream>
-#include <parser/ast.hpp>
 #include <string>
 #include <symbol.hpp>
 #include <unordered_map>
@@ -28,7 +28,8 @@ enum Precedence
   Primary,
 };
 
-class PrecedenceRule {
+class PrecedenceRule
+{
   public:
   PrecedenceRule(
     int precedence_value,
@@ -43,16 +44,18 @@ class PrecedenceRule {
   std::function<std::unique_ptr<ast::Expression>(std::unique_ptr<ast::Expression> lhs)> infix_rule;
 };
 
-class Parser {
+class Parser
+{
   public:
-  class Exception : public std::runtime_error {
+  class Exception : public std::runtime_error
+  {
 public:
     Exception(const std::string& what)
       : std::runtime_error(what)
     { }
   };
 
-  Parser(std::ostream& ostream, lexer::Scanner& scanner, symbol::StringTable& symbol_table)
+  Parser(std::ostream& ostream, lexer::Scanner& scanner, StringTable& symbol_table)
     : ostream(ostream)
     , scanner(scanner)
     , symbol_table(symbol_table){};
@@ -66,12 +69,12 @@ public:
   private:
   std::ostream& ostream;
   lexer::Scanner& scanner;
-  symbol::StringTable& symbol_table;
+  StringTable& symbol_table;
   lexer::Token current;
   lexer::Token previous;
   std::unordered_map<lexer::TokenType, PrecedenceRule> pratt_table;
 
-  inline const symbol::Symbol& symbol(const std::string& name)
+  inline const Symbol& symbol(const std::string& name)
   {
     return symbol_table.symbol(name);
   }

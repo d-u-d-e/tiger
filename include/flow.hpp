@@ -1,45 +1,51 @@
 #pragma once
 
-#include <helpers.hpp>
-#include <codegen/arch.hpp>
-#include <codegen/assem.hpp>
-#include <graph.hpp>
-#include <ir/temp.hpp>
+#include "assem.hpp"
+#include "generated/autoconf.hpp"
+#include "temp.hpp"
+#include "utils/graph.hpp"
+#include <functional>
 #include <list>
 #include <string>
 
 namespace flow
 {
 
-struct FlowNode {
+struct FlowNode
+{
   // the node assem instruction (could also be a basic block)
-  codegen::assem::Instruction i;
+  assem::Instruction i;
 
   // temporaries defined at this node, sorted
-  std::list<ir::TempGen::Temp> def{};
+  std::list<TempGen::Temp> def{};
 
   // temporaries used at this node, sorted
-  std::list<ir::TempGen::Temp> use{};
+  std::list<TempGen::Temp> use{};
 
   // is the instruction a Move instruction?
   bool is_move{false};
 
-  // these are used by the liveness analyzer, and are sorted by ir::TempGen::Temp value
-  std::list<ir::TempGen::Temp> live_in{};
-  std::list<ir::TempGen::Temp> live_out{};
-
-  std::string to_string() const
-  {
-    return arch::codegen::format(helpers::map_temp, i);
-  }
+  // these are used by the liveness analyzer, and are sorted by TempGen::Temp value
+  std::list<TempGen::Temp> live_in{};
+  std::list<TempGen::Temp> live_out{};
 };
 
-class FlowGraph : public Digraph<FlowNode> {
+class FlowGraph : public utils::Digraph<FlowNode>
+{
   public:
-  FlowGraph(const std::list<::codegen::assem::Instruction>& ins);
+  FlowGraph(const std::list<assem::Instruction>& ins,
+            std::function<std::string(const TempGen::Temp& t)> temporary_mapper);
+
+  const std::function<std::string(const TempGen::Temp& t)>& get_temporary_mapper()
+  {
+    return temporary_mapper;
+  }
 
 #if CONFIG_WITH_GRAPHVIZ
   void render(const std::string& name, const std::string& filename);
 #endif
+
+  private:
+  std::function<std::string(const TempGen::Temp& t)> temporary_mapper;
 };
 } // namespace flow

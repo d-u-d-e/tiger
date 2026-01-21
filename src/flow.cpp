@@ -1,48 +1,40 @@
-#include <algorithm>
-#include <cassert>
-#include <codegen/assem.hpp>
-#include <flow.hpp>
-#include <graph.hpp>
-#include <ir/temp.hpp>
-#include <list>
-#include <optional>
-#include <unordered_map>
-#include <variant>
-#include <vector>
+#include "flow.hpp"
+#include "assem.hpp"
 
 #if CONFIG_WITH_GRAPHVIZ
-#  include <cstdio>
+#  include "terminal.hpp"
 #  include <graphviz/cgraph.h>
 #  include <graphviz/gvc.h>
 #  include <graphviz/gvcext.h>
-#  include <iostream>
 #endif
 
 namespace flow
 {
 
-FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
+FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
+                     std::function<std::string(const TempGen::Temp& t)> temporary_mapper)
+  : temporary_mapper(temporary_mapper)
 {
-  using node_id_t = Digraph<GraphNode>::node_id_t;
+  using node_id_t = utils::Digraph<GraphNode>::node_id_t;
   node_id_t curr{};
   std::optional<node_id_t> prev{};
-  std::unordered_map<ir::TempGen::Label, node_id_t> label_map;
+  std::unordered_map<TempGen::Label, node_id_t> label_map;
 
   // create nodes for labels
   for(auto& i : ins)
   {
-    if(std::holds_alternative<::codegen::assem::Label>(i))
+    if(std::holds_alternative<assem::Label>(i))
     {
       auto nid = add_node(FlowNode{.i = i});
-      label_map[std::get<::codegen::assem::Label>(i).label] = nid;
+      label_map[std::get<assem::Label>(i).label] = nid;
     }
   }
 
   for(auto& i : ins)
   {
-    if(std::holds_alternative<::codegen::assem::Label>(i))
+    if(std::holds_alternative<assem::Label>(i))
     {
-      curr = label_map[std::get<::codegen::assem::Label>(i).label];
+      curr = label_map[std::get<assem::Label>(i).label];
     }
     else
     {
@@ -57,9 +49,9 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
     }
 
     bool curr_is_jmp{};
-    if(std::holds_alternative<::codegen::assem::Oper>(i))
+    if(std::holds_alternative<assem::Oper>(i))
     {
-      auto oper = std::get<::codegen::assem::Oper>(i);
+      auto oper = std::get<assem::Oper>(i);
       auto& data = get_node(curr).data();
       std::sort(oper.dst.begin(), oper.dst.end());
       std::sort(oper.src.begin(), oper.src.end());
@@ -75,15 +67,14 @@ FlowGraph::FlowGraph(const std::list<codegen::assem::Instruction>& ins)
         }
       }
     }
-    else if(std::holds_alternative<::codegen::assem::Move>(i))
+    else if(std::holds_alternative<assem::Move>(i))
     {
-      auto move = std::get<::codegen::assem::Move>(i);
+      auto move = std::get<assem::Move>(i);
       auto& data = get_node(curr).data();
       data.is_move = true;
       data.def = {move.dst};
       data.use = {move.src};
     }
-
     prev = curr_is_jmp ? std::nullopt : std::optional(curr);
   }
 }
@@ -100,9 +91,7 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
 
   if(!graph || !gvc || !outFile)
   {
-    std::cerr << "\033[1;31m";
-    std::cerr << err_msg << std::endl;
-    std::cerr << "\033[0m";
+    terminal_write_error(err_msg);
     return;
   }
 
@@ -113,11 +102,13 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
     auto& n2 = get_node(e.second);
     if(!map.contains(n1.id()))
     {
-      map[n1.id()] = agnode(graph, n1.str().data(), true);
+      auto descr = std::format("{}: {}", n1.id(), assem::format(temporary_mapper, n1.data().i));
+      map[n1.id()] = agnode(graph, descr.data(), true);
     }
     if(!map.contains(n2.id()))
     {
-      map[n2.id()] = agnode(graph, n2.str().data(), true);
+      auto descr = std::format("{}: {}", n2.id(), assem::format(temporary_mapper, n2.data().i));
+      map[n2.id()] = agnode(graph, descr.data(), true);
     }
     agedge(graph, map[n1.id()], map[n2.id()], nullptr, true);
   }

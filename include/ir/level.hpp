@@ -1,23 +1,28 @@
 #pragma once
-#include <codegen/arch.hpp>
+#include <concepts>
 #include <memory>
-#include <utility>
 #include <vector>
 
-namespace ir
+template <typename FrameT>
+  requires requires(const FrameT f) {
+    typename FrameT::Access;
+    { f.formals() } -> std::same_as<std::vector<typename FrameT::Access>>;
+  }
+struct Level
 {
+  using Formals = std::vector<typename FrameT::Access>;
 
-struct Level {
-  struct Access {
+  struct Access
+  {
     const Level* l{};
-    arch::Frame::Access fax;
+    typename FrameT::Access fax;
   };
 
-  Level(const Level* parent, std::unique_ptr<arch::Frame> f)
+  Level(const Level* parent, std::unique_ptr<FrameT> f)
     : parent(parent)
     , frame(std::move(f))
   {
-    for(auto& formal : frame->formals())
+    for(Formals const& fs = frame->formals(); auto& formal : fs)
     {
       formals.emplace_back(this, formal);
     }
@@ -25,7 +30,5 @@ struct Level {
 
   std::vector<Access> formals;
   const Level* parent{};
-  std::unique_ptr<arch::Frame> frame;
+  std::unique_ptr<FrameT> frame;
 };
-
-} // namespace ir

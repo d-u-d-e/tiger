@@ -1,16 +1,5 @@
-#include <algorithm>
+#include "ir/canon.hpp"
 #include <cassert>
-#include <functional>
-#include <ir/canon.hpp>
-#include <ir/temp.hpp>
-#include <ir/tree.hpp>
-#include <iterator>
-#include <list>
-#include <memory>
-#include <unordered_map>
-#include <utility>
-#include <variant>
-#include <vector>
 
 namespace ir::tree
 {
@@ -264,7 +253,7 @@ std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
   }
   else
   {
-    auto temp = ir::TempGen::new_temp();
+    auto temp = TempGen::new_temp();
     auto a = concat(std::move(stmt),
                     std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp), std::move(e)));
 
@@ -464,6 +453,70 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
   // ldone is where the epilogue starts
   schedule.push_back(std::make_unique<LabelStmt>(ldone));
   return schedule;
+}
+
+std::list<Stmt> Canon::linear(Stmt&& s, std::list<Stmt>&& l)
+{
+  if(std::holds_alternative<std::unique_ptr<SeqStmt>>(s))
+  {
+    auto& seq = std::get<std::unique_ptr<SeqStmt>>(s);
+    return linear(std::move(seq->stm1), linear(std::move(seq->stm2), std::move(l)));
+  }
+  else
+  {
+    l.push_front(std::move(s));
+    return l;
+  }
+}
+
+Stmt Canon::concat(Stmt&& s1, Stmt&& s2)
+{
+  auto throw_stmt = [](const Stmt& s) {
+    if(std::holds_alternative<std::unique_ptr<ExpStmt>>(s))
+    {
+      if(std::holds_alternative<std::unique_ptr<ConstExp>>(
+           std::get<std::unique_ptr<ExpStmt>>(s)->exp))
+      {
+        // s is useless
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if(throw_stmt(s1))
+  {
+    return std::move(s2);
+  }
+  else if(throw_stmt(s2))
+  {
+    return std::move(s1);
+  }
+  return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
+}
+
+bool Canon::commute(const Stmt& stmt, const Exp& exp)
+{
+  if(std::holds_alternative<std::unique_ptr<ExpStmt>>(stmt))
+  {
+    auto& exp_stmt = std::get<std::unique_ptr<ExpStmt>>(stmt);
+    if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp_stmt->exp))
+    {
+      // an expression statement containing a constant commute with any expression
+      return true;
+    }
+  }
+  else if(std::holds_alternative<std::unique_ptr<NameExp>>(exp))
+  {
+    // a name expression commutes with any statement
+    return true;
+  }
+  else if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp))
+  {
+    // a constant expression commutes with any statement
+    return true;
+  }
+  return false;
 }
 
 } // namespace ir::tree

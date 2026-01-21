@@ -1,11 +1,12 @@
 #pragma once
-#include <flow.hpp>
+#include "flow.hpp"
 
 namespace liveness
 {
-class LivenessAnalyzer {
+class Analyzer
+{
   public:
-  LivenessAnalyzer(flow::FlowGraph& g);
+  Analyzer(flow::FlowGraph& g);
   std::string dump_result();
 
   private:
