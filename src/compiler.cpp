@@ -1,4 +1,5 @@
 #include "compiler.hpp"
+#include "ir/fragment.hpp"
 #include "ir/translator.hpp"
 #include "parser/parser.hpp"
 #include "semant/analyzer.hpp"
@@ -19,6 +20,15 @@ std::string strip_extension(const std::string& filename)
     return filename; // no extension
   }
   return filename.substr(0, dot);
+}
+
+template <typename FrameT>
+void emit_procedure_fragment(FILE* ofile, ir::tree::Stmt&& stmt, FrameT& f)
+{
+  static_cast<void>(ofile);
+  static_cast<void>(stmt);
+  static_cast<void>(f);
+  // TODO
 }
 
 } // namespace
@@ -58,7 +68,7 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
 
   using Translator = ir::Translator<FrameImpl>;
   Translator translator;
-  semant::Analyzer<Translator> type_checker(source, string_table, translator);
+  semant::Analyzer<FrameImpl> type_checker(source, string_table, translator);
   ir::Exp ir;
   try
   {
@@ -84,7 +94,26 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   }
 
   // IR to Assembly
-  
-  // TODO
+  std::string assembler_directives_begin = FrameImpl::assembler_directives_begin();
+  std::fwrite(assembler_directives_begin.c_str(), 1, assembler_directives_begin.size(), out_file);
+
+  // dump fragments
+  for(auto&& frag : translator.fragments())
+  {
+    if(std::holds_alternative<ir::ProcedureFragment<FrameImpl>>(frag))
+    {
+      auto& pf = std::get<ir::ProcedureFragment<FrameImpl>>(frag);
+      emit_procedure_fragment(out_file, std::move(pf.body), *pf.level->frame);
+    }
+    else if(std::holds_alternative<ir::StringFragment>(frag))
+    {
+      auto str = FrameImpl::emit_string(std::get<ir::StringFragment>(frag)) + "\n";
+      std::fwrite(str.c_str(), 1, str.size(), out_file);
+    }
+  }
+
+  std::string assembler_directives_end = FrameImpl::assembler_directives_end();
+  std::fwrite(assembler_directives_end.c_str(), 1, assembler_directives_end.size(), out_file);
+  fclose(out_file);
   return std::nullopt;
 }

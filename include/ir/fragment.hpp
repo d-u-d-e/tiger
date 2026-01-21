@@ -18,7 +18,7 @@ struct ProcedureFragment
 
 struct StringFragment
 {
-  TempGen::Temp label;
+  TempGen::Label label;
   std::string lit;
 };
 

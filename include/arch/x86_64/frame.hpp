@@ -1,6 +1,10 @@
 #pragma once
+#include "assem.hpp"
+#include "ir/fragment.hpp"
 #include "ir/tree.hpp"
 #include "temp.hpp"
+#include <list>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -40,6 +44,34 @@ class X86Frame
   X86Frame(Label label, const std::vector<bool>& formals);
   std::vector<Access> formals() const;
   ir::tree::Stmt proc_entry_exit1(ir::tree::Stmt&& stmt);
+  void proc_entry_exit2(std::list<assem::Instruction>& list);
+  std::pair<std::string, std::string> proc_entry_exit3(std::list<assem::Instruction>& list);
+  uint16_t locals_count() const;
+  static ir::Ex exp(const Access& fax, ir::Ex&& fp);
+  static ir::Ex external_call(TempGen::Label label, std::vector<ir::Ex>&& args);
+  void rewrite_program(std::list<assem::Instruction>& list,
+                       const std::unordered_set<TempGen::Temp>& spilled_temps);
+  TempGen::Label name() const;
+  Access alloc_local(bool escape);
+  static inline constexpr uint8_t word_size = 8;
+  static std::string assembler_directives_begin()
+  {
+    return ".intel_syntax noprefix\n";
+  }
+  static std::string assembler_directives_end()
+  {
+    return ".section .note.GNU-stack,\"\",@progbits\n";
+  }
+  static std::string emit_string(const ir::StringFragment& f)
+  {
+    return std::format("{}:\n"
+                       ".asciz \"{}\"\n",
+                       f.label.str(),
+                       f.lit);
+  }
+
+  private:
+  stack_offset_t alloc_spilled_temporary();
 
   private:
   static inline auto RAX = RV;
@@ -65,5 +97,9 @@ class X86Frame
   Label label;
   ir::tree::Stmt view_shift{};
   std::vector<Access> formals_;
+  uint32_t locals{};
+  stack_offset_t locals_stack_offset{};
+  uint32_t max_outgoing_params{};
+  uint32_t spilled_temps{};
 };
 } // namespace arch
