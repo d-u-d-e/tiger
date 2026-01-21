@@ -1,5 +1,5 @@
-#include <helpers.hpp>
-#include <liveness.hpp>
+#include "liveness.hpp"
+#include "utils/list.hpp"
 
 namespace liveness
 {
@@ -18,13 +18,13 @@ Analyzer::Analyzer(flow::FlowGraph& g)
       auto live_out_size = d.live_out.size();
 
       // compute the live in set: use set + (live out set \ def set)
-      d.live_in = helpers::union_sorted_lists(d.use, helpers::diff_sorted_lists(d.live_out, d.def));
+      d.live_in = utils::union_sorted_lists(d.use, utils::diff_sorted_lists(d.live_out, d.def));
 
       // compute the live out set: (for all successors: + live_in)
-      std::list<ir::TempGen::Temp> live_out;
+      std::list<TempGen::Temp> live_out;
       for(auto succ_id : fg.succ(n))
       {
-        live_out = helpers::union_sorted_lists(live_out, fg[succ_id].data().live_in);
+        live_out = utils::union_sorted_lists(live_out, fg[succ_id].data().live_in);
       };
       d.live_out = std::move(live_out);
 
@@ -37,11 +37,13 @@ Analyzer::Analyzer(flow::FlowGraph& g)
 std::string Analyzer::dump_result()
 {
   std::string out;
-  auto format_list_of_temps = [](const std::list<ir::TempGen::Temp>& a) {
+  auto& temp_mapper = fg.get_temporary_mapper();
+
+  auto format_list_of_temps = [&temp_mapper](const std::list<TempGen::Temp>& a) {
     std::string out("[");
     for(auto i{a.begin()}; i != a.end(); i++)
     {
-      out += std::format("{}{}", helpers::map_temp(*i), (i != --a.end() ? ", " : ""));
+      out += std::format("{}{}", temp_mapper(*i), (i != --a.end() ? ", " : ""));
     }
     out += "]\n";
     return out;

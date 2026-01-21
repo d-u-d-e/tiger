@@ -36,6 +36,11 @@ class FlowGraph : public Digraph<FlowNode>
   FlowGraph(const std::list<assem::Instruction>& ins,
             std::function<std::string(const TempGen::Temp& t)> temporary_mapper);
 
+  const std::function<std::string(const TempGen::Temp& t)>& get_temporary_mapper()
+  {
+    return temporary_mapper;
+  }
+
 #if CONFIG_WITH_GRAPHVIZ
   void render(const std::string& name, const std::string& filename);
 #endif

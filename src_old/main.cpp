@@ -162,7 +162,7 @@ void code_gen(FILE* ofile, ir::tree::Stmt&& stmt, arch::Frame& f)
     flow_g->render(namef, namef);
 #endif
 
-    liveness::LivenessAnalyzer analyzer(*flow_g);
+    liveness::Analyzer analyzer(*flow_g);
 
 #if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
     std::println("Results of liveness analysis");

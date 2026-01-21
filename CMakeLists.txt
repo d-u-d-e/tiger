@@ -48,6 +48,7 @@ add_executable(
     src/main.cpp
     src/ir/canon.cpp
     src/flow.cpp
+    src/liveness.cpp
     ${sources_common}
     ${sources_target_specific}
 )

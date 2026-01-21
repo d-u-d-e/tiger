@@ -105,12 +105,12 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
     auto& n2 = get_node(e.second);
     if(!map.contains(n1.id()))
     {
-      auto descr = assem::format(temporary_mapper, n1.data().i);
+      auto descr = std::format("{}: {}", n1.id(), assem::format(temporary_mapper, n1.data().i));
       map[n1.id()] = agnode(graph, descr.data(), true);
     }
     if(!map.contains(n2.id()))
     {
-      auto descr = assem::format(temporary_mapper, n2.data().i);
+      auto descr = std::format("{}: {}", n2.id(), assem::format(temporary_mapper, n2.data().i));
       map[n2.id()] = agnode(graph, descr.data(), true);
     }
     agedge(graph, map[n1.id()], map[n2.id()], nullptr, true);

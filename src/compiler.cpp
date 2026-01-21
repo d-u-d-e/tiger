@@ -5,6 +5,7 @@
 #include "ir/fragment.hpp"
 #include "ir/translator.hpp"
 #include "ir/tree.hpp"
+#include "liveness.hpp"
 #include "parser/parser.hpp"
 #include "semant/analyzer.hpp"
 #include "semant/escape.hpp"
@@ -25,7 +26,7 @@
 #    define DEBUG_RENDER_FLOW_GRAPH 1
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
 #  endif
-#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
+#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 1
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
@@ -81,10 +82,18 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     flow_g->render(namef, namef);
 #endif
 
+    liveness::Analyzer analyzer(*flow_g);
+
+#if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
+    std::println("Results of liveness analysis");
+    std::println("{}{}", analyzer.dump_result(), sep);
+#endif
+
+    // TODO
+
   } while(spilling_required);
 
   static_cast<void>(ofile);
-  // TODO
 }
 
 } // namespace
