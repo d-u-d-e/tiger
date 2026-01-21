@@ -67,7 +67,6 @@ BraceWrapping:
     SplitEmptyRecord : false
     SplitEmptyNamespace : true
 
-
 BreakAfterJavaFieldAnnotations: true
 BreakBeforeInheritanceComma: false
 BreakBeforeBinaryOperators: None
