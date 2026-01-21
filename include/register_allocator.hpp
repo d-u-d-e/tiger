@@ -23,7 +23,7 @@ class IteratedRegisterCoalescing
     };
   }
 
-#ifdef CONFIG_WITH_GRAPHVIZ
+#if CONFIG_WITH_GRAPHVIZ
   void render_igraph_dot(const std::string& name, const std::string& filename);
 #endif
 

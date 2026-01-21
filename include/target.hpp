@@ -2,7 +2,7 @@
 
 #include "generated/autoconf.hpp"
 
-#ifdef CONFIG_TARGET_x86_64
+#if CONFIG_TARGET_x86_64
 #  include "arch/x86_64/frame.hpp"
 #  include "arch/x86_64/generator.hpp"
 using FrameImpl = arch::X86Frame;
