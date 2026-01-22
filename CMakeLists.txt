@@ -35,8 +35,8 @@ set(sources_common
 set(sources_target_specific)
 if (CONFIG_TARGET_x86_64)
     list(APPEND sources_target_specific 
-      src/arch/x86_64/generator.cpp
-      src/arch/x86_64/frame.cpp
+      src/arch/x86_64/generator_impl.cpp
+      src/arch/x86_64/frame_impl.cpp
       )
 endif()
 

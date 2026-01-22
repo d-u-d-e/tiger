@@ -1,5 +1,5 @@
-#include "arch/x86_64/generator.hpp"
-#include "arch/x86_64/frame.hpp"
+#include "arch/x86_64/generator_impl.hpp"
+#include "arch/x86_64/frame_impl.hpp"
 #include <cassert>
 #include <cstddef>
 #include <format>
@@ -10,7 +10,7 @@
 namespace arch
 {
 
-std::vector<assem::Instruction> X86Generator::gen(const ir::tree::Stmt& stmt)
+std::vector<assem::Instruction> X86Generator::gen_impl(const ir::tree::Stmt& stmt)
 {
   list.clear();
   std::visit(*this, stmt);

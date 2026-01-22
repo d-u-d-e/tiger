@@ -140,6 +140,7 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 
 #pragma once
 #include "assem.hpp"
+#include "generator.hpp"
 #include "ir/tree.hpp"
 #include "temp.hpp"
 #include <cstdint>
@@ -151,10 +152,10 @@ CJumpStmt(ge, reg1, reg2, tlab, flab) -> cmp reg1, reg2; jge tlab
 namespace arch
 {
 
-class X86Generator
+class X86Generator : public Generator
 {
   public:
-  std::vector<assem::Instruction> gen(const ir::tree::Stmt& stmt);
+  std::vector<assem::Instruction> gen_impl(const ir::tree::Stmt& stmt);
 
   TempGen::Temp operator()(const std::unique_ptr<ir::tree::NameExp>& exp);
   TempGen::Temp operator()(const std::unique_ptr<ir::tree::TempExp>& exp);

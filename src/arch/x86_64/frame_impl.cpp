@@ -1,4 +1,4 @@
-#include "arch/x86_64/frame.hpp"
+#include "arch/x86_64/frame_impl.hpp"
 #include <algorithm>
 #include <cassert>
 
