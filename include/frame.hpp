@@ -11,7 +11,7 @@
 #include <vector>
 
 template <typename FrameT>
-concept IsFrame = requires
+concept IsFrame = requires(const FrameT cf, FrameT f)
 {
   {
     FrameT::FP
@@ -30,20 +30,17 @@ concept IsFrame = requires
   requires std::is_constructible_v<FrameT, TempGen::Label, std::vector<bool>>;
 
   // const member functions
-  requires requires(const FrameT f)
   {
-    {
-      f.formals()
-      } -> std::same_as<std::vector<typename FrameT::Access>>;
+    cf.formals()
+    } -> std::same_as<std::vector<typename FrameT::Access>>;
 
-    {
-      f.name()
-      } -> std::same_as<TempGen::Label>;
+  {
+    cf.name()
+    } -> std::same_as<TempGen::Label>;
 
-    {
-      f.locals_count()
-      } -> std::convertible_to<unsigned int>;
-  };
+  {
+    cf.locals_count()
+    } -> std::convertible_to<unsigned int>;
 
   // static functions
   {
@@ -71,27 +68,25 @@ concept IsFrame = requires
     } -> std::convertible_to<std::unordered_map<TempGen::Temp, assem::register_t>>;
 
   // non-const member functions
-  requires requires(FrameT f)
+
   {
-    {
-      f.proc_entry_exit1(std::declval<ir::tree::Stmt>())
-      } -> std::same_as<ir::tree::Stmt>;
+    f.proc_entry_exit1(std::declval<ir::tree::Stmt>())
+    } -> std::same_as<ir::tree::Stmt>;
 
-    {
-      f.proc_entry_exit2(std::declval<std::list<assem::Instruction>&>())
-      } -> std::same_as<void>;
+  {
+    f.proc_entry_exit2(std::declval<std::list<assem::Instruction>&>())
+    } -> std::same_as<void>;
 
-    {
-      f.proc_entry_exit3(std::declval<std::list<assem::Instruction>&>())
-      } -> std::same_as<std::pair<std::string, std::string>>;
+  {
+    f.proc_entry_exit3(std::declval<std::list<assem::Instruction>&>())
+    } -> std::same_as<std::pair<std::string, std::string>>;
 
-    {
-      f.rewrite_program(std::declval<std::list<assem::Instruction>&>(),
-                        std::declval<std::unordered_set<TempGen::Temp>>())
-      } -> std::same_as<void>;
+  {
+    f.rewrite_program(std::declval<std::list<assem::Instruction>&>(),
+                      std::declval<std::unordered_set<TempGen::Temp>>())
+    } -> std::same_as<void>;
 
-    {
-      f.alloc_local(std::declval<bool>())
-      } -> std::same_as<typename FrameT::Access>;
-  };
+  {
+    f.alloc_local(std::declval<bool>())
+    } -> std::same_as<typename FrameT::Access>;
 };
