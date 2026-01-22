@@ -1,5 +1,6 @@
 #pragma once
 #include "fragment.hpp"
+#include "frame.hpp"
 #include "ir/fragment.hpp"
 #include "ir/pretty_printer.hpp"
 #include "ir/tree.hpp"
@@ -10,7 +11,7 @@
 
 namespace ir
 {
-template <typename FrameT>
+template <IsFrame FrameT>
 class Translator
 {
   public:
@@ -76,7 +77,7 @@ class Translator
 };
 
 // implementations
-template <typename FrameT>
+template <IsFrame FrameT>
 Translator<FrameT>::Translator()
 {
   lvl_outermost = std::make_shared<LevelT>(
@@ -88,25 +89,25 @@ Translator<FrameT>::Translator()
     std::make_unique<FrameT>(TempGen::named_label("tiger_main"), std::vector<bool>{}));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 std::shared_ptr<Level<FrameT>> Translator<FrameT>::main_level()
 {
   return lvl_main;
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 std::shared_ptr<Level<FrameT>> Translator<FrameT>::outermost_level()
 {
   return lvl_outermost;
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 void Translator<FrameT>::add_fragment(FragmentT&& f)
 {
   fragments_.emplace_back(std::move(f));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& body)
 {
   // move the body result onto the RV register
@@ -120,7 +121,7 @@ void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& bo
   // proc_entry_exit2 and proc_entry_exit3 are called later after code generation
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::simple_var(const LevelT::Access& var_ax, const LevelT* current)
 {
   tree::Exp fp_exp = std::make_unique<tree::TempExp>(FrameT::FP);
@@ -136,7 +137,7 @@ Exp Translator<FrameT>::simple_var(const LevelT::Access& var_ax, const LevelT* c
   return FrameT::exp(var_ax.fax, std::move(fp_exp));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 tree::BinaryOp Translator<FrameT>::map_binary_operator(parser::ast::Operator op)
 {
   switch(op)
@@ -154,7 +155,7 @@ tree::BinaryOp Translator<FrameT>::map_binary_operator(parser::ast::Operator op)
   }
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 tree::RelOp Translator<FrameT>::map_rel_operator(parser::ast::Operator op)
 {
   switch(op)
@@ -176,7 +177,7 @@ tree::RelOp Translator<FrameT>::map_rel_operator(parser::ast::Operator op)
   }
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::seq_exp(std::vector<Exp>&& exps)
 {
   auto size = exps.size();
@@ -198,13 +199,13 @@ Exp Translator<FrameT>::seq_exp(std::vector<Exp>&& exps)
   return std::make_unique<tree::ESeqExp>(std::move(stmt_seq), unex(std::move(exps[size - 1])));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Ex Translator<FrameT>::constant(int64_t constant)
 {
   return std::make_unique<tree::ConstExp>(constant);
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Ex Translator<FrameT>::string(const std::string& value)
 {
   auto lab = TempGen::new_label();
@@ -212,7 +213,7 @@ Ex Translator<FrameT>::string(const std::string& value)
   return std::make_unique<tree::NameExp>(lab);
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
 {
   Exp result;
@@ -232,7 +233,7 @@ Exp Translator<FrameT>::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& r
   return result;
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
 {
   Exp result;
@@ -258,7 +259,7 @@ Exp Translator<FrameT>::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& righ
   return result;
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::strings_equal(Exp&& left, Exp&& right)
 {
   std::vector<Ex> args_as_ex;
@@ -267,14 +268,14 @@ Exp Translator<FrameT>::strings_equal(Exp&& left, Exp&& right)
   return FrameT::external_call(TempGen::named_label("string_equal"), std::move(args_as_ex));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::strings_nequal(Exp&& left, Exp&& right)
 {
   return rel_exp(
     parser::ast::Operator::equal, strings_equal(std::move(left), std::move(right)), constant(0));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::array_subscript(Exp&& var, Exp&& index)
 {
   // we basically need to compute mem(var + index * word_size)
@@ -285,7 +286,7 @@ Exp Translator<FrameT>::array_subscript(Exp&& var, Exp&& index)
       tree::BinaryOp::mul, unex(std::move(index)), constant(FrameT::word_size))));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::array_exp(Exp&& size, Exp&& init)
 {
   std::vector<Ex> args;
@@ -294,14 +295,14 @@ Exp Translator<FrameT>::array_exp(Exp&& size, Exp&& init)
   return FrameT::external_call(TempGen::named_label("init_array"), std::move(args));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::record_field(Exp&& var, size_t index)
 {
   return std::make_unique<tree::MemExp>(std::make_unique<tree::BinOpExp>(
     tree::BinaryOp::plus, unex(std::move(var)), constant(index * FrameT::word_size)));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::record_exp(std::vector<Exp>&& fields)
 {
   auto temp = TempGen::new_temp();
@@ -338,7 +339,7 @@ Exp Translator<FrameT>::record_exp(std::vector<Exp>&& fields)
                                          std::make_unique<tree::TempExp>(temp));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
 {
   if(std::holds_alternative<Ex>(texp) || std::holds_alternative<Ex>(fexp))
@@ -428,7 +429,7 @@ Exp Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
   }
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::if_then_exp(Exp&& cond, Exp&& texp)
 {
   auto t = TempGen::new_label();
@@ -444,7 +445,7 @@ Exp Translator<FrameT>::if_then_exp(Exp&& cond, Exp&& texp)
   return std::make_unique<tree::SeqStmt>(std::move(seq), std::make_unique<tree::LabelStmt>(f));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak)
 {
   auto ltest = TempGen::new_label();
@@ -465,14 +466,14 @@ Exp Translator<FrameT>::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& 
   return std::make_unique<tree::SeqStmt>(std::move(seq), std::make_unique<tree::LabelStmt>(lbreak));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::break_exp(const TempGen::Label& lbreak)
 {
   return std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(lbreak),
                                           std::vector{lbreak});
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::for_exp(
   const LevelT::Access& iax, Exp&& low, Exp&& high, Exp&& body, const TempGen::Label& lbreak)
 {
@@ -509,13 +510,13 @@ Exp Translator<FrameT>::for_exp(
   return std::make_unique<tree::SeqStmt>(std::move(seq), std::make_unique<tree::LabelStmt>(lbreak));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
 {
   return std::make_unique<tree::MoveStmt>(unex(std::move(left)), unex(std::move(right)));
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Exp Translator<FrameT>::call_exp(TempGen::Label name,
                                  const LevelT* lcaller,
                                  const LevelT* lcallee,
@@ -561,7 +562,7 @@ struct overloads : Ts...
   using Ts::operator()...;
 };
 
-template <typename FrameT>
+template <IsFrame FrameT>
 std::string Translator<FrameT>::dump_fragment(const FragmentT& f) const
 {
 
@@ -583,14 +584,14 @@ std::string Translator<FrameT>::dump_fragment(const FragmentT& f) const
   return std::visit(overloads{dump_proc_frag, dump_string_frag}, f);
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 Level<FrameT>::Access Translator<FrameT>::alloc_local(LevelT& level, bool escape)
 {
   typename LevelT::Access ax{.l = &level, .fax = level.frame->alloc_local(escape)};
   return ax;
 }
 
-template <typename FrameT>
+template <IsFrame FrameT>
 std::unique_ptr<Level<FrameT>> Translator<FrameT>::new_level(const LevelT* parent,
                                                              TempGen::Label label,
                                                              const std::vector<bool>& formals)

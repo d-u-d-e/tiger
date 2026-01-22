@@ -41,10 +41,11 @@ namespace
 
 std::string temporary_mapper(const TempGen::Temp& t)
 {
-  auto mapped = FrameImpl::map_temp(t);
-  if(mapped)
+  auto reg_map = FrameImpl::get_temporary_register_mapping();
+
+  if(reg_map.find(t) != reg_map.end())
   {
-    return mapped.value();
+    return reg_map[t];
   }
   return TempGen::to_string(t);
 }
@@ -152,8 +153,8 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
-  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(const C& container)
-    requires std::same_as<typename C::value_type, ir::tree::Stmt>
+  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(
+    const C& container) requires std::same_as<typename C::value_type, ir::tree::Stmt>
   {
     for(auto& s : container)
     {

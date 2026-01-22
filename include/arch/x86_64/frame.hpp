@@ -21,6 +21,7 @@ class X86Frame
 
   static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
+  static inline constexpr uint8_t word_size = 8;
 
   struct InReg
   {
@@ -43,17 +44,18 @@ class X86Frame
 
   X86Frame(Label label, const std::vector<bool>& formals);
   std::vector<Access> formals() const;
+  TempGen::Label name() const;
+  uint16_t locals_count() const;
+
   ir::tree::Stmt proc_entry_exit1(ir::tree::Stmt&& stmt);
   void proc_entry_exit2(std::list<assem::Instruction>& list);
   std::pair<std::string, std::string> proc_entry_exit3(std::list<assem::Instruction>& list);
-  uint16_t locals_count() const;
-  static ir::Ex exp(const Access& fax, ir::Ex&& fp);
-  static ir::Ex external_call(TempGen::Label label, std::vector<ir::Ex>&& args);
   void rewrite_program(std::list<assem::Instruction>& list,
                        const std::unordered_set<TempGen::Temp>& spilled_temps);
-  TempGen::Label name() const;
   Access alloc_local(bool escape);
-  static inline constexpr uint8_t word_size = 8;
+
+  static ir::Ex exp(const Access& fax, ir::Ex&& fp);
+  static ir::Ex external_call(TempGen::Label label, std::vector<ir::Ex>&& args);
   static std::string assembler_directives_begin()
   {
     return ".intel_syntax noprefix\n";
@@ -69,7 +71,6 @@ class X86Frame
                        f.label.str(),
                        f.lit);
   }
-  static std::optional<assem::register_t> map_temp(const TempGen::Temp& t);
   static const std::unordered_map<TempGen::Temp, assem::register_t>&
   get_temporary_register_mapping()
   {
