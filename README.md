@@ -9,14 +9,15 @@
 2. [Requirements](#req)
 3. [Build instructions](#build)
 4. [Compilation](#compile)
-5. [TODO](#todo)
+5. [Add new targets](#target)
+6. [TODO](#todo)
 
 <a id="tiger"></a>
 # 1. The Tiger language (vanilla)
 
 The Tiger language is a small language with nested functions, record values with implicit pointers, arrays, integer and string variables and a few simple structured control constructs.
 
-The predefined function `getchar` has been renamed to `getchr` to avoid link problems with the C function. Not all escape sequences are supported. See 1.3.4.
+*The predefined function* `getchar` *has been renamed to* `getchr` *to avoid link problems with the* C *function. Not all escape sequences are supported. See 1.3.4.*
 
 <a id="lex"></a>
 ## 1.1 Lexical issues
@@ -482,9 +483,24 @@ driver.sh example.tig -o example
 `driver.sh` calls `gcc` assembler and linker.
 
 
+<a id="target"></a>
+
+# 5. Add new targets
+For a new target, you need to implement the Frame concept, which is described in `frame.hpp`. You also need to implement the Generator concept, which is described in `generator.hpp`. The former deals with registers, calling conventions, prologue, epilogue, assembler directives, and so on. The latter is basically instruction selection.
+Place the architecture specific files inside `arch`. Next:
+
+1) Add a new `CONFIG_TARGET_x` variable for your target in `cmake/autoconf.hpp.in`. 
+
+2) Give `CONFIG_TARGET_x` the default `0` value in `CMakeLists.txt`.
+
+2) Modify `CMakeLists.txt` to include the target `.cpp` files if `CONFIG_TARGET_x` is set.
+
+3) Modify `target.hpp` by setting the type aliases `FrameImpl` and `GeneratorImpl` that will be used by the `compiler.cpp` for your target.
+
+The concepts above are taken from the Appel's book, so for a documentation of what those functions shall do (like `proc_entry_exit1`), consult the book.
+
 <a id="todo"></a>
 
-# 5. TODO
+# 6. TODO
 - Implement all standard library functions
-- Explain how to add support for another target, leveraging `concept`s where it makes sense
-- Explain the differences with the standard Tiger language, if any (for example support for some escape sequences, see [The Tiger language (vanilla)](#tiger))
+- Explain the differences with the standard Tiger language, if any.
