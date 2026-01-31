@@ -28,6 +28,7 @@
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
 #  endif
 #  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
+#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 0
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
@@ -83,7 +84,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
   f.proc_entry_exit2(all);
 
 #if DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC
-  std::println("Assembly before register allocation");
+  std::println("Assembly before register allocation [frame: {}]", f.name().str());
   for(auto& i : all)
   {
     std::print("{}", assem::format(temporary_mapper, i));
@@ -105,7 +106,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     liveness::Analyzer analyzer(*flow_g);
 
 #if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
-    std::println("Results of liveness analysis");
+    std::println("Results of liveness analysis [frame: {}]", f.name().str());
     std::println("{}{}", analyzer.dump_result(), sep);
 #endif
 
@@ -129,6 +130,19 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     else
     {
       f.rewrite_program(all, spilled_nodes);
+#if DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING
+      std::print("Spilled temporaries [frame: {}]: ", f.name().str());
+      for(auto t : spilled_nodes)
+      {
+        std::print("{}, ", t);
+      }
+      std::println("\nAssembly after spilling [frame: {}]", f.name().str());
+      for(auto& i : all)
+      {
+        std::print("{}", assem::format(temporary_mapper, i));
+      }
+      std::println(sep);
+#endif
     }
   } while(spilling_required);
 }
@@ -153,8 +167,8 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
-  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(
-    const C& container) requires std::same_as<typename C::value_type, ir::tree::Stmt>
+  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(const C& container)
+    requires std::same_as<typename C::value_type, ir::tree::Stmt>
   {
     for(auto& s : container)
     {
