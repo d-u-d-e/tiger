@@ -1,0 +1,41 @@
+let
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+        then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+        else if i > 0 then f(i)
+        else print("0")
+    end
+
+    function f(a: int) : int = a + 2
+    var a := 1
+    var b := a + 1
+    var c := b + f(3)
+    var d := a + b + c + 1
+    var e := d + b + a
+    var j := 11 + e + a + b + f(1)
+    var g := 8 + j + e + b
+    var h := 15 + g + a + b + j
+    var l := a + b + c + d + e + f(1)
+    var m := l + h + a + b + f(2)
+    var aa := m + l + j + f(1)
+in
+    printint(aa + m + l);
+    print("\n")
+end
+
+/*
+    a = 1
+    b = 2
+    c = 2 + 5 = 7
+    d = 1 + 2 + 7 + 1 = 11
+    e = 11 + 2 + 1 = 14
+    j = 11 + 14 + 1 + 2 + 3 = 31
+    g = 8 + 31 + 14 + 2 = 55
+    h = 15 + 55 + 1 + 2 + 31 = 104
+    l = 1 + 2 + 7 + 11 + 14 + 3 = 38
+    m = 38 + 104 + 1 + 2 + 4 = 149
+    aa = 149 + 38 + 31 + 3 = 221
+
+    aa + m + l = 221 + 149 + 38 = 408
+*/
