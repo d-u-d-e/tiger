@@ -1,6 +1,11 @@
 #include "arch/x86_64/frame_impl.hpp"
+#include "assem.hpp"
+#include "temp.hpp"
 #include <algorithm>
 #include <cassert>
+#include <list>
+#include <optional>
+#include <vector>
 
 namespace arch
 {
@@ -273,70 +278,118 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
     return off;
   };
 
-  for(auto iter = list.begin(); iter != list.end(); iter++)
+  auto rewrite = [&spilled_temps, &get_off, &list](std::vector<TempGen::Temp>& src,
+                                                   std::vector<TempGen::Temp>& dst,
+                                                   std::list<assem::Instruction>::iterator iter) {
+    for(auto t : spilled_temps)
+    {
+      // get the offset of the spilled temporary
+      auto off = get_off(t);
+
+      std::optional<TempGen::Temp> new_temp{};
+
+      // look in src
+      auto it = std::find(src.begin(), src.end(), t);
+      if(it != src.end())
+      {
+        // temporary occurs in src, replace it with a new one, short-lived
+        new_temp = TempGen::new_temp();
+
+        // fetch the new temporary
+        list.insert(
+          iter,
+          assem::Instruction{assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", off),
+                                         .dst{new_temp.value()},
+                                         .src{FP},
+                                         .jmp{}}});
+
+        // fix the instruction to use the new temporary
+        *it = new_temp.value();
+      }
+
+      // look in dst
+      it = std::find(dst.begin(), dst.end(), t);
+      if(it != dst.end())
+      {
+        // temporary occurs in dst, use previous if it exists
+        if(!new_temp.has_value())
+        {
+          new_temp = TempGen::new_temp();
+        }
+
+        // store the new temporary
+        list.insert(std::next(iter),
+                    assem::Instruction{
+                      assem::Oper{.assem = std::format("mov  QWORD PTR [`s0{:+}], `s1\n", off),
+                                  .dst{},
+                                  .src{FP, new_temp.value()},
+                                  .jmp{}}});
+
+        // fix the instruction to use the new temporary
+        *it = new_temp.value();
+      }
+    }
+  };
+
+  auto rewrite_move = [&spilled_temps, &get_off, &list](
+                        TempGen::Temp& src,
+                        TempGen::Temp& dst,
+                        std::list<assem::Instruction>::iterator iter) {
+    auto dst_spilled = spilled_temps.contains(dst);
+    auto src_spilled = spilled_temps.contains(src);
+
+    if(!dst_spilled && !src_spilled)
+    {
+      return;
+    }
+    else if(dst_spilled && !src_spilled)
+    {
+      *iter = assem::Oper{.assem = std::format("mov  QWORD PTR [`s0{:+}], `s1\n", get_off(dst)),
+                          .dst = {},
+                          .src = {FP, src},
+                          .jmp = {}};
+    }
+    else if(!dst_spilled && src_spilled)
+    {
+      *iter = assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", get_off(src)),
+                          .dst = {dst},
+                          .src = {FP},
+                          .jmp = {}};
+    }
+    else
+    {
+      // both spilled
+      auto new_t = TempGen::new_temp();
+      *iter = assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", get_off(src)),
+                          .dst = {new_t},
+                          .src = {FP},
+                          .jmp = {}};
+      list.insert(std::next(iter),
+                  assem::Oper{.assem = std::format("mov  QWORD PTR [`s0{:+}], `s1\n", get_off(dst)),
+                              .dst = {},
+                              .src = {FP, new_t},
+                              .jmp = {}});
+    }
+  };
+
+  for(auto iter = list.begin(); iter != list.end();)
   {
     auto& i = *iter;
-    std::vector<TempGen::Temp> dst;
-    std::vector<TempGen::Temp> src;
+    auto next_iter = std::next(iter);
+    // rewrite may change the list by inserting instructions before the current iter,
+    // or after the current iterator, so we save the true next instruction
+
     if(std::holds_alternative<assem::Move>(i))
     {
       auto& move = std::get<assem::Move>(i);
-      if(move.assem == "mov  `d0, `s0\n")
-      {
-        if(spilled_temps.contains(move.dst) && !spilled_temps.contains(move.src))
-        {
-          *iter =
-            assem::Oper{.assem = std::format("mov  QWORD PTR [`s0{:+}], `s1\n", get_off(move.dst)),
-                        .dst = {},
-                        .src = {FP, move.src},
-                        .jmp = {}};
-          continue;
-        }
-        else if(spilled_temps.contains(move.src) && !spilled_temps.contains(move.dst))
-        {
-          *iter = assem::Oper{.assem = std::format("mov  `d0, [`s0{:+}]\n", get_off(move.src)),
-                              .dst = {move.dst},
-                              .src = {FP},
-                              .jmp = {}};
-          continue;
-        }
-      }
-      dst = {move.dst};
-      src = {move.src};
+      rewrite_move(move.src, move.dst, iter);
     }
     else if(std::holds_alternative<assem::Oper>(i))
     {
       auto& oper = std::get<assem::Oper>(i);
-      dst = oper.dst;
-      src = oper.src;
+      rewrite(oper.src, oper.dst, iter);
     }
-
-    // fetch each spilled src temporary from memory
-    for(auto t : src)
-    {
-      if(spilled_temps.contains(t))
-      {
-        auto off = get_off(t);
-        list.insert(
-          iter,
-          assem::Instruction{assem::Oper{
-            .assem = std::format("mov  `d0, [`s0{:+}]\n", off), .dst{t}, .src{FP}, .jmp{}}});
-      }
-    }
-    // store each spilled dst temporary to memory
-    for(auto t : dst)
-    {
-      if(spilled_temps.contains(t))
-      {
-        auto off = get_off(t);
-        iter = list.insert(std::next(iter),
-                           assem::Instruction{assem::Oper{
-                             .assem = std::format("mov  QWORD PTR [`s1{:+}], `s0\n", off),
-                             .dst{},
-                             .src{t, FP},
-                             .jmp{}}});
-      }
-    }
+    iter = next_iter;
   }
 }
 
