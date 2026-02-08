@@ -8,5 +8,13 @@ let
     type R2 = {a: int, b: string}
     /* array type */
     type U = array of R2
+
+    /* function types */
+    type F1 = int -> int
+    type F2 = (int->int) -> int->int
+    type F3 = int->int->int
+    type F4 = F2->F3
+    type F5 = (string, int) -> int
+
   in U[1] of R2{a = 0, b = "null"}
 end

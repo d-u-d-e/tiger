@@ -275,8 +275,10 @@ class StringExp : public Expression
 class CallExp : public Expression
 {
   public:
-  CallExp(const Symbol& func, std::vector<std::unique_ptr<Expression>> args, Position position)
-    : name(func)
+  CallExp(std::unique_ptr<Expression> callee,
+          std::vector<std::unique_ptr<Expression>> args,
+          Position position)
+    : callee(std::move(callee))
     , args(std::move(args))
     , position(position)
   { }
@@ -295,7 +297,7 @@ class CallExp : public Expression
     return visitor.visit_call_exp(*this);
   }
 
-  Symbol name;
+  std::unique_ptr<Expression> callee;
   std::vector<std::unique_ptr<Expression>> args;
   Position position;
 };
@@ -765,6 +767,33 @@ class NameType : public Type
   }
 
   Symbol name;
+  Position position;
+};
+
+class FunctionType : public Type
+{
+  public:
+  FunctionType(std::vector<std::unique_ptr<Type>> arg_types,
+               std::unique_ptr<Type> ret_type,
+               Position position)
+    : arg_types(std::move(arg_types))
+    , ret_type(std::move(ret_type))
+    , position(position)
+  { }
+  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
+  {
+    return visitor.visit_function_type(*this);
+  }
+
+  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor&) const override
+  {
+    // TODO
+    return {
+
+    };
+  }
+  std::vector<std::unique_ptr<Type>> arg_types;
+  std::unique_ptr<Type> ret_type;
   Position position;
 };
 

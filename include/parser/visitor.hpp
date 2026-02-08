@@ -1,4 +1,5 @@
 #pragma once
+#include "parser/ast.hpp"
 #include <string>
 
 namespace parser::ast
@@ -27,6 +28,7 @@ class TypeDecl;
 class NameType;
 class ArrayType;
 class RecordType;
+class FunctionType;
 
 class PrettyPrinterExprVisitor
 {
@@ -62,6 +64,7 @@ class PrettyPrinterTypeVisitor
   std::string virtual visit_name_type(const parser::ast::NameType& type) = 0;
   std::string virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   std::string virtual visit_record_type(const parser::ast::RecordType& type) = 0;
+  std::string virtual visit_function_type(const parser::ast::FunctionType& type) = 0;
 };
 
 class PrettyPrinterVarVisitor

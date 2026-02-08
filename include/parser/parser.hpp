@@ -4,6 +4,7 @@
 #include "parser/ast.hpp"
 #include "string_table.hpp"
 #include <functional>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <symbol.hpp>
@@ -58,7 +59,7 @@ public:
   Parser(std::ostream& ostream, lexer::Scanner& scanner, StringTable& symbol_table)
     : ostream(ostream)
     , scanner(scanner)
-    , symbol_table(symbol_table){};
+    , symbol_table(symbol_table) { };
   std::unique_ptr<ast::Expression> parse();
 
   bool had_error()
@@ -116,6 +117,8 @@ public:
   std::unique_ptr<ast::FuncDecl> func_decl();
   std::unique_ptr<ast::TypeDecl> type_decl();
   std::unique_ptr<ast::VarDecl> var_decl();
+
+  std::unique_ptr<ast::Type> ty();
 
   bool had_error_{false};
 };

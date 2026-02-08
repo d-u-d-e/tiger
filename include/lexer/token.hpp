@@ -58,6 +58,7 @@ enum class TokenType
   and_op,
   or_op,
   assign_op,
+  arrow
 };
 
 struct Token

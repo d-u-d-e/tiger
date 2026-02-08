@@ -68,6 +68,19 @@ struct Name : public Type
   SharedType type;
 };
 
+// A function type is something like "(T1, ...) -> R" or "() -> R"
+struct Function : public Type
+{
+
+  explicit Function(std::vector<SharedType> arg_types, SharedType result_type)
+    : arg_types(std::move(arg_types))
+    , result_type(std::move(result_type))
+  { }
+
+  std::vector<SharedType> arg_types;
+  SharedType result_type;
+};
+
 struct Result
 {
   SharedType type;

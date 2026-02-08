@@ -122,6 +122,8 @@ std::string to_string(TokenType type)
     return "or_op";
   case TokenType::assign_op:
     return "assign_op";
+  case TokenType::arrow:
+    return "arrow";
   }
   assert(false);
   std::unreachable();

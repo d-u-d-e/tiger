@@ -177,7 +177,14 @@ Token Scanner::punctuation()
     return Token{TokenType::plus_op, "+", Position(line, int(current - row))};
   case '-':
     current++;
-    return Token{TokenType::minus_op, "-", Position(line, int(current - row))};
+    if(match('>'))
+    {
+      return Token{TokenType::arrow, "->", Position(line, int(current - row) - 1)};
+    }
+    else
+    {
+      return Token{TokenType::minus_op, "-", Position(line, int(current - row))};
+    }
   case '*':
     current++;
     return Token{TokenType::times_op, "*", Position(line, int(current - row))};

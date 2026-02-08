@@ -15,6 +15,14 @@ let
   type A = array
   type A = array of
   type A = array of int
+  type F1 = int->int
+  type F2 = int->
+  type F3 = ( ->
+  type F4 = ->
+  type F5 = ()
+  type F6 = () ->
+  type F7 = (string, ) -> int
+
 in
 end
 )

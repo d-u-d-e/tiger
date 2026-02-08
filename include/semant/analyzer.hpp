@@ -397,8 +397,9 @@ class Analyzer : TypeCheckerExprVisitor,
                     access, std::move(rlow.ir), std::move(rhigh.ir), std::move(rbody.ir), breakl)};
   }
 
-  types::Result visit_call_exp(const parser::ast::CallExp& exp) override
+  types::Result visit_call_exp(const parser::ast::CallExp&) override
   {
+    /*
     auto maybe_fentry = venv.lookup(exp.name);
     if(!maybe_fentry || !std::holds_alternative<FuncEntry<FrameT>>(maybe_fentry->v))
     {
@@ -437,7 +438,9 @@ class Analyzer : TypeCheckerExprVisitor,
 
     return Result{skip_name_types(fentry.result),
                   translator.call_exp(
-                    fentry.label, current_level.get(), fentry.level.get(), std::move(arg_exps))};
+                    fentry.label, current_level.get(), fentry.level.get(), std::move(arg_exps))};*/
+
+    return Result{};
   }
 
   types::Result visit_let_exp(const parser::ast::LetExp& exp) override

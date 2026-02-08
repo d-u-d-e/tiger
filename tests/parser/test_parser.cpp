@@ -136,8 +136,6 @@ TEST_SUITE("parser")
 
   SHOULD_FAIL(
     "call.tig",
-    "[../tests/parser/invalid/call.tig:4:4] Err at '(': expected identifier as function name\n"
-    "[../tests/parser/invalid/call.tig:5:6] Err at '(': expected identifier as function name\n"
     "[../tests/parser/invalid/call.tig:8:1] Err at 'end': expected ')' after function arguments\n");
 
   SHOULD_FAIL("for.tig",
@@ -192,13 +190,19 @@ TEST_SUITE("parser")
     "type.tig",
     "[../tests/parser/invalid/type.tig:4:3] Err at 'type': expected type name after token 'type'\n"
     "[../tests/parser/invalid/type.tig:5:3] Err at 'type': expected '=' after type identifier\n"
-    "[../tests/parser/invalid/type.tig:6:3] Err at 'type': expected type identifier after '=' "
-    "token\n"
+    "[../tests/parser/invalid/type.tig:6:3] Err at 'type': expected type identifier\n"
     "[../tests/parser/invalid/type.tig:8:3] Err at 'type': expected field name\n"
     "[../tests/parser/invalid/type.tig:8:14] Err at '}': expected ':' after field name\n"
     "[../tests/parser/invalid/type.tig:9:16] Err at '}': expected field type after token ':'\n"
     "[../tests/parser/invalid/type.tig:11:1] Err at 'in': expected '}' after type fields\n"
     "[../tests/parser/invalid/type.tig:16:3] Err at 'type': expected 'of' after 'array' token\n"
     "[../tests/parser/invalid/type.tig:17:3] Err at 'type': expected type identifier after 'of' "
-    "token\n");
+    "token\n"
+    "[../tests/parser/invalid/type.tig:20:3] Err at 'type': expected type identifier\n"
+    "[../tests/parser/invalid/type.tig:20:15] Err at '->': expected type identifier\n"
+    "[../tests/parser/invalid/type.tig:21:13] Err at '->': expected type identifier\n"
+    "[../tests/parser/invalid/type.tig:23:3] Err at 'type': expected '->' after function type "
+    "parameters\n"
+    "[../tests/parser/invalid/type.tig:24:3] Err at 'type': expected type identifier\n"
+    "[../tests/parser/invalid/type.tig:24:22] Err at ')': expected type identifier\n");
 }

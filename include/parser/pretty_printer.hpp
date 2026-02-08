@@ -220,7 +220,8 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
   {
     std::string result = indent() + exp.field + "CallExp{\n";
     depth++;
-    result += indent() + "func=symbol\"" + exp.name.str() + "\",\n";
+    exp.callee->field = "callee=";
+    result += exp.callee->accept(*this) + "\n";
     result += indent() + "args=[\n";
     depth++;
     auto size = exp.args.size();
@@ -339,6 +340,36 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
       auto& field = type.fields[i];
       result += visit_single_field(field) + ((i == size - 1) ? "\n" : ",\n");
     }
+    depth--;
+    result += indent() + "}";
+    return result;
+  }
+
+  std::string visit_function_type(const parser::ast::FunctionType& type) override
+  {
+    std::string result = indent() + type.field + "FunctionType{\n";
+    depth++;
+    auto size = type.arg_types.size();
+
+    if(size == 0)
+    {
+      result += indent() + "() -> \n";
+    }
+    else
+    {
+      result += indent() + "(\n";
+      depth++;
+      for(size_t i = 0; i < size; i++)
+      {
+        auto& arg = type.arg_types[i];
+        auto arg_value = arg->accept(*this);
+        result += arg_value + ((i == size - 1) ? "\n" : ",\n");
+      }
+      depth--;
+      result += indent() + ") -> \n";
+    }
+
+    result += type.ret_type->accept(*this) + "\n";
     depth--;
     result += indent() + "}";
     return result;

@@ -16,8 +16,10 @@
 #include "terminal.hpp"
 #include <optional>
 #include <print>
+#include <variant>
 
 #ifndef NDEBUG
+#  define DEBUG_PRETTY_PRINT_AST 0
 #  define DEBUG_PRETTY_PRINT_IR 0
 #  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
 #  define DEBUG_PRETTY_PRINT_BLOCKS 0
@@ -33,6 +35,10 @@
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
 #  include <concepts>
+#endif
+
+#if DEBUG_PRETTY_PRINT_AST
+#  include "parser/pretty_printer.hpp"
 #endif
 
 namespace
@@ -246,6 +252,11 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
     terminal_exit_error();
     return Error::LEX_ERR;
   }
+
+#if DEBUG_PRETTY_PRINT_AST
+  parser::ast::PrettyPrinter ast_printer;
+  std::println("AST:\n{}", exp->accept(ast_printer));
+#endif
 
   // find escape variables
   semant::EscapeFinder esc_finder;
