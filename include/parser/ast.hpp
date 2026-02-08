@@ -785,12 +785,9 @@ class FunctionType : public Type
     return visitor.visit_function_type(*this);
   }
 
-  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor&) const override
+  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const override
   {
-    // TODO
-    return {
-
-    };
+    return visitor.visit_func_type(*this);
   }
   std::vector<std::unique_ptr<Type>> arg_types;
   std::unique_ptr<Type> ret_type;

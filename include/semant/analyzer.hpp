@@ -9,10 +9,15 @@
 #include "semant/visitor.hpp"
 #include "string_table.hpp"
 #include "symbol.hpp"
+#include <cassert>
 #include <filesystem>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
+
+#include <print>
+#include <variant>
 
 namespace semant
 {
@@ -71,7 +76,40 @@ class Analyzer : TypeCheckerExprVisitor,
 
   bool same_types(const SharedType& t1, const SharedType& t2)
   {
-    return t1 == t2;
+    auto& v1 = *t1;
+    auto& v2 = *t2;
+
+    if(typeid(v1) == typeid(v2) && is_type<FunctionType>(t1))
+    {
+      // for function types we actually need to examine all args and the return type
+      return same_function_types(static_cast<FunctionType&>(v1), static_cast<FunctionType&>(v2));
+    }
+    else
+    {
+      return t1 == t2;
+    }
+  }
+
+  bool same_function_types(const FunctionType& t1, const FunctionType& t2)
+  {
+    if(!same_types(t1.ret, t2.ret))
+    {
+      return false;
+    }
+    auto& formals1 = t1.formals;
+    auto& formals2 = t2.formals;
+
+    if(formals1.size() != formals2.size())
+    {
+      return false;
+    }
+
+    bool same{true};
+    for(size_t i = 0; i < formals1.size() && same; i++)
+    {
+      same &= (same_types(formals1[i], formals2[i]));
+    }
+    return same;
   }
 
   bool can_assign(const SharedType& tlhs, const SharedType& trhs)
@@ -397,8 +435,39 @@ class Analyzer : TypeCheckerExprVisitor,
                     access, std::move(rlow.ir), std::move(rhigh.ir), std::move(rbody.ir), breakl)};
   }
 
-  types::Result visit_call_exp(const parser::ast::CallExp&) override
+  types::Result visit_call_exp(const parser::ast::CallExp& exp) override
   {
+    types::Result callee_result = exp.callee->accept(*this);
+
+    std::vector<ir::Exp> arg_exps;
+    auto& function_type = dynamic_cast<FunctionType&>(*callee_result.type);
+
+    // check the arguments
+    auto fsize = function_type.formals.size();
+    auto asize = exp.args.size();
+
+    if(asize != fsize)
+    {
+      error_at(exp.position, std::format("expected {} arguments, got {}", fsize, asize));
+    }
+
+    for(size_t i = 0; i < asize; i++)
+    {
+      auto [tactual, ir] = exp.args[i]->accept(*this);
+      auto texpected = function_type.formals[i];
+      if(!same_types(skip_name_types(texpected), tactual))
+      {
+        error_at(exp.position,
+                 std::format("argument {} expects type '{}', got '{}'",
+                             i,
+                             texpected->to_string(),
+                             tactual->to_string()));
+      }
+      arg_exps.emplace_back(std::move(ir));
+    };
+
+    return Result{function_type.ret, ir::Ex{}}; // TODO translate call exp
+
     /*
     auto maybe_fentry = venv.lookup(exp.name);
     if(!maybe_fentry || !std::holds_alternative<FuncEntry<FrameT>>(maybe_fentry->v))
@@ -439,8 +508,6 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{skip_name_types(fentry.result),
                   translator.call_exp(
                     fentry.label, current_level.get(), fentry.level.get(), std::move(arg_exps))};*/
-
-    return Result{};
   }
 
   types::Result visit_let_exp(const parser::ast::LetExp& exp) override
@@ -524,16 +591,19 @@ class Analyzer : TypeCheckerExprVisitor,
 
       // add the function header
       auto flabel = TempGen::new_label();
-      venv.enter(
-        fdecl->name,
-        FuncEntry<FrameT>(
-          flabel, formals, tresult, translator.new_level(current_level.get(), flabel, escapes)));
+      venv.enter(fdecl->name,
+                 FuncEntry<FrameT>(flabel,
+                                   std::make_shared<FunctionType>(formals, tresult),
+                                   translator.new_level(current_level.get(), flabel, escapes)));
     }
 
     // go through the bodies
     for(auto& fdecl : decl.decls)
     {
-      auto func_entry = std::get<FuncEntry<FrameT>>(venv.lookup(fdecl->name)->v);
+      FuncEntry<FrameT> func_entry = std::get<FuncEntry<FrameT>>(venv.lookup(fdecl->name)->v);
+
+      // TODO: remove
+      std::println("VENV at {} entrance: {}", fdecl->name.str(), venv.dump());
 
       venv.begin_scope(); // body scope augmented with formals
 
@@ -551,7 +621,7 @@ class Analyzer : TypeCheckerExprVisitor,
       auto rbody = fdecl->body->accept(*this);
       current_level = prev_level;
 
-      if(!same_types(skip_name_types(func_entry.result), rbody.type))
+      if(!same_types(skip_name_types(func_entry.fun_type->ret), rbody.type))
       {
         auto pos = fdecl->position;
         if(fdecl->result)
@@ -561,7 +631,7 @@ class Analyzer : TypeCheckerExprVisitor,
         }
         error_at(pos,
                  std::format("return type '{}' does not match body type '{}'",
-                             to_string(func_entry.result),
+                             to_string(func_entry.fun_type->ret),
                              to_string(rbody.type)));
       }
 
@@ -660,6 +730,22 @@ class Analyzer : TypeCheckerExprVisitor,
     return std::make_shared<Array>(elem_type->t);
   }
 
+  types::SharedType visit_func_type(const parser::ast::FunctionType& type) override
+  {
+    std::vector<SharedType> args;
+    SharedType ret{};
+
+    for(auto& arg : type.arg_types)
+    {
+      args.push_back(arg->accept(*this));
+    }
+    ret = type.ret_type->accept(*this);
+
+    auto r = std::make_shared<FunctionType>(std::move(args), std::move(ret));
+    std::println("FUN TYPE IS: {}", r->to_string()); // TODO: remove
+    return r;
+  }
+
   types::SharedType visit_record_type(const parser::ast::RecordType& type) override
   {
     std::vector<std::pair<Symbol, SharedType>> fields;
@@ -677,14 +763,23 @@ class Analyzer : TypeCheckerExprVisitor,
 
   types::Result visit_simple_var(const parser::ast::SimpleVar& var) override
   {
-    auto maybe_var = venv.lookup(var.name);
-    if(!maybe_var || !std::holds_alternative<VarEntry<FrameT>>(maybe_var->v))
+    // This can also be a function closure
+    const VEntry<FrameT>* maybe_var = venv.lookup(var.name);
+    if(!maybe_var)
     {
       error_at(var.position, std::format("undefined variable '{}'", var.name.str()));
     }
-    auto& ventry = std::get<VarEntry<FrameT>>(maybe_var->v);
-    return Result{skip_name_types(ventry.type),
-                  translator.simple_var(ventry.access, current_level.get())};
+
+    if(std::holds_alternative<VarEntry<FrameT>>(maybe_var->v))
+    {
+      auto& ventry = std::get<VarEntry<FrameT>>(maybe_var->v);
+      return Result{skip_name_types(ventry.type),
+                    translator.simple_var(ventry.access, current_level.get())};
+    }
+
+    assert(std::holds_alternative<FuncEntry<FrameT>>(maybe_var->v));
+    FuncEntry<FrameT> fentry = std::get<FuncEntry<FrameT>>(maybe_var->v);
+    return Result{fentry.fun_type, ir::Ex{}}; // TODO translate closure access
   }
 
   types::Result visit_field_var(const parser::ast::FieldVar& var) override
@@ -783,8 +878,8 @@ void Analyzer<FrameT>::add_predef_func(const Symbol& s, const SharedType& ret, A
 {
   venv.enter(s,
              FuncEntry(TempGen::named_label(s.str()),
-                       std::vector<SharedType>{std::forward<Args>(formals)...},
-                       ret,
+                       std::make_shared<FunctionType>(
+                         std::vector<SharedType>{std::forward<Args>(formals)...}, ret),
                        translator.outermost_level()));
 }
 

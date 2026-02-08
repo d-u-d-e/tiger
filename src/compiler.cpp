@@ -276,6 +276,9 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
     return Error::SEMANT_ERR;
   }
 
+  std::println("type check OK!");
+  exit(0); // TODO: remove
+
   // AST to IR
   translator.translate_main_program(std::move(ir));
   auto out_file = fopen(out_name.c_str(), "w");

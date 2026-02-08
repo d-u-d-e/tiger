@@ -27,6 +27,7 @@ class TypeDecl;
 class NameType;
 class ArrayType;
 class RecordType;
+class FunctionType;
 } // namespace parser::ast
 
 namespace semant
@@ -66,6 +67,7 @@ class TypeCheckerTypeVisitor
   types::SharedType virtual visit_name_type(const parser::ast::NameType& type) = 0;
   types::SharedType virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
   types::SharedType virtual visit_record_type(const parser::ast::RecordType& type) = 0;
+  types::SharedType virtual visit_func_type(const parser::ast::FunctionType& type) = 0;
 };
 
 class TypeCheckerVarVisitor

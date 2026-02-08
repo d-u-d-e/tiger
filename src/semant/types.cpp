@@ -53,4 +53,17 @@ std::string Name::to_string()
   return name.str();
 }
 
+std::string FunctionType::to_string()
+{
+  std::string result = "{(";
+  auto size = formals.size();
+
+  for(size_t i = 0; i < size; i++)
+  {
+    result += formals[i]->to_string() + (i == size - 1 ? "" : ", ");
+  }
+  result += ") -> " + ret->to_string() + "}";
+  return result;
+}
+
 } // namespace semant::types
