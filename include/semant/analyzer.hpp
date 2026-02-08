@@ -241,7 +241,7 @@ class Analyzer : TypeCheckerExprVisitor,
 
     if(!texpr || !is_type<Array>(texpr->t))
     {
-      error_at(exp.position, std::format("undefined array type '{}'", exp.type.str()));
+      error_at(exp.position, std::format("undeclared array type '{}'", exp.type.str()));
     }
     else if(!is_type<Integer>(rsize.type))
     {
@@ -273,7 +273,7 @@ class Analyzer : TypeCheckerExprVisitor,
     auto maybe_rec = tenv.lookup(exp.type);
     if(!maybe_rec || !is_type<Record>(maybe_rec->t))
     {
-      error_at(exp.position, std::format("undefined record type '{}'", exp.type.str()));
+      error_at(exp.position, std::format("undeclared record type '{}'", exp.type.str()));
     }
     auto& trec = dynamic_cast<Record&>(*maybe_rec->t);
 
@@ -569,7 +569,7 @@ class Analyzer : TypeCheckerExprVisitor,
         auto tparam = tenv.lookup(param.type);
         if(!tparam)
         {
-          error_at(param.position, std::format("undefined parameter type '{}'", param.type.str()));
+          error_at(param.position, std::format("undeclared parameter type '{}'", param.type.str()));
         }
         formals.push_back(tparam->t);
         escapes.push_back(*param.escape);
@@ -584,7 +584,7 @@ class Analyzer : TypeCheckerExprVisitor,
         if(!opt_tresult)
         {
           error_at(fdecl_result.second,
-                   std::format("undefined return type '{}'", fdecl_result.first.str()));
+                   std::format("undeclared return type '{}'", fdecl_result.first.str()));
         }
         tresult = opt_tresult->t;
       }
@@ -655,7 +655,7 @@ class Analyzer : TypeCheckerExprVisitor,
 
       if(!tdecl)
       {
-        error_at(tpos, std::format("undefined type '{}'", tname.str()));
+        error_at(tpos, std::format("undeclared type '{}'", tname.str()));
       }
       if(!can_assign(skip_name_types(tdecl->t), tinit.type))
       {
@@ -715,7 +715,7 @@ class Analyzer : TypeCheckerExprVisitor,
     auto ty = tenv.lookup(type.name);
     if(!ty)
     {
-      error_at(type.position, std::format("undefined type '{}'", type.name.str()));
+      error_at(type.position, std::format("undeclared type '{}'", type.name.str()));
     }
     return ty->t;
   }
@@ -725,7 +725,7 @@ class Analyzer : TypeCheckerExprVisitor,
     auto elem_type = tenv.lookup(type.name);
     if(!elem_type)
     {
-      error_at(type.position, std::format("undefined type '{}'", type.name.str()));
+      error_at(type.position, std::format("undeclared type '{}'", type.name.str()));
     }
     return std::make_shared<Array>(elem_type->t);
   }
@@ -754,7 +754,7 @@ class Analyzer : TypeCheckerExprVisitor,
       auto tfield = tenv.lookup(field.type);
       if(!tfield)
       {
-        error_at(field.position, std::format("undefined type '{}'", field.type.str()));
+        error_at(field.position, std::format("undeclared type '{}'", field.type.str()));
       }
       fields.push_back({field.name, tfield->t});
     }
@@ -767,7 +767,7 @@ class Analyzer : TypeCheckerExprVisitor,
     const VEntry<FrameT>* maybe_var = venv.lookup(var.name);
     if(!maybe_var)
     {
-      error_at(var.position, std::format("undefined variable '{}'", var.name.str()));
+      error_at(var.position, std::format("undeclared identifier '{}'", var.name.str()));
     }
 
     if(std::holds_alternative<VarEntry<FrameT>>(maybe_var->v))

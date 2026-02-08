@@ -1,4 +1,4 @@
-/* Undefined type for array elements */
+/* undeclared type for array elements */
 
 let
   type A = array of int

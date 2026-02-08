@@ -1,4 +1,4 @@
-/* Undefined type name */
+/* undeclared type name */
 
 let
   type A = int

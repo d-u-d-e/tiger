@@ -1,4 +1,4 @@
-/* Undefined array type */
+/* undeclared array type */
 
 let
   type IntArray = array of int

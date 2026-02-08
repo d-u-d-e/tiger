@@ -1,4 +1,4 @@
-/* Undefined param type */
+/* undeclared param type */
 
 let
   type T = int

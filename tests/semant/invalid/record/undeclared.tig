@@ -1,4 +1,4 @@
-/* Undefined record type */
+/* undeclared record type */
 
 let
   type R = {a: int, b: string}

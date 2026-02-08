@@ -126,8 +126,8 @@ SHOULD_THROW("../tests/semant/invalid/array/init_type_mismatch.tig",
 SHOULD_THROW("../tests/semant/invalid/array/size_not_int.tig", 
   "[../tests/semant/invalid/array/size_not_int.tig:7:12] Err: array size must be an integer");
 
-SHOULD_THROW("../tests/semant/invalid/array/undefined.tig", 
-  "[../tests/semant/invalid/array/undefined.tig:6:12] Err: undefined array type 'StrArray'");
+SHOULD_THROW("../tests/semant/invalid/array/undeclared.tig", 
+  "[../tests/semant/invalid/array/undeclared.tig:6:12] Err: undeclared array type 'StrArray'");
 
 SHOULD_THROW("../tests/semant/invalid/function/arg_type_mismatch.tig", 
   "[../tests/semant/invalid/function/arg_type_mismatch.tig:7:4] Err: argument 0 expects type 'int', got 'string'");
@@ -142,13 +142,13 @@ SHOULD_THROW("../tests/semant/invalid/function/return_body_mismatch.tig",
   "[../tests/semant/invalid/function/return_body_mismatch.tig:5:24] Err: return type 'int' does not match body type 'string'");
 
 SHOULD_THROW("../tests/semant/invalid/function/undef_param_type.tig", 
-  "[../tests/semant/invalid/function/undef_param_type.tig:6:14] Err: undefined parameter type 'U'");
+  "[../tests/semant/invalid/function/undef_param_type.tig:6:14] Err: undeclared parameter type 'U'");
 
 SHOULD_THROW("../tests/semant/invalid/function/undef_return_type.tig", 
-  "[../tests/semant/invalid/function/undef_return_type.tig:5:18] Err: undefined return type 'T'");
+  "[../tests/semant/invalid/function/undef_return_type.tig:5:18] Err: undeclared return type 'T'");
 
-SHOULD_THROW("../tests/semant/invalid/function/undefined.tig", 
-  "[../tests/semant/invalid/function/undefined.tig:6:11] Err: undefined function 'g'");
+SHOULD_THROW("../tests/semant/invalid/function/undeclared.tig", 
+  "[../tests/semant/invalid/function/undeclared.tig:6:10] Err: undeclared identifier 'g'");
 
 SHOULD_THROW("../tests/semant/invalid/if/cond_not_int.tig", 
   "[../tests/semant/invalid/if/cond_not_int.tig:3:1] Err: the condition must be an integer");
@@ -207,8 +207,8 @@ SHOULD_THROW("../tests/semant/invalid/record/dot_unexpected_field_name.tig",
 SHOULD_THROW("../tests/semant/invalid/record/fields.tig", 
   "[../tests/semant/invalid/record/fields.tig:6:3] Err: expected 2 fields, got 1");
   
-SHOULD_THROW("../tests/semant/invalid/record/undefined.tig", 
-  "[../tests/semant/invalid/record/undefined.tig:6:3] Err: undefined record type 'S'");
+SHOULD_THROW("../tests/semant/invalid/record/undeclared.tig", 
+  "[../tests/semant/invalid/record/undeclared.tig:6:3] Err: undeclared record type 'S'");
 
 SHOULD_THROW("../tests/semant/invalid/record/unexpected_field_name.tig", 
   "[../tests/semant/invalid/record/unexpected_field_name.tig:6:13] Err: expected field 'b', got 'c'");
@@ -229,13 +229,13 @@ SHOULD_THROW("../tests/semant/invalid/type/redecl.tig",
   "[../tests/semant/invalid/type/redecl.tig:8:3] Err: redeclaration of type 'A'");
   
 SHOULD_THROW("../tests/semant/invalid/type/undef_array.tig", 
-  "[../tests/semant/invalid/type/undef_array.tig:6:21] Err: undefined type 'T'");
+  "[../tests/semant/invalid/type/undef_array.tig:6:21] Err: undeclared type 'T'");
 
 SHOULD_THROW("../tests/semant/invalid/type/undef_name.tig", 
-  "[../tests/semant/invalid/type/undef_name.tig:5:12] Err: undefined type 'T'");
+  "[../tests/semant/invalid/type/undef_name.tig:5:12] Err: undeclared type 'T'");
 
 SHOULD_THROW("../tests/semant/invalid/type/undef_record.tig", 
-  "[../tests/semant/invalid/type/undef_record.tig:4:21] Err: undefined type 'T'");
+  "[../tests/semant/invalid/type/undef_record.tig:4:21] Err: undeclared type 'T'");
 
 SHOULD_THROW("../tests/semant/invalid/var/init_nil.tig", 
   "[../tests/semant/invalid/var/init_nil.tig:6:3] Err: nil must be constrained by a record type");
@@ -244,9 +244,9 @@ SHOULD_THROW("../tests/semant/invalid/var/init_type_mismatch.tig",
   "[../tests/semant/invalid/var/init_type_mismatch.tig:5:11] Err: decl type 'R' does not match expr type 'int'");
 
 SHOULD_THROW("../tests/semant/invalid/var/undef_type.tig", 
-  "[../tests/semant/invalid/var/undef_type.tig:5:11] Err: undefined type 'R'");
+  "[../tests/semant/invalid/var/undef_type.tig:5:11] Err: undeclared type 'R'");
 
-SHOULD_THROW("../tests/semant/invalid/var/undefined.tig", 
-  "[../tests/semant/invalid/var/undefined.tig:3:5] Err: undefined variable 'a'");
+SHOULD_THROW("../tests/semant/invalid/var/undeclared.tig", 
+  "[../tests/semant/invalid/var/undeclared.tig:3:5] Err: undeclared identifier 'a'");
   // clang-format on
 }

@@ -1,4 +1,4 @@
-/* Undefined function */
+/* undeclared function */
 
 let
   function f(a: int) : int = a

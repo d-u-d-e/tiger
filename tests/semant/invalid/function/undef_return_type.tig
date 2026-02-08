@@ -1,4 +1,4 @@
-/* Undefined return type */
+/* undeclared return type */
 
 let
   function f(a: int) : int = a /* OK */
