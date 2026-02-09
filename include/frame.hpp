@@ -38,10 +38,6 @@ concept IsFrame = requires(const FrameT cf, FrameT f)
     cf.name()
     } -> std::same_as<TempGen::Label>;
 
-  {
-    cf.locals_count()
-    } -> std::convertible_to<unsigned int>;
-
   // static functions
   {
     FrameT::exp(std::declval<const typename FrameT::Access&>(), std::declval<ir::Ex>())

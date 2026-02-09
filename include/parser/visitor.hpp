@@ -4,7 +4,7 @@
 
 namespace parser::ast
 {
-class SimpleVar;
+class Var;
 class FieldVar;
 class StringExp;
 class AssignExp;
@@ -70,7 +70,7 @@ class PrettyPrinterTypeVisitor
 class PrettyPrinterVarVisitor
 {
   public:
-  std::string virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
+  std::string virtual visit_simple_var(const parser::ast::Var& var) = 0;
   std::string virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
   std::string virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
 };

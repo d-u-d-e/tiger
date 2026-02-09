@@ -77,11 +77,6 @@ class Frame
     return TempGen::new_label();
   }
 
-  unsigned int locals_count() const
-  {
-    return 0;
-  }
-
   Access alloc_local(bool)
   {
     return {};

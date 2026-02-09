@@ -150,6 +150,12 @@ SHOULD_THROW("../tests/semant/invalid/function/undef_return_type.tig",
 SHOULD_THROW("../tests/semant/invalid/function/undeclared.tig", 
   "[../tests/semant/invalid/function/undeclared.tig:6:10] Err: undeclared identifier 'g'");
 
+SHOULD_THROW("../tests/semant/invalid/function/invalid_callee1.tig", 
+  "[../tests/semant/invalid/function/invalid_callee1.tig:5:6] Err: expression is not callable");
+
+SHOULD_THROW("../tests/semant/invalid/function/invalid_callee2.tig", 
+  "[../tests/semant/invalid/function/invalid_callee2.tig:5:6] Err: expression is not callable");
+
 SHOULD_THROW("../tests/semant/invalid/if/cond_not_int.tig", 
   "[../tests/semant/invalid/if/cond_not_int.tig:3:1] Err: the condition must be an integer");
 

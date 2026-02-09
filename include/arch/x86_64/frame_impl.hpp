@@ -16,6 +16,7 @@ class X86Frame
   friend class X86Generator;
 
   using stack_offset_t = int64_t;
+  using esc_offset_t = uint64_t;
   using Temp = TempGen::Temp;
   using Label = TempGen::Label;
 
@@ -40,12 +41,20 @@ class X86Frame
     stack_offset_t offset;
   };
 
-  using Access = std::variant<std::monostate, InReg, InFrame>;
+  struct InEscapingRecord
+  {
+    // offset from the escaping record
+    InEscapingRecord(esc_offset_t offset)
+      : offset(offset)
+    { }
+    esc_offset_t offset;
+  };
+
+  using Access = std::variant<std::monostate, InReg, InFrame, InEscapingRecord>;
 
   X86Frame(Label label, const std::vector<bool>& formals);
   std::vector<Access> formals() const;
   TempGen::Label name() const;
-  uint16_t locals_count() const;
 
   ir::tree::Stmt proc_entry_exit1(ir::tree::Stmt&& stmt);
   void proc_entry_exit2(std::list<assem::Instruction>& list);
@@ -54,7 +63,7 @@ class X86Frame
                        const std::unordered_set<TempGen::Temp>& spilled_temps);
   Access alloc_local(bool escape);
 
-  static ir::Ex exp(const Access& fax, ir::Ex&& fp);
+  static ir::Ex exp(const Access& fax, ir::Ex&& ep);
   static ir::Ex external_call(TempGen::Label label, std::vector<ir::Ex>&& args);
   static std::string assembler_directives_begin()
   {
@@ -102,6 +111,8 @@ class X86Frame
   static inline std::vector<Temp> callee_saved{RBX, R12, R13, R14, R15};
   static inline std::vector<Temp> params_on_regs{RDI, RSI, RDX, RCX, R8, R9};
 
+  const TempGen::Temp EP;
+
   // clang-format off
   static inline std::unordered_map<TempGen::Temp, assem::register_t> temp_map{
     {FP, "rbp"},
@@ -126,9 +137,8 @@ class X86Frame
   Label label;
   ir::tree::Stmt view_shift{};
   std::vector<Access> formals_;
-  uint32_t locals{};
-  stack_offset_t locals_stack_offset{};
   uint32_t max_outgoing_params{};
   uint32_t spilled_temps{};
+  esc_offset_t escaping_offset{};
 };
 } // namespace arch

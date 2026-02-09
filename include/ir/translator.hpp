@@ -28,13 +28,10 @@ class Translator
   {
     proc_entry_exit(lvl_main, std::move(exp));
   }
-  Exp simple_var(const LevelT::Access& ax, const LevelT* current);
+  Exp var(const LevelT::Access& ax, const LevelT* current);
   Exp seq_exp(std::vector<Exp>&& exps);
   Ex constant(int64_t constant);
-  Exp call_exp(TempGen::Label name,
-               const LevelT* lcaller,
-               const LevelT* lcallee,
-               std::vector<Exp>&& args);
+  Exp call_exp(Exp&& closure, std::vector<Exp>&& args);
   Exp assign(Exp&& left, Exp&& right);
   Exp binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
   Exp rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
@@ -108,7 +105,8 @@ void Translator<FrameT>::add_fragment(FragmentT&& f)
 }
 
 template <IsFrame FrameT>
-void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& body)
+void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level,
+                                         Exp&& body)
 {
   // move the body result onto the RV register
   auto rv = std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(FrameT::RV),
@@ -122,10 +120,11 @@ void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& bo
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::simple_var(const LevelT::Access& var_ax, const LevelT* current)
+Exp Translator<FrameT>::var(const LevelT::Access& var_ax, const LevelT* current)
 {
-  tree::Exp fp_exp = std::make_unique<tree::TempExp>(FrameT::FP);
+  // TODO: use EP instead of FP
 
+  tree::Exp fp_exp = std::make_unique<tree::TempExp>(FrameT::FP);
   while(var_ax.l != current)
   {
     // first arg holds the static link
@@ -481,14 +480,14 @@ Exp Translator<FrameT>::for_exp(
   auto t = TempGen::new_label();
 
   // id := low; ltest:
-  auto ass = assign(simple_var(iax, iax.l), std::move(low));
+  auto ass = assign(var(iax, iax.l), std::move(low));
   auto seq =
     std::make_unique<tree::SeqStmt>(unnx(std::move(ass)), std::make_unique<tree::LabelStmt>(ltest));
   // cjump(id <= high, t, lbreak)
   seq = std::make_unique<tree::SeqStmt>(
     std::move(seq),
     std::make_unique<tree::CJumpStmt>(
-      tree::RelOp::le, unex(simple_var(iax, iax.l)), unex(std::move(high)), t, lbreak));
+      tree::RelOp::le, unex(var(iax, iax.l)), unex(std::move(high)), t, lbreak));
 
   // t:
   seq = std::make_unique<tree::SeqStmt>(std::move(seq), std::make_unique<tree::LabelStmt>(t));
@@ -496,11 +495,11 @@ Exp Translator<FrameT>::for_exp(
   seq = std::make_unique<tree::SeqStmt>(std::move(seq), unnx(std::move(body)));
 
   // id := id + 1
-  auto inc = std::make_unique<tree::BinOpExp>(
-    tree::BinaryOp::plus, unex(simple_var(iax, iax.l)), constant((1)));
+  auto inc =
+    std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus, unex(var(iax, iax.l)), constant((1)));
 
-  seq = std::make_unique<tree::SeqStmt>(std::move(seq),
-                                        unnx(assign(simple_var(iax, iax.l), std::move(inc))));
+  seq =
+    std::make_unique<tree::SeqStmt>(std::move(seq), unnx(assign(var(iax, iax.l), std::move(inc))));
 
   // jump(ltest)
   seq = std::make_unique<tree::SeqStmt>(
@@ -517,11 +516,37 @@ Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::call_exp(TempGen::Label name,
-                                 const LevelT* lcaller,
-                                 const LevelT* lcallee,
-                                 std::vector<Exp>&& args)
+Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
 {
+
+  // A closure is implemented as a record like:
+  // {
+  //     machine label: int,
+  //     EP: int
+  // }
+
+  // So we need to get the first field of the record
+
+  std::vector<Ex> args_as_exp;
+  auto label = std::make_unique<tree::MemExp>(unex(std::move(closure)));
+
+  // TODO: pointer to environment? This is the first field of the escaping pointer
+
+  for(auto& arg : args)
+  {
+    // unex all arguments
+    args_as_exp.emplace_back(unex(std::move(arg)));
+  }
+  return std::make_unique<tree::CallExp>(std::move(label), std::move(args_as_exp));
+
+  /*
+
+  call_exp(TempGen::Label name,
+                                  const LevelT* lcaller,
+                                  const LevelT* lcallee,
+                                  std::vector<Exp>&& args):
+
+
   std::vector<Ex> args_as_exp;
   bool is_external = lcallee == lvl_outermost.get();
 
@@ -553,7 +578,7 @@ Exp Translator<FrameT>::call_exp(TempGen::Label name,
   }
 
   return std::make_unique<tree::CallExp>(std::make_unique<tree::NameExp>(name),
-                                         std::move(args_as_exp));
+                                         std::move(args_as_exp));*/
 }
 
 template <class... Ts>
@@ -568,10 +593,9 @@ std::string Translator<FrameT>::dump_fragment(const FragmentT& f) const
 
   auto dump_proc_frag = [](const ir::ProcedureFragment<FrameT>& pf) -> std::string {
     tree::PrettyPrinter printer;
-    auto result = std::format("frag function: {}, args: {}, locals: {}\n",
+    auto result = std::format("frag function: {}, args: {}\n",
                               pf.level->frame->name().str(),
-                              pf.level->frame->formals().size(),
-                              pf.level->frame->locals_count());
+                              pf.level->frame->formals().size());
     auto ir_str = std::visit(printer, pf.body) + "\n";
     return ir_str;
   };

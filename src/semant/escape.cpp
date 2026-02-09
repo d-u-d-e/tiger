@@ -80,6 +80,7 @@ void EscapeFinder::visit_for_exp(parser::ast::ForExp& exp)
 
 void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 {
+  exp.callee->accept(*this);
   for(auto& arg : exp.args)
   {
     arg->accept(*this);
@@ -95,7 +96,7 @@ void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
   exp.body->accept(*this);
 }
 
-void EscapeFinder::visit_simple_var(parser::ast::SimpleVar& var)
+void EscapeFinder::visit_var(parser::ast::Var& var)
 {
   if(auto v = env.lookup(var.name); v && v->depth < env.depth())
   {
@@ -123,17 +124,20 @@ void EscapeFinder::visit_var_decl(parser::ast::VarDecl& decl)
 
 void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
 {
-  env.begin_scope();
   for(auto& d : decl.decls)
   {
+    *d->escape = false;
+    env.enter(d->name, Escape(env.depth(), d->escape));
+    
+    env.begin_scope();
     for(auto& p : d->params)
     {
       *p.escape = false;
       env.enter(p.name, Escape(env.depth(), p.escape));
     }
     d->body->accept(*this);
+    env.end_scope();
   }
-  env.end_scope();
 }
 
 } // namespace semant

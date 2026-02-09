@@ -127,7 +127,7 @@ std::unique_ptr<ast::SeqExp> Parser::sequencing()
 std::unique_ptr<ast::VarExp> Parser::variable()
 {
   // we parsed an identifier as an infix operator
-  auto var = std::make_unique<ast::SimpleVar>(symbol(previous.value), previous.pos);
+  auto var = std::make_unique<ast::Var>(symbol(previous.value), previous.pos);
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
@@ -169,7 +169,7 @@ std::unique_ptr<ast::Expression> Parser::array_subscript(std::unique_ptr<ast::Ex
   if(match(lexer::TokenType::of_keyword))
   {
     // the parser must have found a simple variable as lhs
-    auto simple_var = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
+    auto simple_var = dynamic_cast<ast::Var*>(lhs_var->var.get());
 
     if(!simple_var)
     {
@@ -632,7 +632,7 @@ std::unique_ptr<ast::Expression> Parser::record_expr(std::unique_ptr<ast::Expres
     error_at(previous, "expected identifier as record type");
   }
 
-  auto lhs_simple = dynamic_cast<ast::SimpleVar*>(lhs_var->var.get());
+  auto lhs_simple = dynamic_cast<ast::Var*>(lhs_var->var.get());
   if(!lhs_simple)
   {
     error_at(previous, "expected identifier as record type");

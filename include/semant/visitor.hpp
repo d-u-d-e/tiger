@@ -3,7 +3,7 @@
 
 namespace parser::ast
 {
-class SimpleVar;
+class Var;
 class FieldVar;
 class StringExp;
 class AssignExp;
@@ -73,7 +73,7 @@ class TypeCheckerTypeVisitor
 class TypeCheckerVarVisitor
 {
   public:
-  types::Result virtual visit_simple_var(const parser::ast::SimpleVar& var) = 0;
+  types::Result virtual visit_var(const parser::ast::Var& var) = 0;
   types::Result virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
   types::Result virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
 };
@@ -109,7 +109,7 @@ class FindEscapeDeclVisitor
 class FindEscapeVarVisitor
 {
   public:
-  void virtual visit_simple_var(parser::ast::SimpleVar& var) = 0;
+  void virtual visit_var(parser::ast::Var& var) = 0;
   void virtual visit_field_var(parser::ast::FieldVar& var) = 0;
   void virtual visit_subscript_var(parser::ast::SubscriptVar& var) = 0;
 };

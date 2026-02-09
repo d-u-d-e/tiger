@@ -11,10 +11,10 @@ namespace semant
 using namespace types;
 
 template <typename FrameT>
-class VarEntry
+class SimpleVarEntry
 {
   public:
-  explicit VarEntry(SharedType type, Level<FrameT>::Access access)
+  explicit SimpleVarEntry(SharedType type, Level<FrameT>::Access access)
     : type(std::move(type))
     , access(std::move(access))
   { }
@@ -24,20 +24,23 @@ class VarEntry
 };
 
 template <typename FrameT>
-class FuncEntry
+class ClosureEntry
 {
   public:
-  explicit FuncEntry(TempGen::Label name,
-                     std::shared_ptr<FunctionType> func_type,
-                     std::shared_ptr<Level<FrameT>> level)
+  explicit ClosureEntry(TempGen::Label name,
+                        std::shared_ptr<FunctionType> func_type,
+                        std::shared_ptr<Level<FrameT>> level,
+                        Level<FrameT>::Access access)
     : label(name)
     , fun_type(std::move(func_type))
     , level(std::move(level))
+    , access(std::move(access))
   { }
 
   TempGen::Label label;
   std::shared_ptr<FunctionType> fun_type;
   std::shared_ptr<Level<FrameT>> level{};
+  Level<FrameT>::Access access; // tells where the variable resides in memory
 };
 
 template <typename FrameT>
@@ -46,14 +49,14 @@ struct VEntry
   std::string to_string() const
   {
     std::string result;
-    if(std::holds_alternative<VarEntry<FrameT>>(v))
+    if(std::holds_alternative<SimpleVarEntry<FrameT>>(v))
     {
-      VarEntry<FrameT> ventry = std::get<VarEntry<FrameT>>(v);
+      SimpleVarEntry<FrameT> ventry = std::get<SimpleVarEntry<FrameT>>(v);
       result = std::format("VarEntry{{{}}}", ventry.type->to_string());
     }
-    else if(std::holds_alternative<FuncEntry<FrameT>>(v))
+    else if(std::holds_alternative<ClosureEntry<FrameT>>(v))
     {
-      FuncEntry<FrameT> fentry = std::get<FuncEntry<FrameT>>(v);
+      ClosureEntry<FrameT> fentry = std::get<ClosureEntry<FrameT>>(v);
       result = std::format("FuncEntry{{{}}}(", fentry.label.str());
       auto arg_size = fentry.fun_type->formals.size();
       for(size_t i = 0; i < arg_size; i++)
@@ -64,7 +67,7 @@ struct VEntry
     }
     return result;
   }
-  std::variant<std::monostate, VarEntry<FrameT>, FuncEntry<FrameT>> v;
+  std::variant<std::monostate, SimpleVarEntry<FrameT>, ClosureEntry<FrameT>> v;
 };
 
 struct TEntry

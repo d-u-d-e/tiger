@@ -115,33 +115,37 @@ TEST_SUITE("environment")
     std::shared_ptr<LevelImpl> l = nullptr; // dummy
 
     venv.begin_scope();
-    venv.enter(a, VarEntry<mock::Frame>(std::make_shared<Integer>(), ax));
-    lookup_ventry<mock::Frame, VarEntry<mock::Frame>>(venv, a);
+    venv.enter(a, SimpleVarEntry<mock::Frame>(std::make_shared<Integer>(), ax));
+    lookup_ventry<mock::Frame, SimpleVarEntry<mock::Frame>>(venv, a);
 
     venv.begin_scope();
-    venv.enter(b, VarEntry<mock::Frame>(std::make_shared<types::String>(), ax));
-    lookup_ventry<mock::Frame, VarEntry<mock::Frame>>(venv, b);
+    venv.enter(b, SimpleVarEntry<mock::Frame>(std::make_shared<types::String>(), ax));
+    lookup_ventry<mock::Frame, SimpleVarEntry<mock::Frame>>(venv, b);
 
     std::vector<types::SharedType> formals;
     formals.push_back(std::make_shared<types::Integer>());
     formals.push_back(std::make_shared<types::String>());
-    venv.enter(f,
-               FuncEntry(TempGen::new_label(),
-                         std::make_shared<FunctionType>(formals, std::make_shared<types::String>()),
-                         l));
-    lookup_ventry<mock::Frame, FuncEntry<mock::Frame>>(venv, f);
+    venv.enter(
+      f,
+      ClosureEntry(TempGen::new_label(),
+                   std::make_shared<FunctionType>(formals, std::make_shared<types::String>()),
+                   l,
+                   ax));
+    lookup_ventry<mock::Frame, ClosureEntry<mock::Frame>>(venv, f);
 
     venv.end_scope();
-    lookup_ventry<mock::Frame, VarEntry<mock::Frame>, false>(venv, b);
-    lookup_ventry<mock::Frame, VarEntry<mock::Frame>, false>(venv, f);
+    lookup_ventry<mock::Frame, SimpleVarEntry<mock::Frame>, false>(venv, b);
+    lookup_ventry<mock::Frame, SimpleVarEntry<mock::Frame>, false>(venv, f);
 
     formals.clear();
     formals.push_back(std::make_shared<types::String>());
-    venv.enter(g,
-               FuncEntry(TempGen::new_label(),
-                         std::make_shared<FunctionType>(formals, std::make_shared<types::String>()),
-                         l));
-    lookup_ventry<mock::Frame, FuncEntry<mock::Frame>>(venv, g);
+    venv.enter(
+      g,
+      ClosureEntry(TempGen::new_label(),
+                   std::make_shared<FunctionType>(formals, std::make_shared<types::String>()),
+                   l,
+                   ax));
+    lookup_ventry<mock::Frame, ClosureEntry<mock::Frame>>(venv, g);
 
     venv.end_scope();
     CHECK(venv.size() == 0);

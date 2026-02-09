@@ -12,7 +12,7 @@ class PrettyPrinter : public PrettyPrinterExprVisitor,
 {
 
   public:
-  std::string visit_simple_var(const parser::ast::SimpleVar& var) override
+  std::string visit_simple_var(const parser::ast::Var& var) override
   {
 
     return std::format(

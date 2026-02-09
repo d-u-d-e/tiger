@@ -45,7 +45,7 @@ class EscapeFinder : public FindEscapeExprVisitor,
   void visit_var_decl(parser::ast::VarDecl& decl) override;
   void visit_type_decl(parser::ast::TypeDecl& decl) override;
 
-  void visit_simple_var(parser::ast::SimpleVar& var) override;
+  void visit_var(parser::ast::Var& var) override;
   void visit_field_var(parser::ast::FieldVar& var) override;
   void visit_subscript_var(parser::ast::SubscriptVar& var) override;
 

@@ -11,7 +11,8 @@ namespace arch
 {
 
 X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
-  : label(label)
+  : EP(TempGen::new_temp())
+  , label(label)
 {
   // just a dummy stmt
   view_shift = std::make_unique<ir::tree::ExpStmt>(std::make_unique<ir::tree::ConstExp>(0));
@@ -27,7 +28,7 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
       // generate a mov stmt to the stack location
       view_shift = std::make_unique<ir::tree::SeqStmt>(
         std::move(view_shift),
-        std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(FP)),
+        std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(EP)),
                                              std::make_unique<ir::tree::TempExp>(reg)));
     }
     else
@@ -58,13 +59,10 @@ std::vector<X86Frame::Access> X86Frame::formals() const
   return formals_;
 }
 
-uint16_t X86Frame::locals_count() const
-{
-  return locals;
-}
-
 ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 {
+  // TODO: allocate the escaping record EP
+
   // proc_entry_exit1 does the following:
   // - mov incoming register formal params to the place expected by the function (view shift)
   // - save callee saved registers
@@ -106,11 +104,11 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 
 X86Frame::Access X86Frame::alloc_local(bool escape)
 {
-  locals++;
   if(escape)
   {
-    locals_stack_offset -= word_size;
-    return InFrame(locals_stack_offset);
+    auto t = InEscapingRecord(escaping_offset);
+    escaping_offset += word_size;
+    return t;
   }
   else
   {
@@ -126,24 +124,32 @@ TempGen::Label X86Frame::name() const
 X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
 {
   spilled_temps++;
-  auto next = locals_stack_offset - spilled_temps * word_size;
+  auto next = -spilled_temps * word_size;
   return next;
 }
 
-ir::Ex X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& fp)
+ir::Ex X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& ep)
 {
   // traslate an access into an exp
-  if(std::holds_alternative<InFrame>(fax))
+  if(std::holds_alternative<InEscapingRecord>(fax))
   {
     auto at = std::make_unique<ir::tree::BinOpExp>(
       ir::tree::BinaryOp::plus,
-      std::move(fp),
-      std::make_unique<ir::tree::ConstExp>(std::get<InFrame>(fax).offset));
+      std::move(ep),
+      std::make_unique<ir::tree::ConstExp>(std::get<InEscapingRecord>(fax).offset));
     return std::make_unique<ir::tree::MemExp>(std::move(at));
+  }
+  else if(std::holds_alternative<InReg>(fax))
+  {
+    return std::make_unique<ir::tree::TempExp>(std::get<InReg>(fax).t);
   }
   else
   {
-    return std::make_unique<ir::tree::TempExp>(std::get<InReg>(fax).t);
+    auto at = std::make_unique<ir::tree::BinOpExp>(
+      ir::tree::BinaryOp::plus,
+      std::make_unique<ir::tree::TempExp>(FP),
+      std::make_unique<ir::tree::ConstExp>(std::get<InFrame>(fax).offset));
+    return std::make_unique<ir::tree::MemExp>(std::move(at));
   }
   assert(false);
 }
@@ -193,7 +199,6 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
   // - implement the prologue/epilogue
 
   // stack space is allocated as follows (going downwards):
-  // locals
   // spilled temporaries
   // extra alignment for 16 bytes if needed
   // max outgoing params
@@ -201,8 +206,7 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
   // we align down to a multiple of 16 bytes
   // we indirectly save the return address and the old fp for a total of 16 bytes
 
-  auto space =
-    (-locals_stack_offset + spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~15;
+  auto space = (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~15;
   stack_offset_t off = -space + word_size * max_outgoing_params;
 
   // patch instructions

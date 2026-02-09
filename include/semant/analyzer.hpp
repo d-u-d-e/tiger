@@ -420,7 +420,7 @@ class Analyzer : TypeCheckerExprVisitor,
 
     venv.begin_scope();
     auto access = translator.alloc_local(*current_level, *exp.escape);
-    venv.enter(exp.var, VarEntry<FrameT>(int_type, access));
+    venv.enter(exp.var, SimpleVarEntry<FrameT>(int_type, access));
     auto rbody = exp.body->accept(*this);
     venv.end_scope();
     current_loop = current_loop_saved;
@@ -438,6 +438,11 @@ class Analyzer : TypeCheckerExprVisitor,
   types::Result visit_call_exp(const parser::ast::CallExp& exp) override
   {
     types::Result callee_result = exp.callee->accept(*this);
+
+    if(!is_type<FunctionType>(callee_result.type))
+    {
+      error_at(exp.position, "expression is not callable");
+    }
 
     std::vector<ir::Exp> arg_exps;
     auto& function_type = dynamic_cast<FunctionType&>(*callee_result.type);
@@ -466,7 +471,8 @@ class Analyzer : TypeCheckerExprVisitor,
       arg_exps.emplace_back(std::move(ir));
     };
 
-    return Result{function_type.ret, ir::Ex{}}; // TODO translate call exp
+    return Result{function_type.ret,
+                  translator.call_exp(std::move(callee_result.ir), std::move(arg_exps))};
 
     /*
     auto maybe_fentry = venv.lookup(exp.name);
@@ -589,39 +595,41 @@ class Analyzer : TypeCheckerExprVisitor,
         tresult = opt_tresult->t;
       }
 
-      // add the function header
+      // we create the closure entry in the environment
       auto flabel = TempGen::new_label();
-      venv.enter(fdecl->name,
-                 FuncEntry<FrameT>(flabel,
-                                   std::make_shared<FunctionType>(formals, tresult),
-                                   translator.new_level(current_level.get(), flabel, escapes)));
+      typename LevelT::Access ax = translator.alloc_local(*current_level, *fdecl->escape);
+
+      // we add the function headers for mutually recursive functions
+      venv.enter(
+        fdecl->name,
+        ClosureEntry<FrameT>(flabel,
+                             std::make_shared<FunctionType>(formals, tresult),
+                             translator.new_level(current_level.get(), flabel, escapes),
+                             ax));
     }
 
     // go through the bodies
     for(auto& fdecl : decl.decls)
     {
-      FuncEntry<FrameT> func_entry = std::get<FuncEntry<FrameT>>(venv.lookup(fdecl->name)->v);
-
-      // TODO: remove
-      std::println("VENV at {} entrance: {}", fdecl->name.str(), venv.dump());
-
+      ClosureEntry<FrameT> closure_entry =
+        std::get<ClosureEntry<FrameT>>(venv.lookup(fdecl->name)->v);
       venv.begin_scope(); // body scope augmented with formals
 
       // add formals
-      auto ax = translator.formals(*func_entry.level);
+      auto ax = translator.formals(*closure_entry.level);
       for(size_t i = 0; i < fdecl->params.size(); i++)
       {
         auto& param = fdecl->params[i];
-        venv.enter(param.name, VarEntry<FrameT>(tenv.lookup(param.type)->t, ax[i]));
+        venv.enter(param.name, SimpleVarEntry<FrameT>(tenv.lookup(param.type)->t, ax[i]));
       }
 
       // type check return type
       auto prev_level = current_level;
-      current_level = func_entry.level;
+      current_level = closure_entry.level;
       auto rbody = fdecl->body->accept(*this);
       current_level = prev_level;
 
-      if(!same_types(skip_name_types(func_entry.fun_type->ret), rbody.type))
+      if(!same_types(skip_name_types(closure_entry.fun_type->ret), rbody.type))
       {
         auto pos = fdecl->position;
         if(fdecl->result)
@@ -631,11 +639,12 @@ class Analyzer : TypeCheckerExprVisitor,
         }
         error_at(pos,
                  std::format("return type '{}' does not match body type '{}'",
-                             to_string(func_entry.fun_type->ret),
+                             to_string(closure_entry.fun_type->ret),
                              to_string(rbody.type)));
       }
 
-      translator.proc_entry_exit(func_entry.level, std::move(rbody.ir));
+      
+      translator.proc_entry_exit(closure_entry.level, std::move(rbody.ir));
       venv.end_scope(); // end body scope
     }
 
@@ -664,7 +673,7 @@ class Analyzer : TypeCheckerExprVisitor,
                              tname.str(),
                              to_string(tinit.type)));
       }
-      venv.enter(decl.name, VarEntry<FrameT>(tdecl->t, ax));
+      venv.enter(decl.name, SimpleVarEntry<FrameT>(tdecl->t, ax));
     }
     else
     {
@@ -673,12 +682,11 @@ class Analyzer : TypeCheckerExprVisitor,
         // Nil must be constrained by a record type
         error_at(decl.position, "nil must be constrained by a record type");
       }
-      venv.enter(decl.name, VarEntry<FrameT>(tinit.type, ax));
+      venv.enter(decl.name, SimpleVarEntry<FrameT>(tinit.type, ax));
     }
 
-    return Result{
-      nullptr,
-      translator.assign(translator.simple_var(ax, current_level.get()), std::move(tinit.ir))};
+    return Result{nullptr,
+                  translator.assign(translator.var(ax, current_level.get()), std::move(tinit.ir))};
   }
 
   types::Result visit_type_decl(const parser::ast::TypeDecl& decl) override
@@ -761,25 +769,23 @@ class Analyzer : TypeCheckerExprVisitor,
     return std::make_shared<Record>(fields);
   }
 
-  types::Result visit_simple_var(const parser::ast::SimpleVar& var) override
+  types::Result visit_var(const parser::ast::Var& var) override
   {
-    // This can also be a function closure
     const VEntry<FrameT>* maybe_var = venv.lookup(var.name);
     if(!maybe_var)
     {
       error_at(var.position, std::format("undeclared identifier '{}'", var.name.str()));
     }
 
-    if(std::holds_alternative<VarEntry<FrameT>>(maybe_var->v))
+    if(std::holds_alternative<SimpleVarEntry<FrameT>>(maybe_var->v))
     {
-      auto& ventry = std::get<VarEntry<FrameT>>(maybe_var->v);
-      return Result{skip_name_types(ventry.type),
-                    translator.simple_var(ventry.access, current_level.get())};
+      auto& entry = std::get<SimpleVarEntry<FrameT>>(maybe_var->v);
+      return Result{skip_name_types(entry.type), translator.var(entry.access, current_level.get())};
     }
 
-    assert(std::holds_alternative<FuncEntry<FrameT>>(maybe_var->v));
-    FuncEntry<FrameT> fentry = std::get<FuncEntry<FrameT>>(maybe_var->v);
-    return Result{fentry.fun_type, ir::Ex{}}; // TODO translate closure access
+    assert(std::holds_alternative<ClosureEntry<FrameT>>(maybe_var->v));
+    ClosureEntry<FrameT> entry = std::get<ClosureEntry<FrameT>>(maybe_var->v);
+    return Result{entry.fun_type, translator.var(entry.access, current_level.get())};
   }
 
   types::Result visit_field_var(const parser::ast::FieldVar& var) override
@@ -874,13 +880,14 @@ void Analyzer<FrameT>::add_predefined_types()
 
 template <typename FrameT>
 template <typename... Args>
-void Analyzer<FrameT>::add_predef_func(const Symbol& s, const SharedType& ret, Args&&... formals)
+void Analyzer<FrameT>::add_predef_func(const Symbol&, const SharedType&, Args&&...)
 {
-  venv.enter(s,
-             FuncEntry(TempGen::named_label(s.str()),
-                       std::make_shared<FunctionType>(
-                         std::vector<SharedType>{std::forward<Args>(formals)...}, ret),
-                       translator.outermost_level()));
+  // TODO
+  /*venv.enter(s,
+             ClosureEntry(TempGen::named_label(s.str()),
+                          std::make_shared<FunctionType>(
+                            std::vector<SharedType>{std::forward<Args>(formals)...}, ret),
+                          translator.outermost_level()));*/
 }
 
 template <typename FrameT>

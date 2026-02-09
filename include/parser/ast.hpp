@@ -98,10 +98,10 @@ inline std::string to_string(Operator op)
   std::unreachable();
 };
 
-class SimpleVar : public Variable
+class Var : public Variable
 {
   public:
-  SimpleVar(const Symbol& name, Position position)
+  Var(const Symbol& name, Position position)
     : name(name)
     , position(position)
   { }
@@ -112,12 +112,12 @@ class SimpleVar : public Variable
 
   semant::types::Result accept(semant::TypeCheckerVarVisitor& visitor) const override
   {
-    return visitor.visit_simple_var(*this);
+    return visitor.visit_var(*this);
   }
 
   void accept(semant::FindEscapeVarVisitor& visitor) override
   {
-    return visitor.visit_simple_var(*this);
+    return visitor.visit_var(*this);
   }
 
   Symbol name;
@@ -807,12 +807,21 @@ class _FuncDecl
     , result(result)
     , body(std::move(body))
     , position(position)
+    , escape(std::make_shared<bool>(true))
   { }
   Symbol name;
   std::vector<_Field> params;
   std::optional<std::pair<Symbol, lexer::Position>> result;
   std::unique_ptr<Expression> body;
   Position position;
+
+  /*
+    The escape field tells us whether the variable is going to be used by a nested function.
+    This is important to decide whether to put the variable in a register or in memory.
+    Note that this is a hack, since escaping is a global nonsyntactic property. Putting it here
+    means one less data structure.
+  */
+  std::shared_ptr<bool> escape;
 };
 
 class FuncDecl : public Declaration
