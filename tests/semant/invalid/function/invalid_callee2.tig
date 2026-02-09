@@ -1,0 +1,6 @@
+let
+    function f(a: int) : int = a
+    var a := 1
+in
+    1(2)
+end
