@@ -473,47 +473,6 @@ class Analyzer : TypeCheckerExprVisitor,
 
     return Result{function_type.ret,
                   translator.call_exp(std::move(callee_result.ir), std::move(arg_exps))};
-
-    /*
-    auto maybe_fentry = venv.lookup(exp.name);
-    if(!maybe_fentry || !std::holds_alternative<FuncEntry<FrameT>>(maybe_fentry->v))
-    {
-      error_at(exp.position, std::format("undefined function '{}'", exp.name.str()));
-    }
-
-    // Note: be careful with auto&: calling enter on the env after having
-    // obtained a reference to an entry can make it dangling!
-    // This is because the env can grow
-    auto& fentry = std::get<FuncEntry<FrameT>>(maybe_fentry->v);
-
-    // check the arguments
-    auto fsize = fentry.formals.size();
-    auto asize = exp.args.size();
-
-    if(asize != fsize)
-    {
-      error_at(exp.position, std::format("expected {} arguments, got {}", fsize, asize));
-    }
-
-    std::vector<ir::Exp> arg_exps;
-    for(size_t i = 0; i < asize; i++)
-    {
-      auto [tactual, ir] = exp.args[i]->accept(*this);
-      auto texpected = fentry.formals[i];
-      if(!same_types(skip_name_types(texpected), tactual))
-      {
-        error_at(exp.position,
-                 std::format("argument {} expects type '{}', got '{}'",
-                             i,
-                             texpected->to_string(),
-                             tactual->to_string()));
-      }
-      arg_exps.emplace_back(std::move(ir));
-    };
-
-    return Result{skip_name_types(fentry.result),
-                  translator.call_exp(
-                    fentry.label, current_level.get(), fentry.level.get(), std::move(arg_exps))};*/
   }
 
   types::Result visit_let_exp(const parser::ast::LetExp& exp) override
@@ -600,12 +559,11 @@ class Analyzer : TypeCheckerExprVisitor,
       typename LevelT::Access ax = translator.alloc_local(*current_level, *fdecl->escape);
 
       // we add the function headers for mutually recursive functions
-      venv.enter(
-        fdecl->name,
-        ClosureEntry<FrameT>(flabel,
-                             std::make_shared<FunctionType>(formals, tresult),
-                             translator.new_level(current_level.get(), flabel, escapes),
-                             ax));
+      venv.enter(fdecl->name,
+                 ClosureEntry<FrameT>(flabel,
+                                      std::make_shared<FunctionType>(formals, tresult),
+                                      translator.new_level(current_level.get(), flabel, escapes),
+                                      ax));
     }
 
     // go through the bodies
@@ -643,7 +601,6 @@ class Analyzer : TypeCheckerExprVisitor,
                              to_string(rbody.type)));
       }
 
-      
       translator.proc_entry_exit(closure_entry.level, std::move(rbody.ir));
       venv.end_scope(); // end body scope
     }
@@ -782,9 +739,17 @@ class Analyzer : TypeCheckerExprVisitor,
       auto& entry = std::get<SimpleVarEntry<FrameT>>(maybe_var->v);
       return Result{skip_name_types(entry.type), translator.var(entry.access, current_level.get())};
     }
-
     assert(std::holds_alternative<ClosureEntry<FrameT>>(maybe_var->v));
     ClosureEntry<FrameT> entry = std::get<ClosureEntry<FrameT>>(maybe_var->v);
+
+    if(entry.level == translator.outermost_level())
+    {
+      // This is an external function, we need to create a closure right here
+      return Result{entry.fun_type, translator.make_closure(entry.label)};
+    }
+
+    // Otherwise the closure has been created upon function definition, and this is available at entry.access in
+    // the current frame or in other frames if it escapes
     return Result{entry.fun_type, translator.var(entry.access, current_level.get())};
   }
 
@@ -880,14 +845,14 @@ void Analyzer<FrameT>::add_predefined_types()
 
 template <typename FrameT>
 template <typename... Args>
-void Analyzer<FrameT>::add_predef_func(const Symbol&, const SharedType&, Args&&...)
+void Analyzer<FrameT>::add_predef_func(const Symbol& s, const SharedType& ret, Args&&... formals)
 {
-  // TODO
-  /*venv.enter(s,
+  venv.enter(s,
              ClosureEntry(TempGen::named_label(s.str()),
                           std::make_shared<FunctionType>(
                             std::vector<SharedType>{std::forward<Args>(formals)...}, ret),
-                          translator.outermost_level()));*/
+                          translator.outermost_level(),
+                          {}));
 }
 
 template <typename FrameT>

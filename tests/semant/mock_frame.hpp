@@ -17,6 +17,12 @@ class Frame
   static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
 
+  Frame(TempGen::Label, const std::vector<bool>& f)
+    : EP(TempGen::new_temp())
+  {
+    formals_ = std::vector(f.size(), 0);
+  }
+
   static ir::Ex exp(const Access&, ir::Ex&&)
   {
     return {};
@@ -45,12 +51,6 @@ class Frame
   static std::unordered_map<TempGen::Temp, assem::register_t> get_temporary_register_mapping()
   {
     return {};
-  }
-
-  Frame(TempGen::Label, const std::vector<bool>& f)
-
-  {
-    formals_ = std::vector(f.size(), 0);
   }
 
   std::vector<Access> formals() const
@@ -82,8 +82,14 @@ class Frame
     return {};
   }
 
+  TempGen::Temp escaping_pointer() const
+  {
+    return EP;
+  }
+
   private:
   std::vector<Access> formals_;
+  const TempGen::Temp EP;
 };
 
 } // namespace mock

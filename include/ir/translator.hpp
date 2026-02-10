@@ -11,6 +11,7 @@
 
 namespace ir
 {
+
 template <IsFrame FrameT>
 class Translator
 {
@@ -43,6 +44,7 @@ class Translator
   Exp record_field(Exp&& var, size_t index);
   Exp record_exp(std::vector<Exp>&& fields);
   Exp if_then_exp(Exp&& cond, Exp&& texp);
+  Exp make_closure(const TempGen::Label& name);
   Exp if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp);
   Exp while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak);
   Exp break_exp(const TempGen::Label& lbreak);
@@ -105,8 +107,7 @@ void Translator<FrameT>::add_fragment(FragmentT&& f)
 }
 
 template <IsFrame FrameT>
-void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level,
-                                         Exp&& body)
+void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& body)
 {
   // move the body result onto the RV register
   auto rv = std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(FrameT::RV),
@@ -122,18 +123,16 @@ void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level,
 template <IsFrame FrameT>
 Exp Translator<FrameT>::var(const LevelT::Access& var_ax, const LevelT* current)
 {
-  // TODO: use EP instead of FP
-
-  tree::Exp fp_exp = std::make_unique<tree::TempExp>(FrameT::FP);
+  tree::Exp ep_exp = std::make_unique<tree::TempExp>(current->frame->escaping_pointer());
   while(var_ax.l != current)
   {
     // first arg holds the static link
     auto slink = current->formals[0].fax;
-    fp_exp = FrameT::exp(slink, std::move(fp_exp));
+    ep_exp = FrameT::exp(slink, std::move(ep_exp));
     current = current->parent;
     assert(current != nullptr);
   }
-  return FrameT::exp(var_ax.fax, std::move(fp_exp));
+  return FrameT::exp(var_ax.fax, std::move(ep_exp));
 }
 
 template <IsFrame FrameT>
@@ -516,55 +515,40 @@ Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
 }
 
 template <IsFrame FrameT>
+Exp Translator<FrameT>::make_closure(const TempGen::Label& name)
+{
+  std::vector<ir::Exp> args;
+  args.push_back(std::make_unique<tree::ConstExp>(0)); // EP is null for such a function
+  args.push_back(std::make_unique<tree::NameExp>(name));
+  return record_exp(std::move(args));
+}
+
+template <IsFrame FrameT>
 Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
 {
 
   // A closure is implemented as a record like:
   // {
-  //     machine label: int,
-  //     EP: int
+  //     EP: int,
+  //     machine label: int
   // }
 
-  // So we need to get the first field of the record
+  // So we need to get the second field of the record for the label
+  // We introduce a temporary and move the the closure there
 
+  auto t = TempGen::new_temp();
+  auto save_closure =
+    std::make_unique<tree::MoveStmt>(std::make_unique<tree::ConstExp>(t), unex(std::move(closure)));
+
+  auto machine_code = std::make_unique<tree::MemExp>(
+    std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus,
+                                     std::make_unique<tree::ConstExp>(t),
+                                     std::make_unique<tree::ConstExp>(FrameT::word_size)));
+
+  // The first field holds the static link
+  auto ep = std::make_unique<tree::MemExp>(std::make_unique<tree::ConstExp>(t));
   std::vector<Ex> args_as_exp;
-  auto label = std::make_unique<tree::MemExp>(unex(std::move(closure)));
-
-  // TODO: pointer to environment? This is the first field of the escaping pointer
-
-  for(auto& arg : args)
-  {
-    // unex all arguments
-    args_as_exp.emplace_back(unex(std::move(arg)));
-  }
-  return std::make_unique<tree::CallExp>(std::move(label), std::move(args_as_exp));
-
-  /*
-
-  call_exp(TempGen::Label name,
-                                  const LevelT* lcaller,
-                                  const LevelT* lcallee,
-                                  std::vector<Exp>&& args):
-
-
-  std::vector<Ex> args_as_exp;
-  bool is_external = lcallee == lvl_outermost.get();
-
-  if(!is_external)
-  {
-    // not a library function (runtime)
-    // pass the static link as first argument
-    Ex fp = std::make_unique<tree::TempExp>(FrameT::FP);
-    while(lcaller != lvl_main.get() && lcallee->parent != lcaller)
-    {
-      // first arg holds the static link
-      auto slink = lcaller->formals[0].fax;
-      fp = FrameT::exp(slink, std::move(fp));
-      lcaller = lcaller->parent;
-      assert(lcaller != nullptr);
-    }
-    args_as_exp.emplace_back(std::move(fp));
-  }
+  args_as_exp.emplace_back(std::move(ep));
 
   for(auto& arg : args)
   {
@@ -572,13 +556,8 @@ Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
     args_as_exp.emplace_back(unex(std::move(arg)));
   }
 
-  if(is_external)
-  {
-    return FrameT::external_call(name, std::move(args_as_exp));
-  }
-
-  return std::make_unique<tree::CallExp>(std::make_unique<tree::NameExp>(name),
-                                         std::move(args_as_exp));*/
+  auto call_exp = std::make_unique<tree::CallExp>(std::move(machine_code), std::move(args_as_exp));
+  return std::make_unique<tree::ESeqExp>(std::move(save_closure), std::move(call_exp));
 }
 
 template <class... Ts>

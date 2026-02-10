@@ -86,6 +86,11 @@ class X86Frame
     return temp_map;
   }
 
+  TempGen::Temp escaping_pointer() const
+  {
+    return EP;
+  }
+
   private:
   stack_offset_t alloc_spilled_temporary();
 
