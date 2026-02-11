@@ -14,10 +14,6 @@ template <typename FrameT>
 concept IsFrame = requires(const FrameT cf, FrameT f)
 {
   {
-    FrameT::FP
-    } -> std::convertible_to<TempGen::Temp>;
-
-  {
     FrameT::RV
     } -> std::convertible_to<TempGen::Temp>;
 
@@ -37,6 +33,10 @@ concept IsFrame = requires(const FrameT cf, FrameT f)
   {
     cf.name()
     } -> std::same_as<TempGen::Label>;
+
+  {
+    cf.escaping_pointer()
+    } -> std::convertible_to<TempGen::Temp>;
 
   // static functions
   {

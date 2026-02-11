@@ -14,7 +14,6 @@ class Frame
   public:
   using Access = int;
   static inline size_t word_size = 0;
-  static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
 
   Frame(TempGen::Label, const std::vector<bool>& f)

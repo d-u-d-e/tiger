@@ -20,7 +20,6 @@ class X86Frame
   using Temp = TempGen::Temp;
   using Label = TempGen::Label;
 
-  static inline auto FP = TempGen::new_temp();
   static inline auto RV = TempGen::new_temp();
   static inline constexpr uint8_t word_size = 8;
 
@@ -93,8 +92,10 @@ class X86Frame
 
   private:
   stack_offset_t alloc_spilled_temporary();
+  ir::Nx alloc_escaping_record() const;
 
   private:
+  static inline auto FP = TempGen::new_temp();
   static inline auto SP = TempGen::new_temp();
   static inline auto RAX = RV;
   static inline auto RBX = TempGen::new_temp();

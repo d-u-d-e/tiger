@@ -1,9 +1,11 @@
 #include "arch/x86_64/frame_impl.hpp"
 #include "assem.hpp"
+#include "ir/tree.hpp"
 #include "temp.hpp"
 #include <algorithm>
 #include <cassert>
 #include <list>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -14,9 +16,19 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   : EP(TempGen::new_temp())
   , label(label)
 {
-  // just a dummy stmt
-  view_shift = std::make_unique<ir::tree::ExpStmt>(std::make_unique<ir::tree::ConstExp>(0));
+  // We need to have the Escaping Record already allocated here, because we move escaping formals there.
+  // We call it before anything else, taking care to save RDI to a temporary, since this is trashed by alloc_record.
 
+  auto t = TempGen::new_temp();
+  view_shift = std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(t),
+                                                    (std::make_unique<ir::tree::ConstExp>(RDI)));
+  view_shift = std::make_unique<ir::tree::SeqStmt>(std::move(view_shift), alloc_escaping_record());
+  view_shift = std::make_unique<ir::tree::SeqStmt>(
+    std::move(view_shift),
+    std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::ConstExp>(RDI),
+                                         std::make_unique<ir::tree::TempExp>(t)));
+
+  // Now we can scan all formals                                      
   for(size_t i = 0; i < std::min(params_on_regs.size(), formals.size()); i++)
   {
     auto& reg = params_on_regs[i];
@@ -25,7 +37,7 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
       // param escapes, but is passed on a register
       auto ax = alloc_local(true);
       formals_.push_back(ax);
-      // generate a mov stmt to the stack location
+      // generate a mov stmt to the EP location
       view_shift = std::make_unique<ir::tree::SeqStmt>(
         std::move(view_shift),
         std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(EP)),
@@ -61,8 +73,6 @@ std::vector<X86Frame::Access> X86Frame::formals() const
 
 ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 {
-  // TODO: allocate the escaping record EP
-
   // proc_entry_exit1 does the following:
   // - mov incoming register formal params to the place expected by the function (view shift)
   // - save callee saved registers
@@ -126,6 +136,19 @@ X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
   spilled_temps++;
   auto next = -spilled_temps * word_size;
   return next;
+}
+
+ir::Nx X86Frame::alloc_escaping_record() const
+{
+  std::vector<ir::Ex> args_alloc;
+  auto escaping_variables = escaping_offset / word_size;
+  args_alloc.push_back(std::make_unique<ir::tree::ConstExp>(escaping_variables));
+
+  auto do_alloc = std::make_unique<ir::tree::MoveStmt>(
+    std::make_unique<ir::tree::TempExp>(EP),
+    external_call(TempGen::named_label("alloc_record"), std::move(args_alloc)));
+
+  return do_alloc;
 }
 
 ir::Ex X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& ep)
