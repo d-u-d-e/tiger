@@ -556,6 +556,7 @@ class Analyzer : TypeCheckerExprVisitor,
 
       // we create the closure entry in the environment
       auto flabel = TempGen::new_label();
+      // translator.make_closure(flabel); TODO: this is code for closure generation, this must be returned
       typename LevelT::Access ax = translator.alloc_local(*current_level, *fdecl->escape);
 
       // we add the function headers for mutually recursive functions
@@ -605,7 +606,8 @@ class Analyzer : TypeCheckerExprVisitor,
       venv.end_scope(); // end body scope
     }
 
-    return Result{}; // does not generate code nor type for caller
+    return Result{}; // does not type for caller
+    // TODO: this actually generates code: all the closures!
   }
 
   types::Result visit_var_decl(const parser::ast::VarDecl& decl) override
