@@ -142,6 +142,7 @@ class X86Frame
 
   Label label;
   ir::tree::Stmt view_shift{};
+  ir::tree::Stmt alloc_escaping_pointer{};
   std::vector<Access> formals_;
   uint32_t max_outgoing_params{};
   uint32_t spilled_temps{};

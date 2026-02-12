@@ -554,14 +554,34 @@ void X86Generator::munch_call_exp(const ir::tree::CallExp& exp)
   std::copy(
     X86Frame::caller_saved.begin(), X86Frame::caller_saved.end(), std::back_inserter(trashed));
 
-  assert(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun));
-  auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
-  list.emplace_back(assem::Oper{
-    .assem = std::format("call {}\n", ljmp.str()),
-    .dst{std::move(trashed)},
-    .src{munch_args(exp.args)},
-    .jmp{},
-  });
+  if(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun))
+  {
+    auto ljmp = std::get<std::unique_ptr<ir::tree::NameExp>>(exp.fun)->label;
+    list.emplace_back(assem::Oper{
+      .assem = std::format("call {}\n", ljmp.str()),
+      .dst{std::move(trashed)},
+      .src{munch_args(exp.args)},
+      .jmp{},
+    });
+  }
+  else
+  {
+    auto t = std::visit(*this, exp.fun);
+
+    list.emplace_back(assem::Oper{
+      .assem{"mov  `d0, `s0\n"},
+      .dst{X86Frame::RAX},
+      .src{t},
+      .jmp{},
+    });
+
+    list.emplace_back(assem::Oper{
+      .assem = {"call rax\n"},
+      .dst{std::move(trashed)},
+      .src{munch_args(exp.args)},
+      .jmp{},
+    });
+  }
 }
 
 std::vector<TempGen::Temp> X86Generator::munch_args(const std::vector<ir::tree::Exp>& args)

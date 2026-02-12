@@ -17,18 +17,11 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   , label(label)
 {
   // We need to have the Escaping Record already allocated here, because we move escaping formals there.
-  // We call it before anything else, taking care to save RDI to a temporary, since this is trashed by alloc_record.
+  // This is done in proc_entry_exit1
 
-  auto t = TempGen::new_temp();
-  view_shift = std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(t),
-                                                    (std::make_unique<ir::tree::ConstExp>(RDI)));
-  view_shift = std::make_unique<ir::tree::SeqStmt>(std::move(view_shift), alloc_escaping_record());
-  view_shift = std::make_unique<ir::tree::SeqStmt>(
-    std::move(view_shift),
-    std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::ConstExp>(RDI),
-                                         std::make_unique<ir::tree::TempExp>(t)));
+  view_shift = ir::unnx(std::make_unique<ir::tree::ConstExp>(0)); // dummy initial stmt
 
-  // Now we can scan all formals                                      
+  // Now we can scan all formals
   for(size_t i = 0; i < std::min(params_on_regs.size(), formals.size()); i++)
   {
     auto& reg = params_on_regs[i];
@@ -74,6 +67,20 @@ std::vector<X86Frame::Access> X86Frame::formals() const
 ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 {
   // proc_entry_exit1 does the following:
+
+  // - we allocate the escaping pointer, but this is done before the shift, so we save RDI
+
+  auto t = TempGen::new_temp();
+  alloc_escaping_pointer = std::make_unique<ir::tree::MoveStmt>(
+    std::make_unique<ir::tree::TempExp>(t), (std::make_unique<ir::tree::TempExp>(RDI)));
+  alloc_escaping_pointer =
+    std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), alloc_escaping_record());
+  alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(
+    std::move(alloc_escaping_pointer),
+    std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(RDI),
+                                         std::make_unique<ir::tree::TempExp>(t)));
+  
+
   // - mov incoming register formal params to the place expected by the function (view shift)
   // - save callee saved registers
   // - restore callee saved registers
@@ -105,10 +112,11 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
   assert(save_seq.has_value());
   assert(restore_seq.has_value());
 
-  // view-shift -> save sequence -> body -> restore sequence
+  // alloc_escaping_pointer -> view-shift -> save sequence -> body -> restore sequence
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(save_seq.value()), std::move(stmt));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(stmt), std::move(restore_seq.value()));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(view_shift), std::move(stmt));
+  stmt = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), std::move(stmt));
   return stmt;
 }
 
@@ -134,7 +142,8 @@ TempGen::Label X86Frame::name() const
 X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
 {
   spilled_temps++;
-  auto next = -spilled_temps * word_size;
+  stack_offset_t next = spilled_temps * word_size;
+  next = -next;
   return next;
 }
 

@@ -538,15 +538,15 @@ Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
 
   auto t = TempGen::new_temp();
   auto save_closure =
-    std::make_unique<tree::MoveStmt>(std::make_unique<tree::ConstExp>(t), unex(std::move(closure)));
+    std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(t), unex(std::move(closure)));
 
   auto machine_code = std::make_unique<tree::MemExp>(
     std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus,
-                                     std::make_unique<tree::ConstExp>(t),
+                                     std::make_unique<tree::TempExp>(t),
                                      std::make_unique<tree::ConstExp>(FrameT::word_size)));
 
   // The first field holds the static link
-  auto ep = std::make_unique<tree::MemExp>(std::make_unique<tree::ConstExp>(t));
+  auto ep = std::make_unique<tree::MemExp>(std::make_unique<tree::TempExp>(t));
   std::vector<Ex> args_as_exp;
   args_as_exp.emplace_back(std::move(ep));
 

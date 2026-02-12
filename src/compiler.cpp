@@ -21,7 +21,7 @@
 #ifndef NDEBUG
 #  define DEBUG_PRETTY_PRINT_AST 1
 #  define DEBUG_PRETTY_PRINT_IR 0
-#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
+#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 1
 #  define DEBUG_PRETTY_PRINT_BLOCKS 0
 #  define DEBUG_PRETTY_PRINT_TRACE 0
 #  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
@@ -30,7 +30,7 @@
 #    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
 #  endif
 #  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
-#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 0
+#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 1
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
@@ -277,7 +277,6 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   }
 
   std::println("type check OK!");
-  exit(0); // TODO: remove
 
   // AST to IR
   translator.translate_main_program(std::move(ir));
