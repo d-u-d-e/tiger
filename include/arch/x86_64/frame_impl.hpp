@@ -147,5 +147,6 @@ class X86Frame
   uint32_t max_outgoing_params{};
   uint32_t spilled_temps{};
   esc_offset_t escaping_offset{};
+  uint32_t escaping_locals{};
 };
 } // namespace arch

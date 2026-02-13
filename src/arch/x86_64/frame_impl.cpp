@@ -70,16 +70,18 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 
   // - we allocate the escaping pointer, but this is done before the shift, so we save RDI
 
-  auto t = TempGen::new_temp();
-  alloc_escaping_pointer = std::make_unique<ir::tree::MoveStmt>(
-    std::make_unique<ir::tree::TempExp>(t), (std::make_unique<ir::tree::TempExp>(RDI)));
-  alloc_escaping_pointer =
-    std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), alloc_escaping_record());
-  alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(
-    std::move(alloc_escaping_pointer),
-    std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(RDI),
-                                         std::make_unique<ir::tree::TempExp>(t)));
-  
+  if(escaping_locals > 0)
+  {
+    auto t = TempGen::new_temp();
+    alloc_escaping_pointer = std::make_unique<ir::tree::MoveStmt>(
+      std::make_unique<ir::tree::TempExp>(t), (std::make_unique<ir::tree::TempExp>(RDI)));
+    alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer),
+                                                                 alloc_escaping_record());
+    alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(
+      std::move(alloc_escaping_pointer),
+      std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(RDI),
+                                           std::make_unique<ir::tree::TempExp>(t)));
+  }
 
   // - mov incoming register formal params to the place expected by the function (view shift)
   // - save callee saved registers
@@ -116,7 +118,11 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(save_seq.value()), std::move(stmt));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(stmt), std::move(restore_seq.value()));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(view_shift), std::move(stmt));
-  stmt = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), std::move(stmt));
+
+  if(escaping_locals > 0)
+  {
+    stmt = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), std::move(stmt));
+  }
   return stmt;
 }
 
@@ -126,6 +132,7 @@ X86Frame::Access X86Frame::alloc_local(bool escape)
   {
     auto t = InEscapingRecord(escaping_offset);
     escaping_offset += word_size;
+    escaping_locals++;
     return t;
   }
   else
@@ -149,9 +156,9 @@ X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
 
 ir::Nx X86Frame::alloc_escaping_record() const
 {
+  assert(escaping_locals > 0);
   std::vector<ir::Ex> args_alloc;
-  auto escaping_variables = escaping_offset / word_size;
-  args_alloc.push_back(std::make_unique<ir::tree::ConstExp>(escaping_variables));
+  args_alloc.push_back(std::make_unique<ir::tree::ConstExp>(escaping_locals));
 
   auto do_alloc = std::make_unique<ir::tree::MoveStmt>(
     std::make_unique<ir::tree::TempExp>(EP),

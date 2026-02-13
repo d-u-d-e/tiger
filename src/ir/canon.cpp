@@ -1,5 +1,8 @@
 #include "ir/canon.hpp"
+#include "ir/tree.hpp"
+#include "temp.hpp"
 #include <cassert>
+#include <memory>
 
 namespace ir::tree
 {
@@ -82,13 +85,19 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
   subexps.push_back(std::move(e->fun));
   std::move(e->args.begin(), e->args.end(), std::back_inserter(subexps));
 
-  return reorder_exp(std::move(subexps), [](std::list<Exp>&& l) {
+  auto [stmt, ee] = reorder_exp(std::move(subexps), [](std::list<Exp>&& l) {
     auto f = std::move(l.front());
     l.pop_front();
     std::vector<Exp> args;
     std::move(l.begin(), l.end(), std::back_inserter(args));
     return std::make_unique<CallExp>(std::move(f), std::move(args));
   });
+
+  auto t = TempGen::new_temp();
+  return {
+    std::make_unique<SeqStmt>(
+      std::move(stmt), std::make_unique<MoveStmt>(std::make_unique<TempExp>(t), std::move(ee))),
+    std::make_unique<TempExp>(t)};
 }
 
 std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<ESeqExp> e)
