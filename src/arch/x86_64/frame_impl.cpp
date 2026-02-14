@@ -234,7 +234,7 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
   // we align down to a multiple of 16 bytes
   // we indirectly save the return address and the old fp for a total of 16 bytes
 
-  auto space = (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~15;
+  stack_offset_t space = (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~15;
   stack_offset_t off = -space + word_size * max_outgoing_params;
 
   // patch instructions
