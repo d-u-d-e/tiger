@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern int tiger_main();
+extern int tiger_main(uint64_t SL);
 
 char* consts[256];
 int main()
@@ -14,17 +14,7 @@ int main()
     consts[i][0] = (char)i;
     consts[i][1] = '\0';
   }
-  return tiger_main();
-}
-
-const char* getchr()
-{
-  int ch = getchar();
-  if(ch == EOF)
-  {
-    return "";
-  }
-  return consts[ch];
+  return tiger_main(0);
 }
 
 void* init_array(uint64_t size, int64_t value)
@@ -35,6 +25,27 @@ void* init_array(uint64_t size, int64_t value)
     arr[i] = value;
   }
   return arr;
+}
+
+void* alloc_record(int64_t fields)
+{
+  return malloc(fields * sizeof(uint64_t));
+}
+
+int string_equal(const char* a, const char* b)
+{
+  return strcmp(a, b) == 0;
+}
+
+// Library functions
+const char* getchr()
+{
+  int ch = getchar();
+  if(ch == EOF)
+  {
+    return "";
+  }
+  return consts[ch];
 }
 
 char* concat(const char* a, const char* b)
@@ -52,6 +63,7 @@ char* concat(const char* a, const char* b)
 void print(const char* s)
 {
   printf("%s", s);
+  fflush(stdout);
 }
 
 int ord(const char* s)
@@ -68,12 +80,32 @@ char* chr(uint8_t i)
   return consts[i];
 }
 
-int string_equal(const char* a, const char* b)
+__attribute__((used)) struct
 {
-  return strcmp(a, b) == 0;
-}
+  uint64_t sl;
+  uint64_t p;
+} print_c = {0, (uint64_t)&print};
 
-void* alloc_record(int64_t fields)
+__attribute__((used)) struct
 {
-  return malloc(fields * sizeof(uint64_t));
-}
+  uint64_t sl;
+  uint64_t p;
+} chr_c = {0, (uint64_t)&chr};
+
+__attribute__((used)) struct
+{
+  uint64_t sl;
+  uint64_t p;
+} ord_c = {0, (uint64_t)&ord};
+
+__attribute__((used)) struct
+{
+  uint64_t sl;
+  uint64_t p;
+} concat_c = {0, (uint64_t)&concat};
+
+__attribute__((used)) struct
+{
+  uint64_t sl;
+  uint64_t p;
+} getchr_c = {0, (uint64_t)&getchr};

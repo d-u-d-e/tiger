@@ -566,19 +566,16 @@ void X86Generator::munch_call_exp(const ir::tree::CallExp& exp)
   }
   else
   {
+    auto args = munch_args(exp.args);
+    auto srcs = std::vector<TempGen::Temp>();
     auto t = std::visit(*this, exp.fun);
-
+    srcs.push_back(t);
+    std::move(args.begin(), args.end(), std::back_inserter(srcs));
+    
     list.emplace_back(assem::Oper{
-      .assem{"mov  `d0, `s0\n"},
-      .dst{X86Frame::RAX},
-      .src{t},
-      .jmp{},
-    });
-
-    list.emplace_back(assem::Oper{
-      .assem = {"call rax\n"},
+      .assem = {"call `s0\n"},
       .dst{std::move(trashed)},
-      .src{munch_args(exp.args)},
+      .src{std::move(srcs)},
       .jmp{},
     });
   }

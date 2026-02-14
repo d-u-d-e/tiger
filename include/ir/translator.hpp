@@ -44,7 +44,7 @@ class Translator
   Exp record_field(Exp&& var, size_t index);
   Exp record_exp(std::vector<Exp>&& fields);
   Exp if_then_exp(Exp&& cond, Exp&& texp);
-  Exp make_closure(const TempGen::Label& name);
+  Exp make_closure(const TempGen::Label& name, const LevelT* current_level);
   Exp if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp);
   Exp while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak);
   Exp break_exp(const TempGen::Label& lbreak);
@@ -85,7 +85,7 @@ Translator<FrameT>::Translator()
 
   lvl_main = std::make_shared<LevelT>(
     lvl_outermost.get(),
-    std::make_unique<FrameT>(TempGen::named_label("tiger_main"), std::vector<bool>{}));
+    std::make_unique<FrameT>(TempGen::named_label("tiger_main"), std::vector<bool>{true}));
 }
 
 template <IsFrame FrameT>
@@ -515,10 +515,12 @@ Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::make_closure(const TempGen::Label& name)
+Exp Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* current_level)
 {
   std::vector<ir::Exp> args;
-  args.push_back(std::make_unique<tree::ConstExp>(0)); // EP is null for such a function
+  auto ep = std::make_unique<tree::TempExp>(current_level->frame->escaping_pointer());
+  args.push_back(std::move(ep));
+
   args.push_back(std::make_unique<tree::NameExp>(name));
   return record_exp(std::move(args));
 }
@@ -536,19 +538,26 @@ Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
   // So we need to get the second field of the record for the label
   // We introduce a temporary and move the the closure there
 
+  auto cl = unex(std::move(closure));
+  bool is_external = std::holds_alternative<std::unique_ptr<tree::NameExp>>(cl);
+
   auto t = TempGen::new_temp();
   auto save_closure =
-    std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(t), unex(std::move(closure)));
+    std::make_unique<tree::MoveStmt>(std::make_unique<tree::TempExp>(t), unex(std::move(cl)));
 
   auto machine_code = std::make_unique<tree::MemExp>(
     std::make_unique<tree::BinOpExp>(tree::BinaryOp::plus,
                                      std::make_unique<tree::TempExp>(t),
                                      std::make_unique<tree::ConstExp>(FrameT::word_size)));
 
-  // The first field holds the static link
-  auto ep = std::make_unique<tree::MemExp>(std::make_unique<tree::TempExp>(t));
   std::vector<Ex> args_as_exp;
-  args_as_exp.emplace_back(std::move(ep));
+
+  if(!is_external)
+  {
+    // the first field holds the static link
+    auto ep = std::make_unique<tree::MemExp>(std::make_unique<tree::TempExp>(t));
+    args_as_exp.emplace_back(std::move(ep));
+  }
 
   for(auto& arg : args)
   {

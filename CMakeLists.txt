@@ -73,7 +73,8 @@ set(RUNTIME_OBJ ${LIB_DIR}/runtime.o)
 file(MAKE_DIRECTORY ${LIB_DIR})
 add_custom_command(
     OUTPUT ${RUNTIME_OBJ}
-    COMMAND ${CMAKE_C_COMPILER} -c ${CMAKE_C_FLAGS} ${RUNTIME_SRC} -o ${RUNTIME_OBJ}
+    # TODO: compile runtime with optimizations
+    COMMAND ${CMAKE_C_COMPILER} -c -g -O0 ${RUNTIME_SRC} -o ${RUNTIME_OBJ}
     DEPENDS ${RUNTIME_SRC}
     COMMENT "Building runtime.o into ${LIB_DIR}"
 )

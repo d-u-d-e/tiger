@@ -557,7 +557,7 @@ class Analyzer : TypeCheckerExprVisitor,
 
       // we create the closure entry in the environment and create the code that generates the closure
       auto flabel = TempGen::new_label();
-      auto closure_init = translator.make_closure(flabel);
+      auto closure_init = translator.make_closure(flabel, current_level.get());
       typename LevelT::Access ax = translator.alloc_local(*current_level, *fdecl->escape);
       exp_list.push_back(
         translator.assign(translator.var(ax, current_level.get()), std::move(closure_init)));
@@ -749,8 +749,10 @@ class Analyzer : TypeCheckerExprVisitor,
 
     if(entry.level == translator.outermost_level())
     {
-      // This is an external function, we need to create a closure right here
-      return Result{entry.fun_type, translator.make_closure(entry.label)};
+      // The runtime provides the closure with name: f_c
+      return Result{
+        entry.fun_type,
+        std::make_unique<ir::tree::NameExp>(TempGen::named_label(entry.label.str() + "_c"))};
     }
 
     // Otherwise the closure has been created upon function definition, and this is available at entry.access in

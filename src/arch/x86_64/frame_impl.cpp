@@ -16,8 +16,6 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   : EP(TempGen::new_temp())
   , label(label)
 {
-  // We need to have the Escaping Record already allocated here, because we move escaping formals there.
-  // This is done in proc_entry_exit1
 
   view_shift = ir::unnx(std::make_unique<ir::tree::ConstExp>(0)); // dummy initial stmt
 
@@ -25,27 +23,28 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   for(size_t i = 0; i < std::min(params_on_regs.size(), formals.size()); i++)
   {
     auto& reg = params_on_regs[i];
+    auto temp = TempGen::new_temp();
+
     if(formals[i])
     {
-      // param escapes, but is passed on a register
+      // Param escapes, but is passed on a register
+      // We first save the register in a temporary. In order to save it into EP we must allocate the escaping record (ER).
+      // But that means calling a function which can alter the registers used to pass parameters to this function.
+      // This is why we save the reg in a temporary. After ER has been allocated, we move this temporary to the ER. See proc_entry_exit1.
       auto ax = alloc_local(true);
       formals_.push_back(ax);
-      // generate a mov stmt to the EP location
-      view_shift = std::make_unique<ir::tree::SeqStmt>(
-        std::move(view_shift),
-        std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(EP)),
-                                             std::make_unique<ir::tree::TempExp>(reg)));
+      escaping_formals[temp] = ax;
     }
     else
     {
-      auto temp = TempGen::new_temp();
       formals_.push_back(InReg(temp));
-      // generate a mov stmt to the fresh temp
-      view_shift = std::make_unique<ir::tree::SeqStmt>(
-        std::move(view_shift),
-        std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(temp),
-                                             std::make_unique<ir::tree::TempExp>(reg)));
     }
+
+    // generate a mov stmt to the fresh temp
+    view_shift = std::make_unique<ir::tree::SeqStmt>(
+      std::move(view_shift),
+      std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(temp),
+                                           std::make_unique<ir::tree::TempExp>(reg)));
   }
 
   // the remaining params are passed on the stack, but recall that with respect to the
@@ -67,25 +66,19 @@ std::vector<X86Frame::Access> X86Frame::formals() const
 ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
 {
   // proc_entry_exit1 does the following:
-
-  // - we allocate the escaping pointer, but this is done before the shift, so we save RDI
-
-  if(escaping_locals > 0)
-  {
-    auto t = TempGen::new_temp();
-    alloc_escaping_pointer = std::make_unique<ir::tree::MoveStmt>(
-      std::make_unique<ir::tree::TempExp>(t), (std::make_unique<ir::tree::TempExp>(RDI)));
-    alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer),
-                                                                 alloc_escaping_record());
-    alloc_escaping_pointer = std::make_unique<ir::tree::SeqStmt>(
-      std::move(alloc_escaping_pointer),
-      std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(RDI),
-                                           std::make_unique<ir::tree::TempExp>(t)));
-  }
-
-  // - mov incoming register formal params to the place expected by the function (view shift)
+  // - mov incoming register formal params to the place expected by the function
+  // - alloc the escaping record
   // - save callee saved registers
   // - restore callee saved registers
+
+  auto alloc_ep = alloc_escaping_record();
+  for(auto [t, ax] : escaping_formals)
+  {
+    alloc_ep = std::make_unique<ir::tree::SeqStmt>(
+      std::move(alloc_ep),
+      std::make_unique<ir::tree::MoveStmt>(exp(ax, std::make_unique<ir::tree::TempExp>(EP)),
+                                           std::make_unique<ir::tree::TempExp>(t)));
+  }
 
   std::vector<ir::tree::Stmt> save;
   std::vector<ir::tree::Stmt> restore;
@@ -114,15 +107,11 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
   assert(save_seq.has_value());
   assert(restore_seq.has_value());
 
-  // alloc_escaping_pointer -> view-shift -> save sequence -> body -> restore sequence
+  // view-shift -> alloc_escaping_pointer -> save sequence -> body -> restore sequence
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(save_seq.value()), std::move(stmt));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(stmt), std::move(restore_seq.value()));
+  stmt = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_ep), std::move(stmt));
   stmt = std::make_unique<ir::tree::SeqStmt>(std::move(view_shift), std::move(stmt));
-
-  if(escaping_locals > 0)
-  {
-    stmt = std::make_unique<ir::tree::SeqStmt>(std::move(alloc_escaping_pointer), std::move(stmt));
-  }
   return stmt;
 }
 

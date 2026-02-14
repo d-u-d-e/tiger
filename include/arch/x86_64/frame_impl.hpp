@@ -4,6 +4,7 @@
 #include "ir/tree.hpp"
 #include "temp.hpp"
 #include <list>
+#include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -142,8 +143,8 @@ class X86Frame
 
   Label label;
   ir::tree::Stmt view_shift{};
-  ir::tree::Stmt alloc_escaping_pointer{};
   std::vector<Access> formals_;
+  std::unordered_map<TempGen::Temp, X86Frame::Access> escaping_formals;
   uint32_t max_outgoing_params{};
   uint32_t spilled_temps{};
   esc_offset_t escaping_offset{};
