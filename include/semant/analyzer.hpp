@@ -745,10 +745,8 @@ class Analyzer : TypeCheckerExprVisitor,
 
     if(entry.level == translator.outermost_level())
     {
-      // The runtime provides the closure with name: f_c
-      return Result{
-        entry.fun_type,
-        std::make_unique<ir::tree::NameExp>(TempGen::named_label(entry.label.str() + "_c"))};
+      return Result{entry.fun_type,
+                    translator.make_closure(entry.label, translator.outermost_level().get())};
     }
 
     // Otherwise the closure has been created upon function definition, and this is available at entry.access in

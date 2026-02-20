@@ -515,10 +515,17 @@ Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* current_level)
+Exp Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* closure_level)
 {
+  if(closure_level == lvl_outermost.get())
+  {
+    // the closure of a library function is provided by the runtime by using the name of
+    // the function terminating with _c
+    return std::make_unique<ir::tree::NameExp>(TempGen::named_label(name.str() + "_c"));
+  }
+
   std::vector<ir::Exp> args;
-  auto ep = std::make_unique<tree::TempExp>(current_level->frame->escaping_pointer());
+  auto ep = std::make_unique<tree::TempExp>(closure_level->frame->escaping_pointer());
   args.push_back(std::move(ep));
 
   args.push_back(std::make_unique<tree::NameExp>(name));
