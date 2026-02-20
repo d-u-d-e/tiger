@@ -15,8 +15,6 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
-
-#include <print>
 #include <variant>
 
 namespace semant

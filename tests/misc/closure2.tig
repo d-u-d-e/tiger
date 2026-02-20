@@ -1,0 +1,41 @@
+let
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+        then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+        else if i > 0 then f(i)
+        else print("0")
+    end
+
+  type intfun = int -> int
+
+  function add(n: int) : intfun =
+    let function h(m: int): int = n + m
+    in 
+      h
+    end
+    
+  var add_five: intfun := add(5)
+  var add_seven: intfun := add(7)
+  var twenty := add_five(15)
+  var twentytwo := add_seven(15)
+
+  function twice(f: intfun) : intfun = 
+    let function g(x: int) : int = f(f(x))
+    in
+      g
+    end
+
+  var add_ten := twice(add_five)
+  var seventeen := twice(add(5))(7)
+  var twelve := add_ten(2)
+  var add_twenty_four := twice(twice(add(6)))
+
+  in
+    printint(seventeen);
+    print(", ");
+    printint(twelve);
+    print(", ");
+    printint(add_twenty_four(seventeen))
+  end
+        

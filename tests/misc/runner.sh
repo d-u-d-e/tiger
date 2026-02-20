@@ -23,6 +23,7 @@ expected_outputs=(
     [break]="3452345"
     [many_temporaries]="408"
     [closure1]="8"
+    [closure2]="17, 12, 41"
 )
 
 shopt -s nullglob
