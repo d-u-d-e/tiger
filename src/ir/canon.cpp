@@ -94,10 +94,9 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
   });
 
   auto t = TempGen::new_temp();
-  return {
-    std::make_unique<SeqStmt>(
-      std::move(stmt), std::make_unique<MoveStmt>(std::make_unique<TempExp>(t), std::move(ee))),
-    std::make_unique<TempExp>(t)};
+  return {concat(std::move(stmt),
+                 std::make_unique<MoveStmt>(std::make_unique<TempExp>(t), std::move(ee))),
+          std::make_unique<TempExp>(t)};
 }
 
 std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<ESeqExp> e)

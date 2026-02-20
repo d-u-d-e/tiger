@@ -1,5 +1,6 @@
 #include "arch/x86_64/generator_impl.hpp"
 #include "arch/x86_64/frame_impl.hpp"
+#include "ir/tree.hpp"
 #include <cassert>
 #include <cstddef>
 #include <format>
@@ -356,6 +357,7 @@ void X86Generator::operator()(const std::unique_ptr<ir::tree::ExpStmt>& stmt)
   }
   else
   {
+    assert(!std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(stmt->exp));
     // ExpStmt(reg) ->
     // discard the result
     (void)std::visit(*this, stmt->exp);
