@@ -711,9 +711,7 @@ class Analyzer : TypeCheckerExprVisitor,
     }
     ret = type.ret_type->accept(*this);
 
-    auto r = std::make_shared<FunctionType>(std::move(args), std::move(ret));
-    std::println("FUN TYPE IS: {}", r->to_string()); // TODO: remove
-    return r;
+    return std::make_shared<FunctionType>(std::move(args), std::move(ret));
   }
 
   types::SharedType visit_record_type(const parser::ast::RecordType& type) override

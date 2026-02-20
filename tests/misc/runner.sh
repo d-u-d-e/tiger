@@ -22,6 +22,7 @@ expected_outputs=(
     [args]="hello world!"
     [break]="3452345"
     [many_temporaries]="408"
+    [closure1]="8"
 )
 
 shopt -s nullglob
