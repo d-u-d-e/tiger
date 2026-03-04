@@ -243,7 +243,6 @@ class Analyzer : TypeCheckerExprVisitor,
     }
     else if(!is_type<Integer>(rsize.type))
     {
-      // TODO: it must be positive!
       error_at(exp.position, "array size must be an integer");
     }
     else
