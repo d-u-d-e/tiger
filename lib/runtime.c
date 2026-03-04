@@ -10,7 +10,7 @@ int main()
 {
   for(int i = 0; i < 256; i++)
   {
-    consts[i] = (char*)malloc(1);
+    consts[i] = (char*)malloc(2);
     consts[i][0] = (char)i;
     consts[i][1] = '\0';
   }
