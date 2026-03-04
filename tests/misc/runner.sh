@@ -24,6 +24,7 @@ expected_outputs=(
     [many_temporaries]="408"
     [closure1]="8"
     [closure2]="17, 12, 41"
+    [closure3]="0, 1, 2, 10, 11"
 )
 
 shopt -s nullglob

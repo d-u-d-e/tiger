@@ -1,0 +1,36 @@
+let
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+        then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+        else if i > 0 then f(i)
+        else print("0")
+    end
+
+  type counter_type = () -> int 
+  function make_counter(init: int) : counter_type =
+    let
+      var i := init
+      function count(): int =
+        let
+          var t := i
+        in
+          (i := i + 1; t)
+        end
+    in
+      count
+    end
+
+  var counter1 := make_counter(0)
+  var counter2 := make_counter(10)
+in
+  printint(counter1());
+  print(", ");
+  printint(counter1());
+  print(", ");
+  printint(counter1());
+  print(", ");
+  printint(counter2());
+  print(", ");
+  printint(counter2())
+end
