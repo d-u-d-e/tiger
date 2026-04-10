@@ -11,8 +11,8 @@
 using namespace semant;
 
 template <typename ExpectedType, bool found = true>
-auto lookup_tentry = [](Environment<TEntry>& tenv, const Symbol& s) {
-  auto lookup = tenv.lookup(s);
+const auto lookup_tentry = [](Environment<TEntry>& tenv, const Symbol& s) {
+  const auto* lookup = tenv.lookup(s);
   CHECK((lookup != nullptr) == found);
   if constexpr(found)
   {
@@ -22,7 +22,7 @@ auto lookup_tentry = [](Environment<TEntry>& tenv, const Symbol& s) {
 };
 
 template <typename FrameT, typename T, bool expected = true>
-auto lookup_ventry = [](Environment<VEntry<FrameT>>& venv, const Symbol& s) {
+const auto lookup_ventry = [](Environment<VEntry<FrameT>>& venv, const Symbol& s) {
   auto lookup = venv.lookup(s);
   CHECK((lookup != nullptr) == expected);
   if constexpr(expected)
@@ -111,8 +111,8 @@ TEST_SUITE("environment")
     auto x = Symbol("x", 5);
     auto y = Symbol("y", 6);
 
-    LevelImpl::Access ax; // dummy
-    std::shared_ptr<LevelImpl> l = nullptr; // dummy
+    const LevelImpl::Access ax{}; // dummy
+    const std::shared_ptr<LevelImpl> l{}; // dummy
 
     venv.begin_scope();
     venv.enter(a, SimpleVarEntry<mock::Frame>(std::make_shared<Integer>(), ax));

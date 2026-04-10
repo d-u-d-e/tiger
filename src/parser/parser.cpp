@@ -6,7 +6,7 @@
 namespace parser
 {
 
-std::unique_ptr<ast::Expression> Parser::parse()
+auto Parser::parse() -> std::unique_ptr<ast::Expression>
 {
   current = scanner.next();
   pratt_table.insert({
@@ -19,24 +19,24 @@ std::unique_ptr<ast::Expression> Parser::parse()
     {lexer::TokenType::break_keyword,     PrecedenceRule(Precedence(None),        [this](){return break_expr();},       nullptr)},
     {lexer::TokenType::let_keyword,       PrecedenceRule(Precedence(None),        [this](){return let_expr();},         nullptr)},
     {lexer::TokenType::if_keyword,        PrecedenceRule(Precedence(None),        [this](){return if_expr();},          nullptr)},
-    {lexer::TokenType::nil_keyword,       PrecedenceRule(Precedence(None),        [this](){return nil_literal();},      nullptr)},
-    {lexer::TokenType::lparen,            PrecedenceRule(Precedence(Call),        [this](){return sequencing();},       std::bind(&Parser::call_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::lbracket,          PrecedenceRule(Precedence(Call),        nullptr,                              std::bind(&Parser::array_subscript, this, std::placeholders::_1))},
-    {lexer::TokenType::lbrace,            PrecedenceRule(Precedence(Call),        nullptr,                              std::bind(&Parser::record_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::dot_op,            PrecedenceRule(Precedence(Call),        nullptr,                              std::bind(&Parser::record_field, this, std::placeholders::_1))},
-    {lexer::TokenType::plus_op,           PrecedenceRule(Precedence(Term),        nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::minus_op,          PrecedenceRule(Precedence(Term),        [this](){return unary_expr();},       std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::times_op,          PrecedenceRule(Precedence(Factor),      nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::divide_op,         PrecedenceRule(Precedence(Factor),      nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::equal_op,          PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::not_equal_op,      PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::less_op,           PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::less_equal_op,     PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::greater_op,        PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::greater_equal_op,  PrecedenceRule(Precedence(Comparison),  nullptr,                              std::bind(&Parser::binary_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::and_op,            PrecedenceRule(Precedence(And),         nullptr,                              std::bind(&Parser::and_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::or_op,             PrecedenceRule(Precedence(Or),          nullptr,                              std::bind(&Parser::or_expr, this, std::placeholders::_1))},
-    {lexer::TokenType::assign_op,         PrecedenceRule(Precedence(Assignment),  nullptr,                              std::bind(&Parser::assign_expr, this, std::placeholders::_1))},
+    {lexer::TokenType::nil_keyword,       PrecedenceRule(Precedence(None),        [](){return nil_literal();},      nullptr)},
+    {lexer::TokenType::lparen,            PrecedenceRule(Precedence(Call),        [this](){return sequencing();},       [this](auto && PH1) { return call_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::lbracket,          PrecedenceRule(Precedence(Call),        nullptr,                              [this](auto && PH1) { return array_subscript(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::lbrace,            PrecedenceRule(Precedence(Call),        nullptr,                              [this](auto && PH1) { return record_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::dot_op,            PrecedenceRule(Precedence(Call),        nullptr,                              [this](auto && PH1) { return record_field(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::plus_op,           PrecedenceRule(Precedence(Term),        nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::minus_op,          PrecedenceRule(Precedence(Term),        [this](){return unary_expr();},       [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::times_op,          PrecedenceRule(Precedence(Factor),      nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::divide_op,         PrecedenceRule(Precedence(Factor),      nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::equal_op,          PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::not_equal_op,      PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::less_op,           PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::less_equal_op,     PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::greater_op,        PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::greater_equal_op,  PrecedenceRule(Precedence(Comparison),  nullptr,                              [this](auto && PH1) { return binary_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::and_op,            PrecedenceRule(Precedence(And),         nullptr,                              [this](auto && PH1) { return and_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::or_op,             PrecedenceRule(Precedence(Or),          nullptr,                              [this](auto && PH1) { return or_expr(std::forward<decltype(PH1)>(PH1)); })},
+    {lexer::TokenType::assign_op,         PrecedenceRule(Precedence(Assignment),  nullptr,                              [this](auto && PH1) { return assign_expr(std::forward<decltype(PH1)>(PH1)); })},
     
     {lexer::TokenType::eof,               PrecedenceRule(Precedence(None),        nullptr,                              nullptr)},
     {lexer::TokenType::to_keyword,        PrecedenceRule(Precedence(None),        nullptr,                              nullptr)},
@@ -71,7 +71,7 @@ std::unique_ptr<ast::Expression> Parser::parse()
   }
 }
 
-std::unique_ptr<ast::Expression> Parser::expression(int precedence)
+auto Parser::expression(int precedence) -> std::unique_ptr<ast::Expression>
 {
   std::unique_ptr<ast::Expression> lhs;
   advance();
@@ -96,7 +96,7 @@ std::unique_ptr<ast::Expression> Parser::expression(int precedence)
   return lhs;
 }
 
-std::unique_ptr<ast::SeqExp> Parser::sequencing()
+auto Parser::sequencing() -> std::unique_ptr<ast::SeqExp>
 {
   // rule: '(' ')'
   // rule: '(' <exp> (';' <exp>)* ')'
@@ -124,19 +124,19 @@ std::unique_ptr<ast::SeqExp> Parser::sequencing()
   return std::make_unique<ast::SeqExp>(std::move(exps));
 }
 
-std::unique_ptr<ast::VarExp> Parser::variable()
+auto Parser::variable() -> std::unique_ptr<ast::VarExp>
 {
   // we parsed an identifier as an infix operator
   auto var = std::make_unique<ast::Var>(symbol(previous.value), previous.pos);
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::unique_ptr<ast::VarExp> Parser::record_field(std::unique_ptr<ast::Expression> lhs)
+auto Parser::record_field(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::VarExp>
 {
   // rule: <id> '.' <id>
 
-  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
-  if(!lhs_var)
+  auto* lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+  if(lhs_var == nullptr)
   {
     error_at(previous, "expected variable before token '.'");
   }
@@ -148,7 +148,8 @@ std::unique_ptr<ast::VarExp> Parser::record_field(std::unique_ptr<ast::Expressio
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::unique_ptr<ast::Expression> Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
+auto Parser::array_subscript(std::unique_ptr<ast::Expression> lhs)
+  -> std::unique_ptr<ast::Expression>
 {
   // rule: <id> '[' <exp> ']'
   // rule: <id> '[' <exp> ']' of <exp>
@@ -159,9 +160,9 @@ std::unique_ptr<ast::Expression> Parser::array_subscript(std::unique_ptr<ast::Ex
   expect(lexer::TokenType::rbracket, "expected ']' closing subscript expression");
 
   // next check whether we have an array exp or a subscript var
-  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+  auto* lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
 
-  if(!lhs_var)
+  if(lhs_var == nullptr)
   {
     error_at(subscript_tok, "expected variable before token '['");
   }
@@ -169,9 +170,9 @@ std::unique_ptr<ast::Expression> Parser::array_subscript(std::unique_ptr<ast::Ex
   if(match(lexer::TokenType::of_keyword))
   {
     // the parser must have found a simple variable as lhs
-    auto simple_var = dynamic_cast<ast::Var*>(lhs_var->var.get());
+    auto* simple_var = dynamic_cast<ast::Var*>(lhs_var->var.get());
 
-    if(!simple_var)
+    if(simple_var == nullptr)
     {
       error_at(subscript_tok, "expected type identifier before token '[' of array expression");
     }
@@ -190,9 +191,9 @@ std::unique_ptr<ast::Expression> Parser::array_subscript(std::unique_ptr<ast::Ex
   return std::make_unique<ast::VarExp>(std::move(var));
 }
 
-std::unique_ptr<ast::IntExp> Parser::integer_literal()
+auto Parser::integer_literal() -> std::unique_ptr<ast::IntExp>
 {
-  int64_t constant;
+  int64_t constant{};
   std::istringstream iss(previous.value);
   iss >> constant;
   if(iss.fail())
@@ -204,12 +205,12 @@ std::unique_ptr<ast::IntExp> Parser::integer_literal()
   return std::make_unique<ast::IntExp>(constant);
 }
 
-std::unique_ptr<ast::StringExp> Parser::string_literal()
+auto Parser::string_literal() -> std::unique_ptr<ast::StringExp>
 {
   return std::make_unique<ast::StringExp>(previous.value, previous.pos);
 }
 
-std::unique_ptr<ast::WhileExp> Parser::while_expr()
+auto Parser::while_expr() -> std::unique_ptr<ast::WhileExp>
 {
   // rule: 'while' <exp> 'do' <exp>
 
@@ -220,7 +221,7 @@ std::unique_ptr<ast::WhileExp> Parser::while_expr()
   return std::make_unique<ast::WhileExp>(std::move(cond), std::move(body), pos);
 }
 
-std::unique_ptr<ast::ForExp> Parser::for_expr()
+auto Parser::for_expr() -> std::unique_ptr<ast::ForExp>
 {
   // rule: 'for' <id> ':=' <exp> 'to' <exp> 'do' <exp>
 
@@ -239,14 +240,14 @@ std::unique_ptr<ast::ForExp> Parser::for_expr()
   return std::make_unique<ast::ForExp>(var, std::move(low), std::move(high), std::move(body), pos);
 }
 
-std::unique_ptr<ast::BreakExp> Parser::break_expr()
+auto Parser::break_expr() -> std::unique_ptr<ast::BreakExp>
 {
   // rule: 'break'
 
   return std::make_unique<ast::BreakExp>(previous.pos);
 }
 
-std::unique_ptr<ast::LetExp> Parser::let_expr()
+auto Parser::let_expr() -> std::unique_ptr<ast::LetExp>
 {
   // rule: 'let' <decls> 'in' <exps> 'end'
   // rule: exps = epsilon | <exp> (';' <exp>)*
@@ -281,7 +282,7 @@ std::unique_ptr<ast::LetExp> Parser::let_expr()
   return std::make_unique<ast::LetExp>(std::move(decs), std::move(let_body), pos);
 }
 
-std::unique_ptr<ast::FuncDecl> Parser::func_decl()
+auto Parser::func_decl() -> std::unique_ptr<ast::FuncDecl>
 {
   // rule: 'function' <id> '(' <tyfields> ')' '=' <exp>
   // rule: 'function' <id> '(' <tyfields> ')' ':' <id> '=' <exp>
@@ -289,7 +290,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
   // rule: <tyfields> = <id> ':' <id> (',' <id> ':' <id>)*
 
   // we have a vector because we might have mutually recursive functions
-  std::vector<std::unique_ptr<ast::_FuncDecl>> fdecls;
+  std::vector<std::unique_ptr<ast::FuncDecl_>> fdecls;
   do
   {
     auto func_tok_pos = previous.pos;
@@ -298,7 +299,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
     expect(lexer::TokenType::lparen, "expected '(' in function declaration");
 
     // parse params
-    std::vector<ast::_Field> params;
+    std::vector<ast::Field_> params;
     if(!check(lexer::TokenType::rparen))
     {
       do
@@ -326,7 +327,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
     expect(lexer::TokenType::equal_op, "expected '=' before function body");
     auto body = expression(Precedence::None);
     auto fun_decl =
-      std::make_unique<ast::_FuncDecl>(func_id, params, result, std::move(body), func_tok_pos);
+      std::make_unique<ast::FuncDecl_>(func_id, params, result, std::move(body), func_tok_pos);
     fdecls.emplace_back(std::move(fun_decl));
 
   } while(match(lexer::TokenType::function_keyword));
@@ -334,7 +335,7 @@ std::unique_ptr<ast::FuncDecl> Parser::func_decl()
   return std::make_unique<ast::FuncDecl>(std::move(fdecls));
 }
 
-std::unique_ptr<ast::Type> Parser::ty()
+auto Parser::ty() -> std::unique_ptr<ast::Type>
 {
   // rule: <ty> = <id> | '{' <tyfields> '}' | 'array' 'of' <id>
   // rule: <tyfields> = epsilon | <id> ':' <id> (',' <id> ':' <id>)*
@@ -346,7 +347,7 @@ std::unique_ptr<ast::Type> Parser::ty()
   if(match(lexer::TokenType::lbrace))
   {
     // record type
-    std::vector<ast::_Field> fields;
+    std::vector<ast::Field_> fields;
     if(!check(lexer::TokenType::rbrace))
     {
       do
@@ -413,11 +414,11 @@ std::unique_ptr<ast::Type> Parser::ty()
   }
 }
 
-std::unique_ptr<ast::TypeDecl> Parser::type_decl()
+auto Parser::type_decl() -> std::unique_ptr<ast::TypeDecl>
 {
   // rule: 'type' <id> '=' <ty>
   // we have a vector because we might have mutually recursive types
-  std::vector<std::unique_ptr<ast::_TypeDecl>> decls_;
+  std::vector<std::unique_ptr<ast::TypeDecl_>> decls_;
 
   do
   {
@@ -425,13 +426,13 @@ std::unique_ptr<ast::TypeDecl> Parser::type_decl()
     expect(lexer::TokenType::identifier, "expected type name after token 'type'");
     auto type_id = symbol(previous.value);
     expect(lexer::TokenType::equal_op, "expected '=' after type identifier");
-    decls_.emplace_back(std::make_unique<ast::_TypeDecl>(type_id, ty(), pos));
+    decls_.emplace_back(std::make_unique<ast::TypeDecl_>(type_id, ty(), pos));
   } while(match(lexer::TokenType::type_keyword));
 
   return std::make_unique<ast::TypeDecl>(std::move(decls_));
 }
 
-std::unique_ptr<ast::VarDecl> Parser::var_decl()
+auto Parser::var_decl() -> std::unique_ptr<ast::VarDecl>
 {
 
   // rule: 'var' <id> ':' <id> ':=' <exp>
@@ -452,7 +453,7 @@ std::unique_ptr<ast::VarDecl> Parser::var_decl()
   return var_decl;
 }
 
-std::unique_ptr<ast::Declaration> Parser::decl()
+auto Parser::decl() -> std::unique_ptr<ast::Declaration>
 {
   try
   {
@@ -484,7 +485,7 @@ std::unique_ptr<ast::Declaration> Parser::decl()
   }
 }
 
-std::vector<std::unique_ptr<ast::Declaration>> Parser::decls()
+auto Parser::decls() -> std::vector<std::unique_ptr<ast::Declaration>>
 {
   // rule: <decl> (<decl>)*
 
@@ -499,7 +500,7 @@ std::vector<std::unique_ptr<ast::Declaration>> Parser::decls()
   return vec;
 }
 
-std::unique_ptr<ast::IfExp> Parser::if_expr()
+auto Parser::if_expr() -> std::unique_ptr<ast::IfExp>
 {
   // rule: 'if' <exp> 'then' <exp> ('else' <exp>)?
 
@@ -517,21 +518,21 @@ std::unique_ptr<ast::IfExp> Parser::if_expr()
   return std::make_unique<ast::IfExp>(std::move(cond), std::move(then), std::move(else_), pos);
 }
 
-std::unique_ptr<ast::NilExp> Parser::nil_literal()
+auto Parser::nil_literal() -> std::unique_ptr<ast::NilExp>
 {
   return std::make_unique<ast::NilExp>();
 }
 
-std::unique_ptr<ast::OpExp> Parser::binary_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::binary_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::OpExp>
 {
   auto op = previous;
   auto prec = pratt_table.at(op.type).precedence_value;
   auto rhs = expression(prec); // parse precedence > prec
 
-  auto lhs_op = dynamic_cast<ast::OpExp*>(lhs.get());
+  auto* lhs_op = dynamic_cast<ast::OpExp*>(lhs.get());
   auto ast_op = map_operator(op.type);
 
-  if(lhs_op && is_comparison_operator(ast_op) && is_comparison_operator(lhs_op->op))
+  if((lhs_op != nullptr) && is_comparison_operator(ast_op) && is_comparison_operator(lhs_op->op))
   {
     // comparison is not associative
     error_at(op, "cannot chain comparison operators");
@@ -540,7 +541,7 @@ std::unique_ptr<ast::OpExp> Parser::binary_expr(std::unique_ptr<ast::Expression>
   return std::make_unique<ast::OpExp>(std::move(lhs), ast_op, std::move(rhs), op.pos);
 }
 
-std::unique_ptr<ast::Expression> Parser::unary_expr()
+auto Parser::unary_expr() -> std::unique_ptr<ast::Expression>
 {
   // rule: '-' <exp>
 
@@ -550,7 +551,7 @@ std::unique_ptr<ast::Expression> Parser::unary_expr()
   auto tok_pos = previous.pos;
   auto rhs = expression(Precedence::Unary);
 
-  if(auto rhs_int = dynamic_cast<ast::IntExp*>(rhs.get()))
+  if(auto* rhs_int = dynamic_cast<ast::IntExp*>(rhs.get()))
   {
     // if rhs is an integer literal, we can just negate it
     return std::make_unique<ast::IntExp>(-rhs_int->value);
@@ -562,7 +563,7 @@ std::unique_ptr<ast::Expression> Parser::unary_expr()
     std::move(lhs), ast::Operator::minus, std::move(rhs), tok_pos);
 }
 
-std::unique_ptr<ast::Expression> Parser::and_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::and_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::Expression>
 {
   // rule: <exp> & <exp>
 
@@ -573,7 +574,7 @@ std::unique_ptr<ast::Expression> Parser::and_expr(std::unique_ptr<ast::Expressio
     std::move(lhs), std::move(rhs), std::make_unique<ast::IntExp>(0), pos);
 }
 
-std::unique_ptr<ast::Expression> Parser::or_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::or_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::Expression>
 {
   // rule: <exp> | <exp>
 
@@ -585,15 +586,15 @@ std::unique_ptr<ast::Expression> Parser::or_expr(std::unique_ptr<ast::Expression
   return std::make_unique<ast::IfExp>(shared_lhs, shared_lhs, std::shared_ptr(std::move(rhs)), pos);
 }
 
-std::unique_ptr<ast::AssignExp> Parser::assign_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::assign_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::AssignExp>
 {
   // rule: <lvalue> ':=' <exp>
   // rule: <lvalue> = <id> | <lvalue> '.' <id> | <lvalue> '[' <exp> ']'
 
   auto op = previous;
   auto rhs = expression(Precedence::Assignment);
-  auto var = dynamic_cast<ast::VarExp*>(lhs.get());
-  if(!var)
+  auto* var = dynamic_cast<ast::VarExp*>(lhs.get());
+  if(var == nullptr)
   {
     // asserting that lhs is an lvalue
     error_at(op, "invalid assignment target");
@@ -602,7 +603,7 @@ std::unique_ptr<ast::AssignExp> Parser::assign_expr(std::unique_ptr<ast::Express
   return std::make_unique<ast::AssignExp>(std::move(var->var), std::move(rhs), op.pos);
 }
 
-std::unique_ptr<ast::CallExp> Parser::call_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::call_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::CallExp>
 {
   // rule: <id> '(' <exp> (',' <exp>)* ')'
 
@@ -621,26 +622,26 @@ std::unique_ptr<ast::CallExp> Parser::call_expr(std::unique_ptr<ast::Expression>
   return std::make_unique<ast::CallExp>(std::move(lhs), std::move(args), pos);
 }
 
-std::unique_ptr<ast::Expression> Parser::record_expr(std::unique_ptr<ast::Expression> lhs)
+auto Parser::record_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::Expression>
 {
   // rule: <id> '{' '}'
   // rule: <id> '{' <id> '=' <exp> (',' <id> '=' <exp>)*'}'
 
-  auto lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
-  if(!lhs_var)
+  auto* lhs_var = dynamic_cast<ast::VarExp*>(lhs.get());
+  if(lhs_var == nullptr)
   {
     error_at(previous, "expected identifier as record type");
   }
 
-  auto lhs_simple = dynamic_cast<ast::Var*>(lhs_var->var.get());
-  if(!lhs_simple)
+  auto* lhs_simple = dynamic_cast<ast::Var*>(lhs_var->var.get());
+  if(lhs_simple == nullptr)
   {
     error_at(previous, "expected identifier as record type");
   }
 
   auto type_sym = lhs_simple->name;
   auto type_pos = lhs_simple->position;
-  std::vector<ast::_RecordField> fields;
+  std::vector<ast::RecordField_> fields;
 
   if(!check(lexer::TokenType::rbrace))
   {
@@ -664,12 +665,12 @@ void Parser::advance()
   current = scanner.next();
 }
 
-bool Parser::check(lexer::TokenType type)
+auto Parser::check(lexer::TokenType type) const -> bool
 {
   return current.type == type;
 }
 
-bool Parser::match(lexer::TokenType type)
+auto Parser::match(lexer::TokenType type) -> bool
 {
   if(check(type))
   {
@@ -703,11 +704,11 @@ void Parser::error_at(const lexer::Token& tok, const std::string& err_msg)
   auto str = std::format(
     "[{}:{}:{}] Err at {}: {}", scanner.filename(), tok.pos.line, tok.pos.column, tok, err_msg);
 
-  ostream << str << std::endl;
+  ostream << str << '\n';
   throw Exception(str);
 }
 
-ast::Operator Parser::map_operator(lexer::TokenType type)
+auto Parser::map_operator(lexer::TokenType type) -> ast::Operator
 {
   switch(type)
   {
@@ -738,7 +739,7 @@ ast::Operator Parser::map_operator(lexer::TokenType type)
   std::unreachable();
 }
 
-bool Parser::is_comparison_operator(ast::Operator type)
+auto Parser::is_comparison_operator(ast::Operator type) -> bool
 {
   switch(type)
   {

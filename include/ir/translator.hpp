@@ -7,6 +7,7 @@
 #include "level.hpp"
 #include "parser/ast.hpp"
 #include "temp.hpp"
+#include <algorithm>
 #include <memory>
 
 namespace ir
@@ -21,55 +22,57 @@ class Translator
   using Frame = FrameT;
 
   Translator();
-  std::shared_ptr<LevelT> main_level();
-  std::shared_ptr<LevelT> outermost_level();
+  auto main_level() -> std::shared_ptr<LevelT>;
+  auto outermost_level() -> std::shared_ptr<LevelT>;
   void add_fragment(FragmentT&& f);
   void proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& body);
   void translate_main_program(Exp&& exp)
   {
     proc_entry_exit(lvl_main, std::move(exp));
   }
-  Exp var(const LevelT::Access& ax, const LevelT* current);
-  Exp seq_exp(std::vector<Exp>&& exps);
-  Ex constant(int64_t constant);
-  Exp call_exp(Exp&& closure, std::vector<Exp>&& args);
-  Exp assign(Exp&& left, Exp&& right);
-  Exp binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
-  Exp rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right);
-  Ex string(const std::string& value);
-  Exp strings_equal(Exp&& left, Exp&& right);
-  Exp strings_nequal(Exp&& left, Exp&& right);
-  Exp array_subscript(Exp&& var, Exp&& index);
-  Exp array_exp(Exp&& size, Exp&& init);
-  Exp record_field(Exp&& var, size_t index);
-  Exp record_exp(std::vector<Exp>&& fields);
-  Exp if_then_exp(Exp&& cond, Exp&& texp);
-  Exp make_closure(const TempGen::Label& name, const LevelT* current_level);
-  Exp if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp);
-  Exp while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak);
-  Exp break_exp(const TempGen::Label& lbreak);
-  Exp for_exp(
-    const LevelT::Access& iax, Exp&& low, Exp&& high, Exp&& body, const TempGen::Label& lbreak);
-  std::string dump_fragment(const FragmentT& f) const;
-  LevelT::Access alloc_local(LevelT& level, bool escape);
-  std::unique_ptr<LevelT>
-  new_level(const LevelT* parent, TempGen::Label label, const std::vector<bool>& formals);
+  auto var(const LevelT::Access& ax, const LevelT* current) -> Exp;
+  auto seq_exp(std::vector<Exp>&& exps) -> Exp;
+  auto constant(int64_t constant) -> Ex;
+  auto call_exp(Exp&& closure, std::vector<Exp>& args) -> Exp;
+  auto assign(Exp&& left, Exp&& right) -> Exp;
+  auto binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right) -> Exp;
+  auto rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right) -> Exp;
+  auto string(const std::string& value) -> Ex;
+  auto strings_equal(Exp&& left, Exp&& right) -> Exp;
+  auto strings_nequal(Exp&& left, Exp&& right) -> Exp;
+  auto array_subscript(Exp&& var, Exp&& index) -> Exp;
+  auto array_exp(Exp&& size, Exp&& init) -> Exp;
+  auto record_field(Exp&& var, size_t index) -> Exp;
+  auto record_exp(std::vector<Exp>&& fields) -> Exp;
+  auto if_then_exp(Exp&& cond, Exp&& texp) -> Exp;
+  auto make_closure(const TempGen::Label& name, const LevelT* closure_level) -> Exp;
+  auto if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp) -> Exp;
+  auto while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak) -> Exp;
+  auto break_exp(const TempGen::Label& lbreak) -> Exp;
+  auto for_exp(const LevelT::Access& iax,
+               Exp&& low,
+               Exp&& high,
+               Exp&& body,
+               const TempGen::Label& lbreak) -> Exp;
+  auto dump_fragment(const FragmentT& f) const -> std::string;
+  auto alloc_local(LevelT& level, bool escape) -> LevelT::Access;
+  auto new_level(const LevelT* parent, TempGen::Label label, const std::vector<bool>& formals)
+    -> std::unique_ptr<LevelT>;
   auto formals(const LevelT& level)
   {
     // return a view of accesses without the static link, to be used by the analyzer
     // which is not aware of it
     return std::ranges::subrange(level.formals.begin() + 1, level.formals.end());
   }
-  std::vector<FragmentT>&& fragments()
+  auto fragments() -> std::vector<FragmentT>&&
   {
     return std::move(fragments_);
   }
 
   private:
-  tree::BinaryOp map_binary_operator(parser::ast::Operator op);
-  tree::RelOp map_rel_operator(parser::ast::Operator op);
+  auto map_binary_operator(parser::ast::Operator op) -> tree::BinaryOp;
+  auto map_rel_operator(parser::ast::Operator op) -> tree::RelOp;
 
-  private:
   std::shared_ptr<LevelT> lvl_outermost;
   std::shared_ptr<LevelT> lvl_main;
   std::vector<FragmentT> fragments_;
@@ -121,7 +124,7 @@ void Translator<FrameT>::proc_entry_exit(std::shared_ptr<LevelT> level, Exp&& bo
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::var(const LevelT::Access& var_ax, const LevelT* current)
+auto Translator<FrameT>::var(const LevelT::Access& var_ax, const LevelT* current) -> Exp
 {
   tree::Exp ep_exp = std::make_unique<tree::TempExp>(current->frame->escaping_pointer());
   while(var_ax.l != current)
@@ -136,7 +139,7 @@ Exp Translator<FrameT>::var(const LevelT::Access& var_ax, const LevelT* current)
 }
 
 template <IsFrame FrameT>
-tree::BinaryOp Translator<FrameT>::map_binary_operator(parser::ast::Operator op)
+auto Translator<FrameT>::map_binary_operator(parser::ast::Operator op) -> tree::BinaryOp
 {
   switch(op)
   {
@@ -154,7 +157,7 @@ tree::BinaryOp Translator<FrameT>::map_binary_operator(parser::ast::Operator op)
 }
 
 template <IsFrame FrameT>
-tree::RelOp Translator<FrameT>::map_rel_operator(parser::ast::Operator op)
+auto Translator<FrameT>::map_rel_operator(parser::ast::Operator op) -> tree::RelOp
 {
   switch(op)
   {
@@ -176,7 +179,7 @@ tree::RelOp Translator<FrameT>::map_rel_operator(parser::ast::Operator op)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::seq_exp(std::vector<Exp>&& exps)
+auto Translator<FrameT>::seq_exp(std::vector<Exp>&& exps) -> Exp
 {
   auto size = exps.size();
   if(0 == size)
@@ -198,13 +201,13 @@ Exp Translator<FrameT>::seq_exp(std::vector<Exp>&& exps)
 }
 
 template <IsFrame FrameT>
-Ex Translator<FrameT>::constant(int64_t constant)
+auto Translator<FrameT>::constant(int64_t constant) -> Ex
 {
   return std::make_unique<tree::ConstExp>(constant);
 }
 
 template <IsFrame FrameT>
-Ex Translator<FrameT>::string(const std::string& value)
+auto Translator<FrameT>::string(const std::string& value) -> Ex
 {
   auto lab = TempGen::new_label();
   add_fragment(ir::StringFragment{lab, value});
@@ -212,7 +215,7 @@ Ex Translator<FrameT>::string(const std::string& value)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
+auto Translator<FrameT>::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& right) -> Exp
 {
   Exp result;
   switch(op)
@@ -232,7 +235,7 @@ Exp Translator<FrameT>::binary_exp(parser::ast::Operator op, Exp&& left, Exp&& r
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right)
+auto Translator<FrameT>::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& right) -> Exp
 {
   Exp result;
   switch(op)
@@ -258,7 +261,7 @@ Exp Translator<FrameT>::rel_exp(parser::ast::Operator op, Exp&& left, Exp&& righ
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::strings_equal(Exp&& left, Exp&& right)
+auto Translator<FrameT>::strings_equal(Exp&& left, Exp&& right) -> Exp
 {
   std::vector<Ex> args_as_ex;
   args_as_ex.emplace_back(unex(std::move(left)));
@@ -267,14 +270,14 @@ Exp Translator<FrameT>::strings_equal(Exp&& left, Exp&& right)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::strings_nequal(Exp&& left, Exp&& right)
+auto Translator<FrameT>::strings_nequal(Exp&& left, Exp&& right) -> Exp
 {
   return rel_exp(
     parser::ast::Operator::equal, strings_equal(std::move(left), std::move(right)), constant(0));
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::array_subscript(Exp&& var, Exp&& index)
+auto Translator<FrameT>::array_subscript(Exp&& var, Exp&& index) -> Exp
 {
   // we basically need to compute mem(var + index * word_size)
   return std::make_unique<tree::MemExp>(std::make_unique<tree::BinOpExp>(
@@ -285,7 +288,7 @@ Exp Translator<FrameT>::array_subscript(Exp&& var, Exp&& index)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::array_exp(Exp&& size, Exp&& init)
+auto Translator<FrameT>::array_exp(Exp&& size, Exp&& init) -> Exp
 {
   std::vector<Ex> args;
   args.push_back(unex(std::move(size)));
@@ -294,14 +297,14 @@ Exp Translator<FrameT>::array_exp(Exp&& size, Exp&& init)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::record_field(Exp&& var, size_t index)
+auto Translator<FrameT>::record_field(Exp&& var, size_t index) -> Exp
 {
   return std::make_unique<tree::MemExp>(std::make_unique<tree::BinOpExp>(
     tree::BinaryOp::plus, unex(std::move(var)), constant(index * FrameT::word_size)));
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::record_exp(std::vector<Exp>&& fields)
+auto Translator<FrameT>::record_exp(std::vector<Exp>&& fields) -> Exp
 {
   auto temp = TempGen::new_temp();
   std::vector<Ex> args_alloc;
@@ -338,7 +341,7 @@ Exp Translator<FrameT>::record_exp(std::vector<Exp>&& fields)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
+auto Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp) -> Exp
 {
   if(std::holds_alternative<Ex>(texp) || std::holds_alternative<Ex>(fexp))
   {
@@ -381,7 +384,7 @@ Exp Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
   {
     // both branches are conditionals
     return [cond = uncx(std::move(cond)), cthen = std::move(texp), celse = std::move(fexp)](
-             TempGen::Label t, TempGen::Label f) mutable {
+             const TempGen::Label& t, const TempGen::Label& f) mutable {
       auto t_ = TempGen::new_label();
       auto f_ = TempGen::new_label();
 
@@ -428,7 +431,7 @@ Exp Translator<FrameT>::if_then_else_exp(Exp&& cond, Exp&& texp, Exp&& fexp)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::if_then_exp(Exp&& cond, Exp&& texp)
+auto Translator<FrameT>::if_then_exp(Exp&& cond, Exp&& texp) -> Exp
 {
   auto t = TempGen::new_label();
   auto f = TempGen::new_label();
@@ -444,7 +447,7 @@ Exp Translator<FrameT>::if_then_exp(Exp&& cond, Exp&& texp)
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak)
+auto Translator<FrameT>::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& lbreak) -> Exp
 {
   auto ltest = TempGen::new_label();
   auto t = TempGen::new_label();
@@ -465,15 +468,15 @@ Exp Translator<FrameT>::while_exp(Exp&& cond, Exp&& body, const TempGen::Label& 
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::break_exp(const TempGen::Label& lbreak)
+auto Translator<FrameT>::break_exp(const TempGen::Label& lbreak) -> Exp
 {
   return std::make_unique<tree::JumpStmt>(std::make_unique<tree::NameExp>(lbreak),
                                           std::vector{lbreak});
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::for_exp(
-  const LevelT::Access& iax, Exp&& low, Exp&& high, Exp&& body, const TempGen::Label& lbreak)
+auto Translator<FrameT>::for_exp(
+  const LevelT::Access& iax, Exp&& low, Exp&& high, Exp&& body, const TempGen::Label& lbreak) -> Exp
 {
   auto ltest = TempGen::new_label();
   auto t = TempGen::new_label();
@@ -509,13 +512,14 @@ Exp Translator<FrameT>::for_exp(
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::assign(Exp&& left, Exp&& right)
+auto Translator<FrameT>::assign(Exp&& left, Exp&& right) -> Exp
 {
   return std::make_unique<tree::MoveStmt>(unex(std::move(left)), unex(std::move(right)));
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* closure_level)
+auto Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* closure_level)
+  -> Exp
 {
   if(closure_level == lvl_outermost.get())
   {
@@ -528,12 +532,12 @@ Exp Translator<FrameT>::make_closure(const TempGen::Label& name, const LevelT* c
   auto ep = std::make_unique<tree::TempExp>(closure_level->frame->escaping_pointer());
   args.push_back(std::move(ep));
 
-  args.push_back(std::make_unique<tree::NameExp>(name));
+  args.emplace_back(std::make_unique<tree::NameExp>(name));
   return record_exp(std::move(args));
 }
 
 template <IsFrame FrameT>
-Exp Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>&& args)
+auto Translator<FrameT>::call_exp(Exp&& closure, std::vector<Exp>& args) -> Exp
 {
 
   // A closure is implemented as a record like:
@@ -583,7 +587,7 @@ struct overloads : Ts...
 };
 
 template <IsFrame FrameT>
-std::string Translator<FrameT>::dump_fragment(const FragmentT& f) const
+auto Translator<FrameT>::dump_fragment(const FragmentT& f) const -> std::string
 {
 
   auto dump_proc_frag = [](const ir::ProcedureFragment<FrameT>& pf) -> std::string {
@@ -604,20 +608,21 @@ std::string Translator<FrameT>::dump_fragment(const FragmentT& f) const
 }
 
 template <IsFrame FrameT>
-Level<FrameT>::Access Translator<FrameT>::alloc_local(LevelT& level, bool escape)
+auto Translator<FrameT>::alloc_local(LevelT& level, bool escape) -> Level<FrameT>::Access
 {
   typename LevelT::Access ax{.l = &level, .fax = level.frame->alloc_local(escape)};
   return ax;
 }
 
 template <IsFrame FrameT>
-std::unique_ptr<Level<FrameT>> Translator<FrameT>::new_level(const LevelT* parent,
-                                                             TempGen::Label label,
-                                                             const std::vector<bool>& formals)
+auto Translator<FrameT>::new_level(const LevelT* parent,
+                                   TempGen::Label label,
+                                   const std::vector<bool>& formals)
+  -> std::unique_ptr<Level<FrameT>>
 {
   // augment the formals with the static link as first parameter
   std::vector<bool> with_slink(formals.size() + 1);
-  std::copy(formals.begin(), formals.end(), with_slink.begin() + 1);
+  std::ranges::copy(formals, with_slink.begin() + 1);
   with_slink[0] = true; // always escapes
   return std::make_unique<LevelT>(parent, std::make_unique<FrameT>(label, with_slink));
 }

@@ -28,7 +28,7 @@ TEST_SUITE("parser")
     parser::Parser parser(serr, scanner, string_table);                                            \
     parser.parse();                                                                                \
     CHECK(parser.had_error());                                                                     \
-    CHECK(serr.str() == msgs);                                                                     \
+    CHECK(serr.str() == (msgs));                                                                     \
   }
 
   SHOULD_PASS("arrays.tig");
@@ -51,7 +51,7 @@ TEST_SUITE("parser")
   {
     /* These should all pass the syntax check, except test49.tig */
 
-    for(auto& file : std::filesystem::directory_iterator(std::filesystem::path("../tests/book/")))
+    for(const auto& file : std::filesystem::directory_iterator(std::filesystem::path("../tests/book/")))
     {
       auto file_path = file.path();
 

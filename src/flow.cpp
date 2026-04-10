@@ -1,5 +1,8 @@
 #include "flow.hpp"
+
 #include "assem.hpp"
+#include <algorithm>
+#include <utility>
 
 #if CONFIG_WITH_GRAPHVIZ
 #  include "terminal.hpp"
@@ -13,7 +16,7 @@ namespace flow
 
 FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
                      std::function<std::string(const TempGen::Temp& t)> temporary_mapper)
-  : temporary_mapper(temporary_mapper)
+  : temporary_mapper(std::move(temporary_mapper))
 {
   using node_id_t = utils::Digraph<GraphNode>::node_id_t;
   node_id_t curr{};
@@ -21,7 +24,7 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
   std::unordered_map<TempGen::Label, node_id_t> label_map;
 
   // create nodes for labels
-  for(auto& i : ins)
+  for(const auto& i : ins)
   {
     if(std::holds_alternative<assem::Label>(i))
     {
@@ -30,7 +33,7 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
     }
   }
 
-  for(auto& i : ins)
+  for(const auto& i : ins)
   {
     if(std::holds_alternative<assem::Label>(i))
     {
@@ -53,15 +56,15 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
     {
       auto oper = std::get<assem::Oper>(i);
       auto& data = get_node(curr).data();
-      std::sort(oper.dst.begin(), oper.dst.end());
-      std::sort(oper.src.begin(), oper.src.end());
+      std::ranges::sort(oper.dst);
+      std::ranges::sort(oper.src);
       data.def = std::list(oper.dst.begin(), oper.dst.end());
       data.use = std::list(oper.src.begin(), oper.src.end());
       // add edges to jump nodes
       if(oper.jmp)
       {
         curr_is_jmp = true;
-        for(auto l : oper.jmp.value())
+        for(const auto& l : oper.jmp.value())
         {
           add_edge(curr, label_map[l]);
         }

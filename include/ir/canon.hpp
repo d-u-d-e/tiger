@@ -16,41 +16,43 @@ class Canon
     bool visited{false};
   };
 
-  std::list<Stmt> linearize(Stmt&& s)
+  auto linearize(Stmt&& s) -> std::list<Stmt>
   {
     return linear(do_stmt(std::move(s)), {});
   }
 
-  static std::pair<std::vector<BasicBlock>, TempGen::Label> basic_blocks(std::list<Stmt>&& l);
-  static std::list<Stmt> trace_schedule(std::vector<BasicBlock>&& blocks,
-                                        const TempGen::Label& ldone);
+  static auto basic_blocks(std::list<Stmt>& l)
+    -> std::pair<std::vector<BasicBlock>, TempGen::Label>;
+  static auto trace_schedule(std::vector<BasicBlock>& blocks, const TempGen::Label& ldone)
+    -> std::list<Stmt>;
 
   // do_exp
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<ConstExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<NameExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<TempExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<BinOpExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<MemExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<CallExp> e);
-  std::pair<Stmt, Exp> operator()(std::unique_ptr<ESeqExp> e);
+  auto operator()(std::unique_ptr<ConstExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<NameExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<TempExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<BinOpExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<MemExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<CallExp> e) -> std::pair<Stmt, Exp>;
+  auto operator()(std::unique_ptr<ESeqExp> e) -> std::pair<Stmt, Exp>;
 
   // do_stmt
-  Stmt operator()(std::unique_ptr<ExpStmt> s);
-  Stmt operator()(std::unique_ptr<MoveStmt> s);
-  Stmt operator()(std::unique_ptr<JumpStmt> s);
-  Stmt operator()(std::unique_ptr<CJumpStmt> s);
-  Stmt operator()(std::unique_ptr<SeqStmt> s);
-  Stmt operator()(std::unique_ptr<LabelStmt> s);
+  auto operator()(std::unique_ptr<ExpStmt> s) -> Stmt;
+  auto operator()(std::unique_ptr<MoveStmt> s) -> Stmt;
+  auto operator()(std::unique_ptr<JumpStmt> s) -> Stmt;
+  auto operator()(std::unique_ptr<CJumpStmt> s) -> Stmt;
+  auto operator()(std::unique_ptr<SeqStmt> s) -> Stmt;
+  auto operator()(std::unique_ptr<LabelStmt> s) -> Stmt;
 
   private:
-  std::pair<Stmt, Exp> do_exp(Exp&& e);
-  Stmt do_stmt(Stmt&& s);
-  std::pair<Stmt, Exp> reorder_exp(std::list<Exp>&& el,
-                                   std::function<Exp(std::list<Exp>&&)> build_fn);
-  Stmt reorder_stmt(std::list<Exp>&& l, std::function<Stmt(std::list<Exp>&&)> build_fn);
-  std::pair<Stmt, std::list<Exp>> reorder(std::list<Exp>&& el);
-  static bool commute(const Stmt& stmt, const Exp& exp);
-  static Stmt concat(Stmt&& s1, Stmt&& s2);
-  static std::list<Stmt> linear(Stmt&& s, std::list<Stmt>&& l);
+  auto do_exp(Exp&& e) -> std::pair<Stmt, Exp>;
+  auto do_stmt(Stmt&& s) -> Stmt;
+  auto reorder_exp(std::list<Exp>&& el, const std::function<Exp(std::list<Exp>&&)>& build_fn)
+    -> std::pair<Stmt, Exp>;
+  auto reorder_stmt(std::list<Exp>&& l, const std::function<Stmt(std::list<Exp>&&)>& build_fn)
+    -> Stmt;
+  auto reorder(std::list<Exp>&& el) -> std::pair<Stmt, std::list<Exp>>;
+  static auto commute(const Stmt& stmt, const Exp& exp) -> bool;
+  static auto concat(Stmt&& s1, Stmt&& s2) -> Stmt;
+  static auto linear(Stmt&& s, std::list<Stmt>&& l) -> std::list<Stmt>;
 };
 } // namespace ir::tree

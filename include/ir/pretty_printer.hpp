@@ -12,24 +12,23 @@ namespace ir::tree
 
 class PrettyPrinter
 {
-
   public:
-  std::string operator()(const std::unique_ptr<ConstExp>& exp)
+  auto operator()(const std::unique_ptr<ConstExp>& exp) -> std::string
   {
     return std::format("{}ConstExp({})", indent(), exp->v);
   }
 
-  std::string operator()(const std::unique_ptr<NameExp>& exp)
+  auto operator()(const std::unique_ptr<NameExp>& exp) -> std::string
   {
     return std::format("{}NameExp({})", indent(), exp->label.str());
   }
 
-  std::string operator()(const std::unique_ptr<TempExp>& exp)
+  auto operator()(const std::unique_ptr<TempExp>& exp) -> std::string
   {
     return std::format("{}TempExp(t{})", indent(), exp->temp);
   }
 
-  std::string operator()(const std::unique_ptr<BinOpExp>& exp)
+  auto operator()(const std::unique_ptr<BinOpExp>& exp) -> std::string
   {
     std::string r = indent() + "BinOpExp(\n";
     depth++;
@@ -41,7 +40,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<MemExp>& exp)
+  auto operator()(const std::unique_ptr<MemExp>& exp) -> std::string
   {
     std::string r = indent() + "MemExp(\n";
     depth++;
@@ -51,7 +50,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<CallExp>& exp)
+  auto operator()(const std::unique_ptr<CallExp>& exp) -> std::string
   {
     std::string r = indent() + "CallExpr(\n";
     depth++;
@@ -71,7 +70,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<ESeqExp>& exp)
+  auto operator()(const std::unique_ptr<ESeqExp>& exp) -> std::string
   {
     std::string r = indent() + "ESeq(\n";
     depth++;
@@ -82,7 +81,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<MoveStmt>& stmt)
+  auto operator()(const std::unique_ptr<MoveStmt>& stmt) -> std::string
   {
     std::string r = indent() + "MoveStmt(\n";
     depth++;
@@ -93,7 +92,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<ExpStmt>& stmt)
+  auto operator()(const std::unique_ptr<ExpStmt>& stmt) -> std::string
   {
     std::string r = indent() + "ExpStmt(\n";
     depth++;
@@ -103,7 +102,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<JumpStmt>& stmt)
+  auto operator()(const std::unique_ptr<JumpStmt>& stmt) -> std::string
   {
     std::string r = indent() + "JumpStmt(\n";
     depth++;
@@ -120,7 +119,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<CJumpStmt>& stmt)
+  auto operator()(const std::unique_ptr<CJumpStmt>& stmt) -> std::string
   {
     std::string r = indent() + "CondJumpStmt(\n";
     depth++;
@@ -134,7 +133,7 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<SeqStmt>& stmt)
+  auto operator()(const std::unique_ptr<SeqStmt>& stmt) -> std::string
   {
     std::string r = indent() + "SeqStmt[\n";
     depth++;
@@ -145,26 +144,27 @@ class PrettyPrinter
     return r;
   }
 
-  std::string operator()(const std::unique_ptr<LabelStmt>& stmt)
+  auto operator()(const std::unique_ptr<LabelStmt>& stmt) -> std::string
   {
     return std::format("{}LabelStmt({})", indent(), stmt->label.str());
   }
 
   private:
-  inline std::string indent(int depth)
+  static auto indent(size_t depth) -> std::string
   {
     std::string result(depth * 2, ' ');
     return result;
   }
-  inline std::string indent()
+
+  [[nodiscard]] auto indent() const -> std::string
   {
     return indent(depth);
   }
-  int depth{0};
+  size_t depth{0};
 
-  std::string name(BinaryOp op)
+  static auto name(BinaryOp op) -> std::string
   {
-    std::string r = "";
+    std::string r;
     switch(op)
     {
     case BinaryOp::and_:
@@ -203,9 +203,9 @@ class PrettyPrinter
     return r;
   }
 
-  std::string name(RelOp op)
+  static auto name(RelOp op) -> std::string
   {
-    std::string r = "";
+    std::string r;
     switch(op)
     {
     case RelOp::eq:

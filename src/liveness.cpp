@@ -7,8 +7,8 @@ namespace liveness
 Analyzer::Analyzer(flow::FlowGraph& g)
   : fg(g)
 {
-  bool fixed_point{};
-  do
+  bool fixed_point{false};
+  while(!fixed_point)
   {
     fixed_point = true;
     for(auto& n : fg.get_nodes())
@@ -31,13 +31,13 @@ Analyzer::Analyzer(flow::FlowGraph& g)
       fixed_point =
         fixed_point && (live_in_size == d.live_in.size() && live_out_size == d.live_out.size());
     }
-  } while(!fixed_point);
+  }
 }
 
-std::string Analyzer::dump_result()
+auto Analyzer::dump_result() const -> std::string
 {
   std::string out;
-  auto& temp_mapper = fg.get_temporary_mapper();
+  const auto& temp_mapper = fg.get_temporary_mapper();
 
   auto format_list_of_temps = [&temp_mapper](const std::list<TempGen::Temp>& a) {
     std::string out("[");

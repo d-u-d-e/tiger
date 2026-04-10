@@ -19,39 +19,65 @@ using Position = lexer::Position;
 class Expression
 {
   public:
-  virtual std::string accept(PrettyPrinterExprVisitor& visitor) const = 0;
-  virtual semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const = 0;
+  virtual auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string = 0;
+  virtual auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result = 0;
   virtual void accept(semant::FindEscapeExprVisitor& visitor) = 0;
+
+  Expression() = default;
   virtual ~Expression() = default;
+  Expression(const Expression&) = delete;
+  auto operator=(const Expression&) -> Expression& = delete;
+  Expression(Expression&&) = delete;
+  auto operator=(Expression&&) -> Expression& = delete;
+
   std::string field;
 };
 
 class Declaration
 {
   public:
-  virtual std::string accept(PrettyPrinterDeclVisitor& visitor) const = 0;
-  virtual semant::types::Result accept(semant::TypeCheckerDeclVisitor& visitor) const = 0;
+  virtual auto accept(PrettyPrinterDeclVisitor& visitor) const -> std::string = 0;
+  virtual auto accept(semant::TypeCheckerDeclVisitor& visitor) const -> semant::types::Result = 0;
   virtual void accept(semant::FindEscapeDeclVisitor& visitor) = 0;
+
+  Declaration() = default;
   virtual ~Declaration() = default;
+  Declaration(const Declaration&) = delete;
+  auto operator=(const Declaration&) -> Declaration& = delete;
+  Declaration(Declaration&&) = delete;
+  auto operator=(Declaration&&) -> Declaration& = delete;
   std::string field;
 };
 
 class Type
 {
   public:
-  virtual std::string accept(PrettyPrinterTypeVisitor& visitor) const = 0;
-  virtual semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const = 0;
+  virtual auto accept(PrettyPrinterTypeVisitor& visitor) const -> std::string = 0;
+  virtual auto accept(semant::TypeCheckerTypeVisitor& visitor) const
+    -> semant::types::SharedType = 0;
+
+  Type() = default;
   virtual ~Type() = default;
+  Type(const Type&) = delete;
+  auto operator=(const Type&) -> Type& = delete;
+  Type(Type&&) = delete;
+  auto operator=(Type&&) -> Type& = delete;
   std::string field;
 };
 
 class Variable
 {
   public:
-  virtual std::string accept(PrettyPrinterVarVisitor& visitor) const = 0;
-  virtual semant::types::Result accept(semant::TypeCheckerVarVisitor& visitor) const = 0;
+  virtual auto accept(PrettyPrinterVarVisitor& visitor) const -> std::string = 0;
+  virtual auto accept(semant::TypeCheckerVarVisitor& visitor) const -> semant::types::Result = 0;
   virtual void accept(semant::FindEscapeVarVisitor& visitor) = 0;
+
   virtual ~Variable() = default;
+  Variable() = default;
+  Variable(const Variable&) = delete;
+  auto operator=(const Variable&) -> Variable& = delete;
+  Variable(Variable&&) = delete;
+  auto operator=(Variable&&) -> Variable& = delete;
   std::string field;
 };
 
@@ -69,7 +95,7 @@ enum class Operator
   greater_equal
 };
 
-inline std::string to_string(Operator op)
+inline auto to_string(Operator op) -> std::string
 {
   switch(op)
   {
@@ -101,23 +127,23 @@ inline std::string to_string(Operator op)
 class Var : public Variable
 {
   public:
-  Var(const Symbol& name, Position position)
-    : name(name)
+  Var(Symbol name, Position position)
+    : name(std::move(name))
     , position(position)
   { }
-  std::string accept(PrettyPrinterVarVisitor& visitor) const override
+  auto accept(PrettyPrinterVarVisitor& visitor) const -> std::string override
   {
     return visitor.visit_simple_var(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerVarVisitor& visitor) const override
+  auto accept(semant::TypeCheckerVarVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_var(*this);
   }
 
   void accept(semant::FindEscapeVarVisitor& visitor) override
   {
-    return visitor.visit_var(*this);
+    visitor.visit_var(*this);
   }
 
   Symbol name;
@@ -127,24 +153,24 @@ class Var : public Variable
 class FieldVar : public Variable
 {
   public:
-  FieldVar(std::unique_ptr<Variable> var, const Symbol& name, Position position)
+  FieldVar(std::unique_ptr<Variable> var, Symbol name, Position position)
     : var(std::move(var))
-    , name(name)
+    , name(std::move(name))
     , position(position)
   { }
-  std::string accept(PrettyPrinterVarVisitor& visitor) const override
+  auto accept(PrettyPrinterVarVisitor& visitor) const -> std::string override
   {
     return visitor.visit_field_var(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerVarVisitor& visitor) const override
+  auto accept(semant::TypeCheckerVarVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_field_var(*this);
   }
 
   void accept(semant::FindEscapeVarVisitor& visitor) override
   {
-    return visitor.visit_field_var(*this);
+    visitor.visit_field_var(*this);
   }
 
   std::unique_ptr<Variable> var;
@@ -160,19 +186,19 @@ class SubscriptVar : public Variable
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(PrettyPrinterVarVisitor& visitor) const override
+  auto accept(PrettyPrinterVarVisitor& visitor) const -> std::string override
   {
     return visitor.visit_subscript_var(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerVarVisitor& visitor) const override
+  auto accept(semant::TypeCheckerVarVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_subscript_var(*this);
   }
 
   void accept(semant::FindEscapeVarVisitor& visitor) override
   {
-    return visitor.visit_subscript_var(*this);
+    visitor.visit_subscript_var(*this);
   }
 
   std::unique_ptr<Variable> var;
@@ -183,22 +209,22 @@ class SubscriptVar : public Variable
 class VarExp : public Expression
 {
   public:
-  VarExp(std::unique_ptr<Variable> var)
+  explicit VarExp(std::unique_ptr<Variable> var)
     : var(std::move(var))
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_var_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_var_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_var_exp(*this);
+    visitor.visit_var_exp(*this);
   }
 
   std::unique_ptr<Variable> var;
@@ -206,41 +232,41 @@ class VarExp : public Expression
 
 class NilExp : public Expression
 {
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_nil_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_nil_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_nil_exp(*this);
+    visitor.visit_nil_exp(*this);
   }
 };
 
 class IntExp : public Expression
 {
   public:
-  IntExp(int64_t value)
+  explicit IntExp(int64_t value)
     : value(value)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_int_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_int_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_int_exp(*this);
+    visitor.visit_int_exp(*this);
   }
 
   int64_t value;
@@ -249,23 +275,23 @@ class IntExp : public Expression
 class StringExp : public Expression
 {
   public:
-  StringExp(const std::string& value, Position position)
-    : value(value)
+  StringExp(std::string value, Position position)
+    : value(std::move(value))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_string_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_string_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_string_exp(*this);
+    visitor.visit_string_exp(*this);
   }
 
   std::string value;
@@ -282,19 +308,19 @@ class CallExp : public Expression
     , args(std::move(args))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_call_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_call_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_call_exp(*this);
+    visitor.visit_call_exp(*this);
   }
 
   std::unique_ptr<Expression> callee;
@@ -314,19 +340,19 @@ class OpExp : public Expression
     , right(std::move(right))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_op_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_op_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_op_exp(*this);
+    visitor.visit_op_exp(*this);
   }
 
   std::unique_ptr<Expression> left;
@@ -335,11 +361,11 @@ class OpExp : public Expression
   Position position;
 };
 
-class _RecordField
+class RecordField_
 {
   public:
-  _RecordField(const Symbol& name, std::unique_ptr<Expression> exp, Position position)
-    : name(name)
+  RecordField_(Symbol name, std::unique_ptr<Expression> exp, Position position)
+    : name(std::move(name))
     , exp(std::move(exp))
     , position(position)
   { }
@@ -351,51 +377,51 @@ class _RecordField
 class RecordExp : public Expression
 {
   public:
-  RecordExp(const Symbol& type, std::vector<_RecordField> fields, Position position)
-    : type(type)
+  RecordExp(Symbol type, std::vector<RecordField_> fields, Position position)
+    : type(std::move(type))
     , fields(std::move(fields))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_record_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_record_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_record_exp(*this);
+    visitor.visit_record_exp(*this);
   }
 
   Symbol type;
-  std::vector<_RecordField> fields;
+  std::vector<RecordField_> fields;
   Position position;
 };
 
 class SeqExp : public Expression
 {
   public:
-  SeqExp(std::vector<std::pair<std::unique_ptr<Expression>, Position>> exps)
+  explicit SeqExp(std::vector<std::pair<std::unique_ptr<Expression>, Position>> exps)
     : exps(std::move(exps))
   { }
   std::vector<std::pair<std::unique_ptr<Expression>, Position>> exps;
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_seq_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_seq_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_seq_exp(*this);
+    visitor.visit_seq_exp(*this);
   }
 };
 
@@ -407,19 +433,19 @@ class AssignExp : public Expression
     , exp(std::move(exp))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_assign_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_assign_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_assign_exp(*this);
+    visitor.visit_assign_exp(*this);
   }
 
   std::unique_ptr<Variable> var;
@@ -439,19 +465,19 @@ class IfExp : public Expression
     , else_(std::move(else_))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_if_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_if_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_if_exp(*this);
+    visitor.visit_if_exp(*this);
   }
 
   std::shared_ptr<Expression> cond;
@@ -468,19 +494,19 @@ class WhileExp : public Expression
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_while_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_while_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_while_exp(*this);
+    visitor.visit_while_exp(*this);
   }
 
   std::unique_ptr<Expression> cond;
@@ -491,31 +517,31 @@ class WhileExp : public Expression
 class ForExp : public Expression
 {
   public:
-  ForExp(const Symbol& var,
+  ForExp(Symbol var,
          std::unique_ptr<Expression> low,
          std::unique_ptr<Expression> high,
          std::unique_ptr<Expression> body,
          Position position)
-    : var(var)
+    : var(std::move(var))
     , low(std::move(low))
     , high(std::move(high))
     , body(std::move(body))
     , position(position)
     , escape(std::make_shared<bool>(true))
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_for_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_for_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_for_exp(*this);
+    visitor.visit_for_exp(*this);
   }
 
   Symbol var;
@@ -530,22 +556,22 @@ class ForExp : public Expression
 class BreakExp : public Expression
 {
   public:
-  BreakExp(Position position)
+  explicit BreakExp(Position position)
     : position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_break_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_break_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_break_exp(*this);
+    visitor.visit_break_exp(*this);
   }
 
   Position position;
@@ -561,19 +587,19 @@ class LetExp : public Expression
     , body(std::move(body))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_let_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_let_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_let_exp(*this);
+    visitor.visit_let_exp(*this);
   }
 
   std::vector<std::unique_ptr<Declaration>> decls;
@@ -584,28 +610,28 @@ class LetExp : public Expression
 class ArrayExp : public Expression
 {
   public:
-  ArrayExp(const Symbol& type,
+  ArrayExp(Symbol type,
            std::unique_ptr<Expression> size,
            std::unique_ptr<Expression> init,
            Position position)
-    : type(type)
+    : type(std::move(type))
     , size(std::move(size))
     , init(std::move(init))
     , position(position)
   { }
-  std::string accept(PrettyPrinterExprVisitor& visitor) const override
+  auto accept(PrettyPrinterExprVisitor& visitor) const -> std::string override
   {
     return visitor.visit_array_exp(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerExprVisitor& visitor) const override
+  auto accept(semant::TypeCheckerExprVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_array_exp(*this);
   }
 
   void accept(semant::FindEscapeExprVisitor& visitor) override
   {
-    return visitor.visit_array_exp(*this);
+    visitor.visit_array_exp(*this);
   }
 
   Symbol type;
@@ -617,29 +643,29 @@ class ArrayExp : public Expression
 class VarDecl : public Declaration
 {
   public:
-  VarDecl(const Symbol& name,
+  VarDecl(Symbol name,
           std::optional<std::pair<Symbol, lexer::Position>> type,
           std::unique_ptr<Expression> init,
           Position position)
-    : name(name)
-    , type(type)
+    : name(std::move(name))
+    , type(std::move(type))
     , init(std::move(init))
     , position(position)
     , escape(std::make_shared<bool>(true))
   { }
-  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
+  auto accept(PrettyPrinterDeclVisitor& visitor) const -> std::string override
   {
     return visitor.visit_var_decl(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerDeclVisitor& visitor) const override
+  auto accept(semant::TypeCheckerDeclVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_var_decl(*this);
   }
 
   void accept(semant::FindEscapeDeclVisitor& visitor) override
   {
-    return visitor.visit_var_decl(*this);
+    visitor.visit_var_decl(*this);
   }
 
   Symbol name;
@@ -655,11 +681,11 @@ class VarDecl : public Declaration
   std::shared_ptr<bool> escape;
 };
 
-class _TypeDecl
+class TypeDecl_
 {
   public:
-  _TypeDecl(const Symbol& name, std::unique_ptr<Type> type, Position position)
-    : name(name)
+  TypeDecl_(Symbol name, std::unique_ptr<Type> type, Position position)
+    : name(std::move(name))
     , type(std::move(type))
     , position(position)
   { }
@@ -671,33 +697,33 @@ class _TypeDecl
 class TypeDecl : public Declaration
 {
   public:
-  TypeDecl(std::vector<std::unique_ptr<_TypeDecl>> decls)
+  explicit TypeDecl(std::vector<std::unique_ptr<TypeDecl_>> decls)
     : decls(std::move(decls))
   { }
-  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
+  auto accept(PrettyPrinterDeclVisitor& visitor) const -> std::string override
   {
     return visitor.visit_type_decl(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerDeclVisitor& visitor) const override
+  auto accept(semant::TypeCheckerDeclVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_type_decl(*this);
   }
 
   void accept(semant::FindEscapeDeclVisitor& visitor) override
   {
-    return visitor.visit_type_decl(*this);
+    visitor.visit_type_decl(*this);
   }
 
-  std::vector<std::unique_ptr<_TypeDecl>> decls;
+  std::vector<std::unique_ptr<TypeDecl_>> decls;
 };
 
-class _Field
+class Field_
 {
   public:
-  _Field(const Symbol& name, const Symbol& type, Position position)
-    : name(name)
-    , type(type)
+  Field_(Symbol name, Symbol type, Position position)
+    : name(std::move(name))
+    , type(std::move(type))
     , position(position)
     , escape(std::make_shared<bool>(true))
   { }
@@ -712,35 +738,35 @@ class _Field
 class RecordType : public Type
 {
   public:
-  RecordType(std::vector<_Field> fields)
+  explicit RecordType(std::vector<Field_> fields)
     : fields(std::move(fields))
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
+  auto accept(PrettyPrinterTypeVisitor& visitor) const -> std::string override
   {
     return visitor.visit_record_type(*this);
   }
 
-  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const override
+  auto accept(semant::TypeCheckerTypeVisitor& visitor) const -> semant::types::SharedType override
   {
     return visitor.visit_record_type(*this);
   }
 
-  std::vector<_Field> fields;
+  std::vector<Field_> fields;
 };
 
 class ArrayType : public Type
 {
   public:
-  ArrayType(const Symbol& name, Position position)
-    : name(name)
+  ArrayType(Symbol name, Position position)
+    : name(std::move(name))
     , position(position)
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
+  auto accept(PrettyPrinterTypeVisitor& visitor) const -> std::string override
   {
     return visitor.visit_array_type(*this);
   }
 
-  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const override
+  auto accept(semant::TypeCheckerTypeVisitor& visitor) const -> semant::types::SharedType override
   {
     return visitor.visit_array_type(*this);
   }
@@ -752,16 +778,16 @@ class ArrayType : public Type
 class NameType : public Type
 {
   public:
-  NameType(const Symbol& name, Position position)
-    : name(name)
+  NameType(Symbol name, Position position)
+    : name(std::move(name))
     , position(position)
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
+  auto accept(PrettyPrinterTypeVisitor& visitor) const -> std::string override
   {
     return visitor.visit_name_type(*this);
   }
 
-  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const override
+  auto accept(semant::TypeCheckerTypeVisitor& visitor) const -> semant::types::SharedType override
   {
     return visitor.visit_name_type(*this);
   }
@@ -780,12 +806,12 @@ class FunctionType : public Type
     , ret_type(std::move(ret_type))
     , position(position)
   { }
-  std::string accept(PrettyPrinterTypeVisitor& visitor) const override
+  auto accept(PrettyPrinterTypeVisitor& visitor) const -> std::string override
   {
     return visitor.visit_function_type(*this);
   }
 
-  semant::types::SharedType accept(semant::TypeCheckerTypeVisitor& visitor) const override
+  auto accept(semant::TypeCheckerTypeVisitor& visitor) const -> semant::types::SharedType override
   {
     return visitor.visit_func_type(*this);
   }
@@ -794,23 +820,23 @@ class FunctionType : public Type
   Position position;
 };
 
-class _FuncDecl
+class FuncDecl_
 {
   public:
-  _FuncDecl(const Symbol& name,
-            std::vector<_Field> params,
+  FuncDecl_(Symbol name,
+            std::vector<Field_> params,
             std::optional<std::pair<Symbol, lexer::Position>> result,
             std::unique_ptr<Expression> body,
             Position position)
-    : name(name)
+    : name(std::move(name))
     , params(std::move(params))
-    , result(result)
+    , result(std::move(result))
     , body(std::move(body))
     , position(position)
     , escape(std::make_shared<bool>(true))
   { }
   Symbol name;
-  std::vector<_Field> params;
+  std::vector<Field_> params;
   std::optional<std::pair<Symbol, lexer::Position>> result;
   std::unique_ptr<Expression> body;
   Position position;
@@ -827,23 +853,23 @@ class _FuncDecl
 class FuncDecl : public Declaration
 {
   public:
-  FuncDecl(std::vector<std::unique_ptr<_FuncDecl>> decls)
+  explicit FuncDecl(std::vector<std::unique_ptr<FuncDecl_>> decls)
     : decls(std::move(decls))
   { }
-  std::vector<std::unique_ptr<_FuncDecl>> decls;
-  std::string accept(PrettyPrinterDeclVisitor& visitor) const override
+  std::vector<std::unique_ptr<FuncDecl_>> decls;
+  auto accept(PrettyPrinterDeclVisitor& visitor) const -> std::string override
   {
     return visitor.visit_func_decl(*this);
   }
 
-  semant::types::Result accept(semant::TypeCheckerDeclVisitor& visitor) const override
+  auto accept(semant::TypeCheckerDeclVisitor& visitor) const -> semant::types::Result override
   {
     return visitor.visit_func_decl(*this);
   }
 
   void accept(semant::FindEscapeDeclVisitor& visitor) override
   {
-    return visitor.visit_func_decl(*this);
+    visitor.visit_func_decl(*this);
   }
 };
 

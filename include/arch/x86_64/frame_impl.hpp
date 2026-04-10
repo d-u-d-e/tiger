@@ -22,11 +22,11 @@ class X86Frame
   using Label = TempGen::Label;
 
   static inline auto RV = TempGen::new_temp();
-  static inline constexpr uint8_t word_size = 8;
+  static constexpr uint8_t word_size = 8;
 
   struct InReg
   {
-    InReg(Temp t)
+    explicit InReg(Temp t)
       : t(t)
     { }
     Temp t;
@@ -35,7 +35,7 @@ class X86Frame
   struct InFrame
   {
     // offset from the frame pointer
-    InFrame(stack_offset_t offset)
+    explicit InFrame(stack_offset_t offset)
       : offset(offset)
     { }
     stack_offset_t offset;
@@ -44,7 +44,7 @@ class X86Frame
   struct InEscapingRecord
   {
     // offset from the escaping record
-    InEscapingRecord(esc_offset_t offset)
+    explicit InEscapingRecord(esc_offset_t offset)
       : offset(offset)
     { }
     esc_offset_t offset;
@@ -53,49 +53,54 @@ class X86Frame
   using Access = std::variant<std::monostate, InReg, InFrame, InEscapingRecord>;
 
   X86Frame(Label label, const std::vector<bool>& formals);
-  std::vector<Access> formals() const;
-  TempGen::Label name() const;
+  X86Frame(const X86Frame&) = delete;
+  auto operator=(const X86Frame&) -> X86Frame& = delete;
+  X86Frame(X86Frame&&) = delete;
+  auto operator=(X86Frame&&) -> X86Frame& = delete;
+  ~X86Frame() = default;
 
-  ir::tree::Stmt proc_entry_exit1(ir::tree::Stmt&& stmt);
+  auto formals() const -> std::vector<Access>;
+  auto name() const -> TempGen::Label;
+
+  auto proc_entry_exit1(ir::tree::Stmt&& stmt) -> ir::tree::Stmt;
   void proc_entry_exit2(std::list<assem::Instruction>& list);
-  std::pair<std::string, std::string> proc_entry_exit3(std::list<assem::Instruction>& list);
+  auto proc_entry_exit3(std::list<assem::Instruction>& list) -> std::pair<std::string, std::string>;
   void rewrite_program(std::list<assem::Instruction>& list,
                        const std::unordered_set<TempGen::Temp>& spilled_temps);
-  Access alloc_local(bool escape);
+  auto alloc_local(bool escape) -> Access;
 
-  static ir::Ex exp(const Access& fax, ir::Ex&& ep);
-  static ir::Ex external_call(TempGen::Label label, std::vector<ir::Ex>&& args);
-  static std::string assembler_directives_begin()
+  static auto exp(const Access& fax, ir::Ex&& ep) -> ir::Ex;
+  static auto external_call(const TempGen::Label& label, std::vector<ir::Ex>&& args) -> ir::Ex;
+  static auto assembler_directives_begin() -> std::string
   {
     return ".intel_syntax noprefix\n";
   }
-  static std::string assembler_directives_end()
+  static auto assembler_directives_end() -> std::string
   {
     return ".section .note.GNU-stack,\"\",@progbits\n";
   }
-  static std::string emit_string(const ir::StringFragment& f)
+  static auto emit_string(const ir::StringFragment& f) -> std::string
   {
     return std::format("{}:\n"
                        ".asciz \"{}\"\n",
                        f.label.str(),
                        f.lit);
   }
-  static const std::unordered_map<TempGen::Temp, assem::register_t>&
-  get_temporary_register_mapping()
+  static auto get_temporary_register_mapping()
+    -> const std::unordered_map<TempGen::Temp, assem::register_t>&
   {
     return temp_map;
   }
 
-  TempGen::Temp escaping_pointer() const
+  auto escaping_pointer() const -> TempGen::Temp
   {
     return EP;
   }
 
   private:
-  stack_offset_t alloc_spilled_temporary();
-  ir::Nx alloc_escaping_record() const;
+  auto alloc_spilled_temporary() -> stack_offset_t;
+  auto alloc_escaping_record() const -> ir::Nx;
 
-  private:
   static inline auto FP = TempGen::new_temp();
   static inline auto SP = TempGen::new_temp();
   static inline auto RAX = RV;

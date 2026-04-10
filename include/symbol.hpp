@@ -1,24 +1,27 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <utility>
 
 class Symbol
 {
   public:
   using Identifier = uint32_t;
-  Symbol(const std::string& name, Identifier id)
-    : name(name)
+  Symbol(std::string name, Identifier id)
+    : name(std::move(name))
     , id_(id){};
 
-  const std::string& str() const
+  [[nodiscard]] auto str() const -> const std::string&
   {
     return name;
   }
-  Identifier id() const
+
+  [[nodiscard]] auto id() const -> Identifier
   {
     return id_;
   }
-  bool operator==(const Symbol& other) const
+
+  auto operator==(const Symbol& other) const -> bool
   {
     // fast check
     return id_ == other.id_;
@@ -32,7 +35,7 @@ class Symbol
 template <>
 struct std::hash<Symbol>
 {
-  size_t operator()(const Symbol& s) const
+  auto operator()(const Symbol& s) const -> size_t
   {
     return s.id();
   }

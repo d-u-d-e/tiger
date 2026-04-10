@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-int main(int argc, char** argv)
+auto main(int argc, char** argv) -> int
 {
   constexpr int RC_OK{0};
   constexpr int RC_NO_INPUT_ERR{1};
@@ -12,17 +12,19 @@ int main(int argc, char** argv)
 
   const char* oname{nullptr};
   std::vector<std::filesystem::path> input_files;
+  auto args = std::span(argv, size_t(argc));
+
   for(int i = 1; i < argc; i++)
   {
-    if(std::string_view(argv[i]) == "-o" && (i + 1) < argc)
+    if(std::string_view(args[i]) == "-o" && (i + 1) < argc)
     {
-      oname = argv[i + 1];
+      oname = args[i + 1];
       i += 1;
     }
     else
     {
       // input is considered a file to be processed
-      input_files.emplace_back(argv[i]);
+      input_files.emplace_back(args[i]);
     }
   }
 
@@ -32,14 +34,14 @@ int main(int argc, char** argv)
     return RC_NO_INPUT_ERR;
   }
 
-  if(oname && input_files.size() > 1)
+  if((oname != nullptr) && input_files.size() > 1)
   {
     terminal_write_error("tigerc: cannot specify '-o' with multiple input files");
     return RC_USAGE_ERR;
   }
 
   int rc{RC_OK};
-  Compiler compiler;
+  const Compiler compiler;
 
   for(const auto& input_file : input_files)
   {

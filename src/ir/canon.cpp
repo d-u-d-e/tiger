@@ -1,59 +1,61 @@
 #include "ir/canon.hpp"
 #include "ir/tree.hpp"
 #include "temp.hpp"
+#include <algorithm>
 #include <cassert>
 #include <memory>
 
 namespace ir::tree
 {
 
-std::pair<Stmt, Exp> Canon::reorder_exp(std::list<Exp>&& l,
-                                        std::function<Exp(std::list<Exp>&&)> build_fn)
+auto Canon::reorder_exp(std::list<Exp>&& l, const std::function<Exp(std::list<Exp>&&)>& build_fn)
+  -> std::pair<Stmt, Exp>
 {
   auto [stmt, el] = reorder(std::move(l));
   return std::make_pair(std::move(stmt), build_fn(std::move(el)));
 }
 
-Stmt Canon::reorder_stmt(std::list<Exp>&& l, std::function<Stmt(std::list<Exp>&&)> build_fn)
+auto Canon::reorder_stmt(std::list<Exp>&& l, const std::function<Stmt(std::list<Exp>&&)>& build_fn)
+  -> Stmt
 {
   auto [stmt, el] = reorder(std::move(l));
   return concat(std::move(stmt), build_fn(std::move(el)));
 }
 
-std::pair<Stmt, Exp> Canon::do_exp(Exp&& exp)
+auto Canon::do_exp(Exp&& exp) -> std::pair<Stmt, Exp>
 {
   // This mimics do_exp from Appel's solutions
   return std::visit(*this, std::move(exp));
 }
 
-Stmt Canon::do_stmt(Stmt&& s)
+auto Canon::do_stmt(Stmt&& s) -> Stmt
 {
   // This mimics do_exp from Appel's solutions
   return std::visit(*this, std::move(s));
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<ConstExp> e)
+auto Canon::operator()(std::unique_ptr<ConstExp> e) -> std::pair<Stmt, Exp>
 {
   // nothing to do
   return std::make_pair<Stmt, Exp>(std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)),
                                    std::move(e));
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<NameExp> e)
+auto Canon::operator()(std::unique_ptr<NameExp> e) -> std::pair<Stmt, Exp>
 {
   // nothing to do
   return std::make_pair<Stmt, Exp>(std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)),
                                    std::move(e));
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<TempExp> e)
+auto Canon::operator()(std::unique_ptr<TempExp> e) -> std::pair<Stmt, Exp>
 {
   // nothing to do
   return std::make_pair<Stmt, Exp>(std::make_unique<ExpStmt>(std::make_unique<ConstExp>(0)),
                                    std::move(e));
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<BinOpExp> e)
+auto Canon::operator()(std::unique_ptr<BinOpExp> e) -> std::pair<Stmt, Exp>
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(e->left));
@@ -67,7 +69,7 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<BinOpExp> e)
   });
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<MemExp> e)
+auto Canon::operator()(std::unique_ptr<MemExp> e) -> std::pair<Stmt, Exp>
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(e->a));
@@ -79,7 +81,7 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<MemExp> e)
   });
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
+auto Canon::operator()(std::unique_ptr<CallExp> e) -> std::pair<Stmt, Exp>
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(e->fun));
@@ -89,7 +91,7 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
     auto f = std::move(l.front());
     l.pop_front();
     std::vector<Exp> args;
-    std::move(l.begin(), l.end(), std::back_inserter(args));
+    std::ranges::move(l, std::back_inserter(args));
     return std::make_unique<CallExp>(std::move(f), std::move(args));
   });
 
@@ -99,14 +101,14 @@ std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<CallExp> e)
           std::make_unique<TempExp>(t)};
 }
 
-std::pair<Stmt, Exp> Canon::operator()(std::unique_ptr<ESeqExp> e)
+auto Canon::operator()(std::unique_ptr<ESeqExp> e) -> std::pair<Stmt, Exp>
 {
   Stmt s = do_stmt(std::move(e->stmt));
   auto [stmt, e_] = do_exp(std::move(e->exp));
   return std::make_pair(concat(std::move(s), std::move(stmt)), std::move(e_));
 }
 
-Stmt Canon::operator()(std::unique_ptr<ExpStmt> s)
+auto Canon::operator()(std::unique_ptr<ExpStmt> s) -> Stmt
 {
   std::list<Exp> subexps;
   if(std::holds_alternative<std::unique_ptr<CallExp>>(s->exp))
@@ -120,7 +122,7 @@ Stmt Canon::operator()(std::unique_ptr<ExpStmt> s)
       auto f = std::move(l.front());
       l.pop_front();
       std::vector<Exp> args;
-      std::move(l.begin(), l.end(), std::back_inserter(args));
+      std::ranges::move(l, std::back_inserter(args));
       return std::make_unique<ExpStmt>(std::make_unique<CallExp>(std::move(f), std::move(args)));
     });
   }
@@ -133,7 +135,7 @@ Stmt Canon::operator()(std::unique_ptr<ExpStmt> s)
   });
 }
 
-Stmt Canon::operator()(std::unique_ptr<JumpStmt> s)
+auto Canon::operator()(std::unique_ptr<JumpStmt> s) -> Stmt
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(s->a));
@@ -144,7 +146,7 @@ Stmt Canon::operator()(std::unique_ptr<JumpStmt> s)
   });
 }
 
-Stmt Canon::operator()(std::unique_ptr<CJumpStmt> s)
+auto Canon::operator()(std::unique_ptr<CJumpStmt> s) -> Stmt
 {
   std::list<Exp> subexps;
   subexps.push_back(std::move(s->lexp));
@@ -159,17 +161,17 @@ Stmt Canon::operator()(std::unique_ptr<CJumpStmt> s)
     });
 }
 
-Stmt Canon::operator()(std::unique_ptr<SeqStmt> s)
+auto Canon::operator()(std::unique_ptr<SeqStmt> s) -> Stmt
 {
   return concat(do_stmt(std::move(s->stm1)), do_stmt(std::move(s->stm2)));
 }
 
-Stmt Canon::operator()(std::unique_ptr<LabelStmt> s)
+auto Canon::operator()(std::unique_ptr<LabelStmt> s) -> Stmt
 {
-  return Stmt(std::move(s));
+  return Stmt{std::move(s)};
 }
 
-Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
+auto Canon::operator()(std::unique_ptr<MoveStmt> s) -> Stmt
 {
   if(std::holds_alternative<std::unique_ptr<TempExp>>(s->left))
   {
@@ -188,7 +190,7 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
         auto f = std::move(l.front());
         l.pop_front();
         std::vector<Exp> args;
-        std::move(l.begin(), l.end(), std::back_inserter(args));
+        std::ranges::move(l, std::back_inserter(args));
         return std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp),
                                           std::make_unique<CallExp>(std::move(f), std::move(args)));
       });
@@ -225,7 +227,7 @@ Stmt Canon::operator()(std::unique_ptr<MoveStmt> s)
     std::move(eseq->stmt), std::make_unique<MoveStmt>(std::move(eseq->exp), std::move(s->right))));
 }
 
-std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
+auto Canon::reorder(std::list<Exp>&& el) -> std::pair<Stmt, std::list<Exp>>
 {
   // base
   if(el.empty())
@@ -241,7 +243,7 @@ std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
   {
     // all call expressions should put the result in a temporary
     auto t = TempGen::new_temp();
-    el.push_front(std::make_unique<ESeqExp>(
+    el.emplace_front(std::make_unique<ESeqExp>(
       std::make_unique<MoveStmt>(std::make_unique<TempExp>(t), std::move(front)),
       std::make_unique<TempExp>(t)));
 
@@ -265,12 +267,13 @@ std::pair<Stmt, std::list<Exp>> Canon::reorder(std::list<Exp>&& el)
     auto a = concat(std::move(stmt),
                     std::make_unique<MoveStmt>(std::make_unique<TempExp>(temp), std::move(e)));
 
-    el_.push_front(std::make_unique<TempExp>(temp));
+    el_.emplace_front(std::make_unique<TempExp>(temp));
     return {concat(std::move(a), std::move(stmt_)), std::move(el_)};
   }
 }
 
-std::pair<std::vector<Canon::BasicBlock>, TempGen::Label> Canon::basic_blocks(std::list<Stmt>&& l)
+auto Canon::basic_blocks(std::list<Stmt>& l)
+  -> std::pair<std::vector<Canon::BasicBlock>, TempGen::Label>
 {
   /*
   From a list of cleaned trees, produce a list of
@@ -285,7 +288,7 @@ std::pair<std::vector<Canon::BasicBlock>, TempGen::Label> Canon::basic_blocks(st
     upon exit.
   */
 
-  assert(l.size() > 0);
+  assert(!l.empty());
   std::vector<BasicBlock> blocks;
   auto ldone = TempGen::new_label();
   auto i = l.begin();
@@ -312,7 +315,7 @@ std::pair<std::vector<Canon::BasicBlock>, TempGen::Label> Canon::basic_blocks(st
       if(i == l.end())
       {
         // no jump at the end
-        b.stmts.push_back(
+        b.stmts.emplace_back(
           std::make_unique<JumpStmt>(std::make_unique<NameExp>(ldone), std::vector{ldone}));
         blocks.push_back(std::move(b));
         break;
@@ -330,7 +333,7 @@ std::pair<std::vector<Canon::BasicBlock>, TempGen::Label> Canon::basic_blocks(st
       {
         // end block by adding missing jump statement to current label statement
         auto lnext = std::get<std::unique_ptr<LabelStmt>>(*i)->label;
-        b.stmts.push_back(
+        b.stmts.emplace_back(
           std::make_unique<JumpStmt>(std::make_unique<NameExp>(lnext), std::vector{lnext}));
         blocks.push_back(std::move(b));
         break;
@@ -343,7 +346,8 @@ std::pair<std::vector<Canon::BasicBlock>, TempGen::Label> Canon::basic_blocks(st
   return std::make_pair(std::move(blocks), ldone);
 }
 
-std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const TempGen::Label& ldone)
+auto Canon::trace_schedule(std::vector<BasicBlock>& blocks, const TempGen::Label& ldone)
+  -> std::list<Stmt>
 {
   /*
   From a list of basic blocks satisfying properties 1-6 above, 
@@ -377,7 +381,7 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
     // start a trace at b
     BasicBlock* bp = &b;
 
-    while(bp)
+    while(bp != nullptr)
     {
       BasicBlock* next{nullptr};
       bp->visited = true;
@@ -406,7 +410,7 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
                                                     cjump->flabel,
                                                     cjump->tlabel);
           bp->stmts.pop_back(); // pop last cjump
-          bp->stmts.push_back(std::move(cjump_));
+          bp->stmts.emplace_back(std::move(cjump_));
           next = tb_iter->second;
         }
         else
@@ -420,9 +424,9 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
           auto jump = std::make_unique<JumpStmt>(std::make_unique<NameExp>(cjump->flabel),
                                                  std::vector{cjump->flabel});
           bp->stmts.pop_back(); // pop current cjump
-          bp->stmts.push_back(std::move(cjump_));
-          bp->stmts.push_back(std::move(lstmt));
-          bp->stmts.push_back(std::move(jump));
+          bp->stmts.emplace_back(std::move(cjump_));
+          bp->stmts.emplace_back(std::move(lstmt));
+          bp->stmts.emplace_back(std::move(jump));
           // cannot continue
         }
       }
@@ -445,7 +449,7 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
         }
       }
       // add b to the trace
-      std::move(bp->stmts.begin(), bp->stmts.end(), std::back_inserter(schedule));
+      std::ranges::move(bp->stmts, std::back_inserter(schedule));
       bp = next;
     }
   }
@@ -459,11 +463,11 @@ std::list<Stmt> Canon::trace_schedule(std::vector<BasicBlock>&& blocks, const Te
     }
   }
   // ldone is where the epilogue starts
-  schedule.push_back(std::make_unique<LabelStmt>(ldone));
+  schedule.emplace_back(std::make_unique<LabelStmt>(ldone));
   return schedule;
 }
 
-std::list<Stmt> Canon::linear(Stmt&& s, std::list<Stmt>&& l)
+auto Canon::linear(Stmt&& s, std::list<Stmt>&& l) -> std::list<Stmt>
 {
   if(std::holds_alternative<std::unique_ptr<SeqStmt>>(s))
   {
@@ -477,7 +481,7 @@ std::list<Stmt> Canon::linear(Stmt&& s, std::list<Stmt>&& l)
   }
 }
 
-Stmt Canon::concat(Stmt&& s1, Stmt&& s2)
+auto Canon::concat(Stmt&& s1, Stmt&& s2) -> Stmt
 {
   auto throw_stmt = [](const Stmt& s) {
     if(std::holds_alternative<std::unique_ptr<ExpStmt>>(s))
@@ -503,25 +507,21 @@ Stmt Canon::concat(Stmt&& s1, Stmt&& s2)
   return std::make_unique<SeqStmt>(std::move(s1), std::move(s2));
 }
 
-bool Canon::commute(const Stmt& stmt, const Exp& exp)
+auto Canon::commute(const Stmt& stmt, const Exp& exp) -> bool
 {
   if(std::holds_alternative<std::unique_ptr<ExpStmt>>(stmt))
   {
-    auto& exp_stmt = std::get<std::unique_ptr<ExpStmt>>(stmt);
+    const auto& exp_stmt = std::get<std::unique_ptr<ExpStmt>>(stmt);
     if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp_stmt->exp))
     {
       // an expression statement containing a constant commute with any expression
       return true;
     }
   }
-  else if(std::holds_alternative<std::unique_ptr<NameExp>>(exp))
+  else if(std::holds_alternative<std::unique_ptr<NameExp>>(exp) ||
+          std::holds_alternative<std::unique_ptr<ConstExp>>(exp))
   {
-    // a name expression commutes with any statement
-    return true;
-  }
-  else if(std::holds_alternative<std::unique_ptr<ConstExp>>(exp))
-  {
-    // a constant expression commutes with any statement
+    // a name or constant expression commutes with any statement
     return true;
   }
   return false;

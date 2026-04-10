@@ -1,10 +1,11 @@
 #include "register_allocator.hpp"
 #include "temp.hpp"
-#include "terminal.hpp"
+#include <algorithm>
 #include <ranges>
 #include <unordered_set>
 
 #if CONFIG_WITH_GRAPHVIZ
+#  include "terminal.hpp"
 #  include <cstdio>
 #  include <graphviz/cgraph.h>
 #endif
@@ -24,7 +25,7 @@ IteratedRegisterCoalescing::IteratedRegisterCoalescing(
   , precolored_temporaries(precolored_temporaries)
 {
   // fill precolored temporaries
-  for(auto& [t, v] : precolored_temporaries)
+  for(const auto& [t, v] : precolored_temporaries)
   {
     auto nid = add_node(t);
     map_tnode[t] = nid;
@@ -91,7 +92,7 @@ void IteratedRegisterCoalescing::list_push_front(std::list<node_id_t>& l, node_i
   {
     assert(!is_colored(a));
   }
-  assert(std::find(l.begin(), l.end(), a) == l.end());
+  assert(std::ranges::find(l, a) == l.end());
 #endif
   l.push_front(a);
 }
@@ -146,8 +147,8 @@ void IteratedRegisterCoalescing::make_lists()
   }
 }
 
-std::unordered_set<IteratedRegisterCoalescing::node_id_t>
-IteratedRegisterCoalescing::adjacent(node_id_t nid)
+auto IteratedRegisterCoalescing::adjacent(node_id_t nid)
+  -> std::unordered_set<IteratedRegisterCoalescing::node_id_t>
 {
   std::unordered_set<node_id_t> out{nodes[nid].adj};
 
@@ -163,19 +164,19 @@ IteratedRegisterCoalescing::adjacent(node_id_t nid)
   return out;
 }
 
-std::unordered_set<assem::Move, IteratedRegisterCoalescing::MoveHash>
-IteratedRegisterCoalescing::node_moves(node_id_t u)
+auto IteratedRegisterCoalescing::node_moves(node_id_t u)
+  -> std::unordered_set<assem::Move, IteratedRegisterCoalescing::MoveHash>
 {
   auto out{nodes[u].moves_list};
 
-  std::erase_if(out, [this](const assem::Move& move) {
+  std::erase_if(out, [this](const assem::Move& move) -> bool {
     return !active_moves.contains(move) && !worklist_moves.contains(move);
   });
 
   return out;
 }
 
-bool IteratedRegisterCoalescing::is_move_related(node_id_t n)
+auto IteratedRegisterCoalescing::is_move_related(node_id_t n) -> bool
 {
   return !node_moves(n).empty();
 }
@@ -188,7 +189,7 @@ void IteratedRegisterCoalescing::simplify()
 
 #if ENABLE_REG_ALLOC_ASSERTS
   auto s = adjacent(n);
-  assert(s.size() == nodes[n].degree || (s.size() == 0 && nodes[n].degree > BIG_INT));
+  assert(s.size() == nodes[n].degree || (s.empty() && nodes[n].degree > BIG_INT));
 #endif
 
   simplify_list.pop_front();
@@ -198,7 +199,7 @@ void IteratedRegisterCoalescing::simplify()
     decrement_degree(adj);
 #if ENABLE_REG_ALLOC_ASSERTS
     auto s = adjacent(adj);
-    assert(s.size() == nodes[adj].degree || (s.size() == 0 && nodes[adj].degree > BIG_INT));
+    assert(s.size() == nodes[adj].degree || (s.empty() && nodes[adj].degree > BIG_INT));
 #endif
   }
 }
@@ -233,7 +234,7 @@ void IteratedRegisterCoalescing::enable_moves(const std::unordered_set<node_id_t
 {
   for(auto nid : list)
   {
-    for(auto& m : nodes[nid].moves_list)
+    for(const auto& m : nodes[nid].moves_list)
     {
       active_moves.erase(m);
       worklist_moves.insert(m);
@@ -249,14 +250,15 @@ void IteratedRegisterCoalescing::coalesce()
   auto x = get_alias(map_tnode[move.src]);
   auto y = get_alias(map_tnode[move.dst]);
 
-  if(std::find(select_stack.begin(), select_stack.end(), x) != select_stack.end() ||
-     std::find(select_stack.begin(), select_stack.end(), y) != select_stack.end())
+  if(std::ranges::find(select_stack, x) != select_stack.end() ||
+     std::ranges::find(select_stack, y) != select_stack.end())
   {
     // no point in coalescing a move where either x or y has been simplified
     return;
   }
 
-  node_id_t u, v;
+  node_id_t u{};
+  node_id_t v{};
   // if v is precolored, so is u
   if(is_colored(y))
   {
@@ -272,8 +274,7 @@ void IteratedRegisterCoalescing::coalesce()
   auto add_work_list = [this](node_id_t u) {
     if(!is_colored(u) && !is_move_related(u) && nodes[u].degree < n_colors)
     {
-      if(auto p = std::find(freeze_worklist.begin(), freeze_worklist.end(), u);
-         p != freeze_worklist.end())
+      if(auto p = std::ranges::find(freeze_worklist, u); p != freeze_worklist.end())
       {
         freeze_worklist.erase(p);
         list_push_front(simplify_list, u);
@@ -322,8 +323,7 @@ void IteratedRegisterCoalescing::coalesce()
   {
     // since we don't maintain the adjacency list of a precolored node, we apply george
     auto adj = adjacent(v);
-    if(std::all_of(
-         adj.begin(), adj.end(), [u, &george_test](node_id_t n) { return george_test(n, u); }))
+    if(std::ranges::all_of(adj, [u, &george_test](node_id_t n) { return george_test(n, u); }))
     {
       // we coalesce v into u, a precolored node
       combine(u, v);
@@ -348,7 +348,8 @@ void IteratedRegisterCoalescing::coalesce()
   }
 }
 
-IteratedRegisterCoalescing::node_id_t IteratedRegisterCoalescing::get_alias(node_id_t n)
+auto IteratedRegisterCoalescing::get_alias(node_id_t n) const
+  -> IteratedRegisterCoalescing::node_id_t
 {
   if(coalesced_nodes.contains(n))
   {
@@ -364,8 +365,7 @@ IteratedRegisterCoalescing::node_id_t IteratedRegisterCoalescing::get_alias(node
 void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
 {
   // remove v from its list
-  if(auto p = std::find(freeze_worklist.begin(), freeze_worklist.end(), v);
-     p != freeze_worklist.end())
+  if(auto p = std::ranges::find(freeze_worklist, v); p != freeze_worklist.end())
   {
     freeze_worklist.erase(p);
   }
@@ -376,9 +376,9 @@ void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
 
 #if ENABLE_REG_ALLOC_ASSERTS
   auto a = adjacent(u);
-  assert(a.size() == nodes[u].degree || (a.size() == 0 && nodes[u].degree > BIG_INT));
+  assert(a.size() == nodes[u].degree || (a.empty() && nodes[u].degree > BIG_INT));
   auto b = adjacent(v);
-  assert(b.size() == nodes[v].degree || (b.size() == 0 && nodes[v].degree > BIG_INT));
+  assert(b.size() == nodes[v].degree || (b.empty() && nodes[v].degree > BIG_INT));
 #endif
 
   coalesced_nodes.insert(v);
@@ -395,7 +395,7 @@ void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
   {
 #if ENABLE_REG_ALLOC_ASSERTS
     auto s = adjacent(t);
-    assert((s.size() == 0 && nodes[t].degree > BIG_INT) || (nodes[t].degree == s.size() + 1));
+    assert((s.empty() && nodes[t].degree > BIG_INT) || (nodes[t].degree == s.size() + 1));
 #endif
 
     add_edge(t, u);
@@ -403,14 +403,14 @@ void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
 
 #if ENABLE_REG_ALLOC_ASSERTS
     s = adjacent(t);
-    assert(s.size() == nodes[t].degree || (s.size() == 0 && nodes[t].degree > BIG_INT));
+    assert(s.size() == nodes[t].degree || (s.empty() && nodes[t].degree > BIG_INT));
 #endif
   }
 
   // remove u from the freeze worklist if it has high degree
   if(nodes[u].degree >= n_colors)
   {
-    auto p = std::find(freeze_worklist.begin(), freeze_worklist.end(), u);
+    auto p = std::ranges::find(freeze_worklist, u);
     if(p != freeze_worklist.end())
     {
       freeze_worklist.erase(p);
@@ -439,7 +439,7 @@ void IteratedRegisterCoalescing::freeze_moves(node_id_t u)
   // neighbors of u can become non move-related as well
 
   auto moves = node_moves(u);
-  for(auto& move : node_moves(u))
+  for(const auto& move : node_moves(u))
   {
     node_id_t v{};
     if(get_alias(u) == get_alias(map_tnode[move.dst]))
@@ -470,10 +470,9 @@ void IteratedRegisterCoalescing::select_spill()
   // temporaries that were previously spilled should have very low degree
   // TODO: maybe compute the cost as above
 
-  auto p = std::max_element(
-    spill_list.begin(), spill_list.end(), [this](const node_id_t a, const node_id_t b) {
-      return nodes[a].degree < nodes[b].degree;
-    });
+  auto p = std::ranges::max_element(spill_list, [this](const node_id_t a, const node_id_t b) {
+    return nodes[a].degree < nodes[b].degree;
+  });
 
   auto u = *p;
   spill_list.erase(p);
@@ -481,7 +480,7 @@ void IteratedRegisterCoalescing::select_spill()
   freeze_moves(u);
 }
 
-IteratedRegisterCoalescing::node_id_t IteratedRegisterCoalescing::add_node(TempGen::Temp t)
+auto IteratedRegisterCoalescing::add_node(TempGen::Temp t) -> IteratedRegisterCoalescing::node_id_t
 {
   nodes.push_back(INode{.id = nodes.size(), .t = t});
   return nodes.size() - 1;
@@ -520,10 +519,11 @@ void IteratedRegisterCoalescing::assign_colors()
   }
 }
 
-const std::unordered_set<TempGen::Temp>& IteratedRegisterCoalescing::perform_allocation()
+auto IteratedRegisterCoalescing::perform_allocation() -> const std::unordered_set<TempGen::Temp>&
 {
   make_lists();
-  do
+  while(!simplify_list.empty() || !worklist_moves.empty() || !freeze_worklist.empty() ||
+        !spill_list.empty())
   {
     if(!simplify_list.empty())
     {
@@ -541,8 +541,7 @@ const std::unordered_set<TempGen::Temp>& IteratedRegisterCoalescing::perform_all
     {
       select_spill();
     }
-  } while(!simplify_list.empty() || !worklist_moves.empty() || !freeze_worklist.empty() ||
-          !spill_list.empty());
+  }
 
   assign_colors();
   return spilled_temps;

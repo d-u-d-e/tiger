@@ -22,7 +22,7 @@ namespace semant
 class Exception : public std::runtime_error
 {
   public:
-  Exception(const std::string& what)
+  explicit Exception(const std::string& what)
     : std::runtime_error(what)
   { }
 };
@@ -37,7 +37,13 @@ class Analyzer : TypeCheckerExprVisitor,
   Analyzer(const std::filesystem::path& filename,
            StringTable& string_table,
            ir::Translator<FrameT>& translator);
-  ir::Exp type_check(const parser::ast::Expression& exp);
+  auto type_check(const parser::ast::Expression& exp) -> ir::Exp;
+
+  Analyzer(const Analyzer&) = delete;
+  auto operator=(const Analyzer&) -> Analyzer& = delete;
+  Analyzer(Analyzer&&) = delete;
+  auto operator=(Analyzer&&) -> Analyzer& = delete;
+  ~Analyzer() override = default;
 
   private:
   static inline auto int_type = std::make_shared<Integer>();
@@ -57,7 +63,6 @@ class Analyzer : TypeCheckerExprVisitor,
   };
   CurrentLoop current_loop{};
 
-  private:
   void add_predefined_types();
   void add_predefined_functions();
   template <typename... Args>
@@ -66,13 +71,13 @@ class Analyzer : TypeCheckerExprVisitor,
   void detect_cycles(const parser::ast::TypeDecl& decl);
 
   template <typename T>
-  bool is_type(const SharedType& t)
+  auto is_type(const SharedType& t) -> bool
   {
     auto& r = *t;
     return typeid(r) == typeid(T);
   }
 
-  bool same_types(const SharedType& t1, const SharedType& t2)
+  auto same_types(const SharedType& t1, const SharedType& t2) -> bool
   {
     auto& v1 = *t1;
     auto& v2 = *t2;
@@ -88,14 +93,14 @@ class Analyzer : TypeCheckerExprVisitor,
     }
   }
 
-  bool same_function_types(const FunctionType& t1, const FunctionType& t2)
+  auto same_function_types(const FunctionType& t1, const FunctionType& t2) -> bool
   {
     if(!same_types(t1.ret, t2.ret))
     {
       return false;
     }
-    auto& formals1 = t1.formals;
-    auto& formals2 = t2.formals;
+    const auto& formals1 = t1.formals;
+    const auto& formals2 = t2.formals;
 
     if(formals1.size() != formals2.size())
     {
@@ -110,7 +115,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return same;
   }
 
-  bool can_assign(const SharedType& tlhs, const SharedType& trhs)
+  auto can_assign(const SharedType& tlhs, const SharedType& trhs) -> bool
   {
     if(is_type<Record>(tlhs) && is_type<Nil>(trhs))
     {
@@ -119,7 +124,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return same_types(tlhs, trhs);
   }
 
-  SharedType skip_name_types(const SharedType& t)
+  auto skip_name_types(const SharedType& t) -> SharedType
   {
     // the exit guarantee follows in case there are no cycles
     SharedType r = t;
@@ -130,12 +135,12 @@ class Analyzer : TypeCheckerExprVisitor,
     return r;
   }
 
-  types::Result visit_string_exp(const parser::ast::StringExp& exp) override
+  auto visit_string_exp(const parser::ast::StringExp& exp) -> types::Result override
   {
     return Result{string_type, translator.string(exp.value)};
   }
 
-  types::Result visit_assign_exp(const parser::ast::AssignExp& exp) override
+  auto visit_assign_exp(const parser::ast::AssignExp& exp) -> types::Result override
   {
     auto tvar = exp.var->accept(*this);
     auto trhs = exp.exp->accept(*this);
@@ -149,7 +154,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{unit_type, translator.assign(std::move(tvar.ir), std::move(trhs.ir))};
   }
 
-  types::Result visit_op_exp(const parser::ast::OpExp& exp) override
+  auto visit_op_exp(const parser::ast::OpExp& exp) -> types::Result override
   {
     auto tlhs = exp.left->accept(*this);
     auto trhs = exp.right->accept(*this);
@@ -208,21 +213,21 @@ class Analyzer : TypeCheckerExprVisitor,
     std::unreachable();
   }
 
-  types::Result visit_int_exp(const parser::ast::IntExp& exp) override
+  auto visit_int_exp(const parser::ast::IntExp& exp) -> types::Result override
   {
     return Result{int_type, translator.constant(exp.value)};
   }
 
-  types::Result visit_var_exp(const parser::ast::VarExp& exp) override
+  auto visit_var_exp(const parser::ast::VarExp& exp) -> types::Result override
   {
     return exp.var->accept(*this);
   }
 
-  types::Result visit_seq_exp(const parser::ast::SeqExp& exp) override
+  auto visit_seq_exp(const parser::ast::SeqExp& exp) -> types::Result override
   {
     std::vector<ir::Exp> exps;
     SharedType tres{unit_type};
-    for(auto& [e, pos] : exp.exps)
+    for(const auto& [e, pos] : exp.exps)
     {
       auto [type, ir] = e->accept(*this);
       tres = type;
@@ -231,13 +236,13 @@ class Analyzer : TypeCheckerExprVisitor,
     return {tres, translator.seq_exp(std::move(exps))};
   }
 
-  types::Result visit_array_exp(const parser::ast::ArrayExp& exp) override
+  auto visit_array_exp(const parser::ast::ArrayExp& exp) -> types::Result override
   {
     auto rsize = exp.size->accept(*this);
     auto rinit = exp.init->accept(*this);
-    auto texpr = tenv.lookup(exp.type);
+    const auto* texpr = tenv.lookup(exp.type);
 
-    if(!texpr || !is_type<Array>(texpr->t))
+    if((texpr == nullptr) || !is_type<Array>(texpr->t))
     {
       error_at(exp.position, std::format("undeclared array type '{}'", exp.type.str()));
     }
@@ -260,15 +265,15 @@ class Analyzer : TypeCheckerExprVisitor,
     return {texpr->t, translator.array_exp(std::move(rsize.ir), std::move(rinit.ir))};
   }
 
-  types::Result visit_nil_exp([[maybe_unused]] const parser::ast::NilExp& exp) override
+  auto visit_nil_exp([[maybe_unused]] const parser::ast::NilExp& exp) -> types::Result override
   {
     return Result{nil_type, translator.constant(0)};
   }
 
-  types::Result visit_record_exp(const parser::ast::RecordExp& exp) override
+  auto visit_record_exp(const parser::ast::RecordExp& exp) -> types::Result override
   {
-    auto maybe_rec = tenv.lookup(exp.type);
-    if(!maybe_rec || !is_type<Record>(maybe_rec->t))
+    const auto* maybe_rec = tenv.lookup(exp.type);
+    if((maybe_rec == nullptr) || !is_type<Record>(maybe_rec->t))
     {
       error_at(exp.position, std::format("undeclared record type '{}'", exp.type.str()));
     }
@@ -287,7 +292,7 @@ class Analyzer : TypeCheckerExprVisitor,
     for(size_t i = 0; i < rsize; i++)
     {
       auto& formal = trec.fields[i];
-      auto& actual = exp.fields[i];
+      const auto& actual = exp.fields[i];
 
       if(formal.first != actual.name)
       {
@@ -313,7 +318,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{maybe_rec->t, translator.record_exp(std::move(fields))};
   }
 
-  types::Result visit_if_exp(const parser::ast::IfExp& exp) override
+  auto visit_if_exp(const parser::ast::IfExp& exp) -> types::Result override
   {
     Result r{};
     auto tcond = exp.cond->accept(*this);
@@ -359,7 +364,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return r;
   }
 
-  types::Result visit_break_exp(const parser::ast::BreakExp& exp) override
+  auto visit_break_exp(const parser::ast::BreakExp& exp) -> types::Result override
   {
     // a break in a procedure p cannot terminate a loop in procedure q, even if p is nested within q
     if(!current_loop.lbreak.has_value() || current_level.get() != current_loop.level)
@@ -369,7 +374,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{unit_type, translator.break_exp(*current_loop.lbreak)};
   }
 
-  types::Result visit_while_exp(const parser::ast::WhileExp& exp) override
+  auto visit_while_exp(const parser::ast::WhileExp& exp) -> types::Result override
   {
     // condition must be an integer
     auto rcond = exp.cond->accept(*this);
@@ -395,7 +400,7 @@ class Analyzer : TypeCheckerExprVisitor,
                   translator.while_exp(std::move(rcond.ir), std::move(rbody.ir), breakl)};
   }
 
-  types::Result visit_for_exp(const parser::ast::ForExp& exp) override
+  auto visit_for_exp(const parser::ast::ForExp& exp) -> types::Result override
   {
     // high and low must be integers
     auto rlow = exp.low->accept(*this);
@@ -432,7 +437,7 @@ class Analyzer : TypeCheckerExprVisitor,
                     access, std::move(rlow.ir), std::move(rhigh.ir), std::move(rbody.ir), breakl)};
   }
 
-  types::Result visit_call_exp(const parser::ast::CallExp& exp) override
+  auto visit_call_exp(const parser::ast::CallExp& exp) -> types::Result override
   {
     types::Result callee_result = exp.callee->accept(*this);
 
@@ -468,17 +473,16 @@ class Analyzer : TypeCheckerExprVisitor,
       arg_exps.emplace_back(std::move(ir));
     };
 
-    return Result{function_type.ret,
-                  translator.call_exp(std::move(callee_result.ir), std::move(arg_exps))};
+    return Result{function_type.ret, translator.call_exp(std::move(callee_result.ir), arg_exps)};
   }
 
-  types::Result visit_let_exp(const parser::ast::LetExp& exp) override
+  auto visit_let_exp(const parser::ast::LetExp& exp) -> types::Result override
   {
     tenv.begin_scope();
     venv.begin_scope();
 
     std::vector<ir::Exp> exp_list;
-    for(auto& decl : exp.decls)
+    for(const auto& decl : exp.decls)
     {
       auto r = decl->accept(*this);
       if(!std::holds_alternative<std::monostate>(r.ir))
@@ -497,7 +501,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return res;
   }
 
-  types::Result visit_func_decl(const parser::ast::FuncDecl& decl) override
+  auto visit_func_decl(const parser::ast::FuncDecl& decl) -> types::Result override
   {
     /*
     To handle mutually recursive functions:
@@ -516,7 +520,7 @@ class Analyzer : TypeCheckerExprVisitor,
     std::unordered_set<Symbol::Identifier> batch;
     std::vector<ir::Exp> exp_list; // code generated by closures
 
-    for(auto& fdecl : decl.decls)
+    for(const auto& fdecl : decl.decls)
     {
       if(batch.contains(fdecl->name.id()))
       {
@@ -529,8 +533,8 @@ class Analyzer : TypeCheckerExprVisitor,
       std::vector<SharedType> formals;
       for(auto& param : fdecl->params)
       {
-        auto tparam = tenv.lookup(param.type);
-        if(!tparam)
+        const auto* tparam = tenv.lookup(param.type);
+        if(tparam == nullptr)
         {
           error_at(param.position, std::format("undeclared parameter type '{}'", param.type.str()));
         }
@@ -543,8 +547,8 @@ class Analyzer : TypeCheckerExprVisitor,
       if(fdecl->result)
       {
         auto fdecl_result = fdecl->result.value();
-        auto opt_tresult = tenv.lookup(fdecl_result.first);
-        if(!opt_tresult)
+        const auto* opt_tresult = tenv.lookup(fdecl_result.first);
+        if(opt_tresult == nullptr)
         {
           error_at(fdecl_result.second,
                    std::format("undeclared return type '{}'", fdecl_result.first.str()));
@@ -568,7 +572,7 @@ class Analyzer : TypeCheckerExprVisitor,
     }
 
     // go through the bodies
-    for(auto& fdecl : decl.decls)
+    for(const auto& fdecl : decl.decls)
     {
       ClosureEntry<FrameT> closure_entry =
         std::get<ClosureEntry<FrameT>>(venv.lookup(fdecl->name)->v);
@@ -610,7 +614,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{.type = {}, .ir = translator.seq_exp(std::move(exp_list))};
   }
 
-  types::Result visit_var_decl(const parser::ast::VarDecl& decl) override
+  auto visit_var_decl(const parser::ast::VarDecl& decl) -> types::Result override
   {
     auto tinit = decl.init->accept(*this);
     typename LevelT::Access ax = translator.alloc_local(*current_level, *decl.escape);
@@ -619,9 +623,9 @@ class Analyzer : TypeCheckerExprVisitor,
     {
       auto tpos = decl.type.value().second;
       auto tname = decl.type.value().first;
-      auto tdecl = tenv.lookup(tname);
+      const auto* tdecl = tenv.lookup(tname);
 
-      if(!tdecl)
+      if(tdecl == nullptr)
       {
         error_at(tpos, std::format("undeclared type '{}'", tname.str()));
       }
@@ -648,12 +652,12 @@ class Analyzer : TypeCheckerExprVisitor,
                   translator.assign(translator.var(ax, current_level.get()), std::move(tinit.ir))};
   }
 
-  types::Result visit_type_decl(const parser::ast::TypeDecl& decl) override
+  auto visit_type_decl(const parser::ast::TypeDecl& decl) -> types::Result override
   {
     std::unordered_set<Symbol::Identifier> batch;
 
     // add the headers to the type environment
-    for(auto& tdecl : decl.decls)
+    for(const auto& tdecl : decl.decls)
     {
       // we register the symbol as a name type, to be resolved in a later pass
       // this way it exists in the environment
@@ -666,7 +670,7 @@ class Analyzer : TypeCheckerExprVisitor,
     }
 
     // next we replace all those fake names with the true type
-    for(auto& tdecl : decl.decls)
+    for(const auto& tdecl : decl.decls)
     {
       auto actual = tdecl->type->accept(*this);
       tenv.replace(tdecl->name, TEntry{actual});
@@ -677,32 +681,32 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{}; // does not generate code nor type for caller
   }
 
-  types::SharedType visit_name_type(const parser::ast::NameType& type) override
+  auto visit_name_type(const parser::ast::NameType& type) -> types::SharedType override
   {
-    auto ty = tenv.lookup(type.name);
-    if(!ty)
+    const auto* ty = tenv.lookup(type.name);
+    if(ty == nullptr)
     {
       error_at(type.position, std::format("undeclared type '{}'", type.name.str()));
     }
     return ty->t;
   }
 
-  types::SharedType visit_array_type(const parser::ast::ArrayType& type) override
+  auto visit_array_type(const parser::ast::ArrayType& type) -> types::SharedType override
   {
-    auto elem_type = tenv.lookup(type.name);
-    if(!elem_type)
+    const auto* elem_type = tenv.lookup(type.name);
+    if(elem_type == nullptr)
     {
       error_at(type.position, std::format("undeclared type '{}'", type.name.str()));
     }
     return std::make_shared<Array>(elem_type->t);
   }
 
-  types::SharedType visit_func_type(const parser::ast::FunctionType& type) override
+  auto visit_func_type(const parser::ast::FunctionType& type) -> types::SharedType override
   {
     std::vector<SharedType> args;
     SharedType ret{};
 
-    for(auto& arg : type.arg_types)
+    for(const auto& arg : type.arg_types)
     {
       args.push_back(arg->accept(*this));
     }
@@ -711,25 +715,25 @@ class Analyzer : TypeCheckerExprVisitor,
     return std::make_shared<FunctionType>(std::move(args), std::move(ret));
   }
 
-  types::SharedType visit_record_type(const parser::ast::RecordType& type) override
+  auto visit_record_type(const parser::ast::RecordType& type) -> types::SharedType override
   {
     std::vector<std::pair<Symbol, SharedType>> fields;
-    for(auto& field : type.fields)
+    for(const auto& field : type.fields)
     {
-      auto tfield = tenv.lookup(field.type);
-      if(!tfield)
+      const auto* tfield = tenv.lookup(field.type);
+      if(tfield == nullptr)
       {
         error_at(field.position, std::format("undeclared type '{}'", field.type.str()));
       }
-      fields.push_back({field.name, tfield->t});
+      fields.emplace_back(field.name, tfield->t);
     }
     return std::make_shared<Record>(fields);
   }
 
-  types::Result visit_var(const parser::ast::Var& var) override
+  auto visit_var(const parser::ast::Var& var) -> types::Result override
   {
     const VEntry<FrameT>* maybe_var = venv.lookup(var.name);
-    if(!maybe_var)
+    if(maybe_var == nullptr)
     {
       error_at(var.position, std::format("undeclared identifier '{}'", var.name.str()));
     }
@@ -753,7 +757,7 @@ class Analyzer : TypeCheckerExprVisitor,
     return Result{entry.fun_type, translator.var(entry.access, current_level.get())};
   }
 
-  types::Result visit_field_var(const parser::ast::FieldVar& var) override
+  auto visit_field_var(const parser::ast::FieldVar& var) -> types::Result override
   {
     auto tlhs = var.var->accept(*this);
     // . applicable to records only
@@ -782,7 +786,7 @@ class Analyzer : TypeCheckerExprVisitor,
                   translator.record_field(std::move(tlhs.ir), i)};
   }
 
-  types::Result visit_subscript_var(const parser::ast::SubscriptVar& var) override
+  auto visit_subscript_var(const parser::ast::SubscriptVar& var) -> types::Result override
   {
     // [] applicable to arrays only
     auto lhs = var.var->accept(*this);
@@ -804,7 +808,6 @@ class Analyzer : TypeCheckerExprVisitor,
                   translator.array_subscript(std::move(lhs.ir), std::move(rexp.ir))};
   }
 
-  private:
   StringTable& string_table;
   ir::Translator<FrameT>& translator;
   std::string filename; // for error reporting only
@@ -815,19 +818,17 @@ template <typename FrameT>
 Analyzer<FrameT>::Analyzer(const std::filesystem::path& filename,
                            StringTable& string_table,
                            ir::Translator<FrameT>& translator)
-  : string_table(string_table)
+  : current_level(translator.main_level())
+  , string_table(string_table)
   , translator(translator)
   , filename(filename)
 {
   add_predefined_types();
   add_predefined_functions();
-
-  // current level is where the main program lives
-  current_level = translator.main_level();
 }
 
 template <typename FrameT>
-ir::Exp Analyzer<FrameT>::type_check(const parser::ast::Expression& exp)
+auto Analyzer<FrameT>::type_check(const parser::ast::Expression& exp) -> ir::Exp
 {
   auto t = exp.accept(*this);
   return std::move(t.ir);
@@ -946,7 +947,7 @@ void Analyzer<FrameT>::detect_cycles(const parser::ast::TypeDecl& decl)
 
   // this can be made more efficient
   std::unordered_set<SharedType> visited;
-  for(auto& tdecl : decl.decls)
+  for(const auto& tdecl : decl.decls)
   {
     visited.clear();
     auto actual = tenv.lookup(tdecl->name)->t;

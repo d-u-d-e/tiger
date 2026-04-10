@@ -3,6 +3,7 @@
 #include "flow.hpp"
 #include "temp.hpp"
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -10,11 +11,17 @@ class IteratedRegisterCoalescing
 {
   public:
   using color_t = std::string;
-  IteratedRegisterCoalescing(std::shared_ptr<flow::FlowGraph> fg,
-                             const std::unordered_map<TempGen::Temp, color_t>& precolored_temporaries);
+  IteratedRegisterCoalescing(
+    std::shared_ptr<flow::FlowGraph> fg,
+    const std::unordered_map<TempGen::Temp, color_t>& precolored_temporaries);
+  IteratedRegisterCoalescing(const IteratedRegisterCoalescing&) = delete;
+  auto operator=(const IteratedRegisterCoalescing&) -> IteratedRegisterCoalescing& = delete;
+  IteratedRegisterCoalescing(IteratedRegisterCoalescing&&) = delete;
+  auto operator=(IteratedRegisterCoalescing&&) -> IteratedRegisterCoalescing& = delete;
+  ~IteratedRegisterCoalescing() = default;
 
-  const std::unordered_set<TempGen::Temp>& perform_allocation();
-  std::function<color_t(const TempGen::Temp&)> get_color_mapping()
+  auto perform_allocation() -> const std::unordered_set<TempGen::Temp>&;
+  auto get_color_mapping() -> std::function<color_t(const TempGen::Temp&)>
   {
     return [this](const TempGen::Temp& t) -> color_t {
       auto nid = map_tnode[t];
@@ -32,7 +39,7 @@ class IteratedRegisterCoalescing
   using edge_t = std::pair<node_id_t, node_id_t>;
   struct EdgeHash
   {
-    std::size_t operator()(const edge_t& p) const noexcept
+    auto operator()(const edge_t& p) const noexcept -> std::size_t
     {
       return std::rotl(std::hash<node_id_t>{}(p.first), 1) ^ std::hash<node_id_t>{}(p.second);
     }
@@ -40,7 +47,7 @@ class IteratedRegisterCoalescing
 
   struct MoveHash
   {
-    std::size_t operator()(const assem::Move& p) const noexcept
+    auto operator()(const assem::Move& p) const noexcept -> std::size_t
     {
       return std::rotl(std::hash<TempGen::Temp>{}(p.dst), 1) ^ std::hash<TempGen::Temp>{}(p.src);
     }
@@ -51,7 +58,7 @@ class IteratedRegisterCoalescing
     node_id_t id;
     TempGen::Temp t;
     size_t degree{};
-    std::optional<color_t> color{};
+    std::optional<color_t> color{std::nullopt};
     std::unordered_set<node_id_t> adj{};
     std::optional<node_id_t> alias{};
     std::unordered_set<assem::Move, MoveHash> moves_list{};
@@ -82,21 +89,21 @@ class IteratedRegisterCoalescing
   void select_spill();
   void make_lists();
   void assign_colors();
-  void enable_moves(const std::unordered_set<node_id_t>& nodes);
-  std::unordered_set<assem::Move, MoveHash> node_moves(node_id_t);
-  void freeze_moves(node_id_t n);
-  node_id_t get_alias(node_id_t n);
+  void enable_moves(const std::unordered_set<node_id_t>& list);
+  auto node_moves(node_id_t) -> std::unordered_set<assem::Move, MoveHash>;
+  void freeze_moves(node_id_t u);
+  auto get_alias(node_id_t n) const -> node_id_t;
   void coalesce();
   void combine(node_id_t u, node_id_t v);
-  bool is_move_related(node_id_t n);
+  auto is_move_related(node_id_t n) -> bool;
   void list_push_front(std::list<node_id_t>& l, node_id_t a);
-  bool is_colored(node_id_t n)
+  auto is_colored(node_id_t n) -> bool
   {
     return nodes[n].color.has_value();
   }
 
-  std::unordered_set<node_id_t> adjacent(node_id_t t);
+  auto adjacent(node_id_t nid) -> std::unordered_set<node_id_t>;
   void decrement_degree(node_id_t n);
   void add_edge(node_id_t a, node_id_t b);
-  node_id_t add_node(TempGen::Temp t);
+  auto add_node(TempGen::Temp t) -> node_id_t;
 };

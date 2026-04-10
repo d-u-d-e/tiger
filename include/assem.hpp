@@ -31,7 +31,7 @@ struct Move
   std::string assem;
   TempGen::Temp dst;
   TempGen::Temp src;
-  bool operator==(const Move& rhs) const
+  auto operator==(const Move& rhs) const -> bool
   {
     return dst == rhs.dst && src == rhs.src;
   }
@@ -39,8 +39,8 @@ struct Move
 
 using Instruction = std::variant<Oper, Label, Move>;
 
-std::string format(std::function<register_t(const TempGen::Temp& t)> mapper,
-                   const Instruction& ins);
+auto format(std::function<register_t(const TempGen::Temp& t)> mapper, const Instruction& ins)
+  -> std::string;
 
 void delete_coalesced_moves(std::list<Instruction>& instrs,
                             const std::function<register_t(const TempGen::Temp&)>& reg_mapper);

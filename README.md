@@ -12,3 +12,6 @@ TODO
 # 2. Implementation details
 
 TODO: Discuss implementation details
+
+FIXME:
+`run-clang-tidy-20 -quiet -exclude-header-filter='.*doctest.*' -warnings-as-errors='*' -p build tests src -extra-arg=--std=c++23`

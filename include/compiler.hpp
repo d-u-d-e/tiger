@@ -15,9 +15,10 @@ class Compiler
     USAGE_ERR,
     IO_ERR,
   };
-  std::optional<Error> compile(const std::filesystem::path& source, const char* oname = nullptr);
+  static auto compile(const std::filesystem::path& source, const char* oname = nullptr)
+    -> std::optional<Error>;
 
   private:
-  static std::list<ir::tree::Stmt> linearize_tree(ir::tree::Stmt&& stmt);
-  static std::string strip_extension(const std::string& filename);
+  static auto linearize_tree(ir::tree::Stmt&& stmt) -> std::list<ir::tree::Stmt>;
+  static auto strip_extension(const std::string& filename) -> std::string;
 };

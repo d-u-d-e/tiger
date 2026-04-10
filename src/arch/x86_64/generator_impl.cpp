@@ -1,6 +1,7 @@
 #include "arch/x86_64/generator_impl.hpp"
 #include "arch/x86_64/frame_impl.hpp"
 #include "ir/tree.hpp"
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <format>
@@ -11,14 +12,14 @@
 namespace arch
 {
 
-std::vector<assem::Instruction> X86Generator::gen_impl(const ir::tree::Stmt& stmt)
+auto X86Generator::gen_impl(const ir::tree::Stmt& stmt) -> std::vector<assem::Instruction>
 {
   list.clear();
   std::visit(*this, stmt);
   return list;
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::NameExp>& exp)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::NameExp>& exp) -> TempGen::Temp
 {
   // NameExp(label) -> lea new_reg, label
   auto result = TempGen::new_temp();
@@ -27,13 +28,13 @@ TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::NameExp>&
   return result;
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::TempExp>& exp)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::TempExp>& exp) -> TempGen::Temp
 {
   // TempExp(temp) ->
   return exp->temp;
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::BinOpExp>& exp)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::BinOpExp>& exp) -> TempGen::Temp
 {
   auto left = std::visit(*this, exp->left);
   auto right = std::visit(*this, exp->right);
@@ -110,7 +111,7 @@ TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::BinOpExp>
   return result;
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::MemExp>& exp)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::MemExp>& exp) -> TempGen::Temp
 {
   if(std::holds_alternative<std::unique_ptr<ir::tree::ConstExp>>(exp->a))
   {
@@ -195,21 +196,21 @@ TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::MemExp>& 
   return result;
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::CallExp>&)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::CallExp>&) -> TempGen::Temp
 {
   // this is handled while munching expression statements or mov statements
   assert(false);
   std::unreachable();
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::ESeqExp>&)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::ESeqExp>&) -> TempGen::Temp
 {
   // the tree has been canonicalized
   assert(false);
   std::unreachable();
 }
 
-TempGen::Temp X86Generator::operator()(const std::unique_ptr<ir::tree::ConstExp>& exp)
+auto X86Generator::operator()(const std::unique_ptr<ir::tree::ConstExp>& exp) -> TempGen::Temp
 {
   // ConstExp(const) -> mov new_reg, const
   auto result = TempGen::new_temp();
@@ -222,12 +223,14 @@ void X86Generator::operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt)
 {
   if(std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt->left))
   {
-    return munch_store(*stmt);
+    munch_store(*stmt);
+    return;
   }
 
   if(std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt->right))
   {
-    return munch_load(*stmt);
+    munch_load(*stmt);
+    return;
   }
 
   // must be moving to a register then
@@ -381,7 +384,7 @@ void X86Generator::operator()(const std::unique_ptr<ir::tree::LabelStmt>& stmt)
 void X86Generator::munch_store(const ir::tree::MoveStmt& stmt)
 {
   assert(std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt.left));
-  auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.left);
+  const auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.left);
 
   if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a))
   {
@@ -465,7 +468,7 @@ void X86Generator::munch_store(const ir::tree::MoveStmt& stmt)
 void X86Generator::munch_load(const ir::tree::MoveStmt& stmt)
 {
   assert(std::holds_alternative<std::unique_ptr<ir::tree::MemExp>>(stmt.right));
-  auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.right);
+  const auto& memexp = std::get<std::unique_ptr<ir::tree::MemExp>>(stmt.right);
 
   if(std::holds_alternative<std::unique_ptr<ir::tree::BinOpExp>>(memexp->a))
   {
@@ -553,8 +556,7 @@ void X86Generator::munch_call_exp(const ir::tree::CallExp& exp)
   // and restored by the epilogue.
 
   auto trashed = std::vector({X86Frame::RAX});
-  std::copy(
-    X86Frame::caller_saved.begin(), X86Frame::caller_saved.end(), std::back_inserter(trashed));
+  std::ranges::copy(X86Frame::caller_saved, std::back_inserter(trashed));
 
   if(std::holds_alternative<std::unique_ptr<ir::tree::NameExp>>(exp.fun))
   {
@@ -572,8 +574,8 @@ void X86Generator::munch_call_exp(const ir::tree::CallExp& exp)
     auto srcs = std::vector<TempGen::Temp>();
     auto t = std::visit(*this, exp.fun);
     srcs.push_back(t);
-    std::move(args.begin(), args.end(), std::back_inserter(srcs));
-    
+    std::ranges::move(args, std::back_inserter(srcs));
+
     list.emplace_back(assem::Oper{
       .assem = {"call `s0\n"},
       .dst{std::move(trashed)},
@@ -583,7 +585,7 @@ void X86Generator::munch_call_exp(const ir::tree::CallExp& exp)
   }
 }
 
-std::vector<TempGen::Temp> X86Generator::munch_args(const std::vector<ir::tree::Exp>& args)
+auto X86Generator::munch_args(const std::vector<ir::tree::Exp>& args) -> std::vector<TempGen::Temp>
 {
   std::vector<TempGen::Temp> srcs_call;
   auto k = X86Frame::params_on_regs.size();

@@ -30,7 +30,7 @@ const std::unordered_map<std::string, TokenType> keywords = {
 };
 // clang-format on
 
-std::string to_string(TokenType type)
+auto to_string(TokenType type) -> std::string
 {
   switch(type)
   {
@@ -129,7 +129,7 @@ std::string to_string(TokenType type)
   std::unreachable();
 }
 
-std::string to_string(const Token& token)
+auto to_string(const Token& token) -> std::string
 {
   return std::format(
     "[{}: '{}' ({}, {})]", to_string(token.type), token.value, token.pos.line, token.pos.column);

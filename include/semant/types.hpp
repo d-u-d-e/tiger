@@ -12,28 +12,38 @@ namespace semant::types
 class Type
 {
   public:
+  Type() = default;
   virtual ~Type() = default;
-  virtual std::string to_string() = 0;
+
+  Type(const Type&) = delete;
+  auto operator=(const Type&) -> Type& = delete;
+  Type(Type&&) = delete;
+  auto operator=(Type&&) -> Type& = delete;
+
+  virtual auto to_string() -> std::string = 0;
 };
+
 using SharedType = std::shared_ptr<Type>;
 
 struct Integer : public Type
 {
-  std::string to_string() override;
+  auto to_string() -> std::string override;
 };
+
 struct String : public Type
 {
-  std::string to_string() override;
+  auto to_string() -> std::string override;
 };
+
 struct Nil : public Type
 {
-  std::string to_string() override;
+  auto to_string() -> std::string override;
 };
 
 // Used to indicate that an expression returns no value
 struct Unit : public Type
 {
-  std::string to_string() override;
+  auto to_string() -> std::string override;
 };
 
 struct Record : public Type
@@ -42,7 +52,7 @@ struct Record : public Type
     : fields(std::move(fields))
   { }
 
-  std::string to_string() override;
+  auto to_string() -> std::string override;
   std::vector<std::pair<Symbol, SharedType>> fields;
 };
 
@@ -52,18 +62,18 @@ struct Array : public Type
     : type(std::move(type))
   { }
 
-  std::string to_string() override;
+  auto to_string() -> std::string override;
   SharedType type;
 };
 
 struct Name : public Type
 {
-  explicit Name(const Symbol& name, SharedType type)
-    : name(name)
+  explicit Name(Symbol name, SharedType type)
+    : name(std::move(name))
     , type(std::move(type))
   { }
 
-  std::string to_string() override;
+  auto to_string() -> std::string override;
   Symbol name;
   SharedType type;
 };
@@ -77,7 +87,7 @@ struct FunctionType : public Type
     , ret(std::move(result_type))
   { }
 
-  std::string to_string() override;
+  auto to_string() -> std::string override;
   std::vector<SharedType> formals;
   SharedType ret;
 };
@@ -88,6 +98,6 @@ struct Result
   ir::Exp ir;
 };
 
-std::string to_string(const SharedType& t);
+auto to_string(const SharedType& t) -> std::string;
 
 } // namespace semant::types

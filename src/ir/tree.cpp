@@ -7,7 +7,55 @@ namespace ir
 
 namespace tree
 {
-RelOp not_relop(RelOp op)
+BinOpExp::BinOpExp(BinaryOp op, ir::Ex&& left, ir::Ex&& right)
+  : op(op)
+  , left(std::move(left))
+  , right(std::move(right))
+{ }
+
+MemExp::MemExp(ir::Ex&& address)
+  : a(std::move(address))
+{ }
+
+CallExp::CallExp(ir::Ex&& fun, std::vector<ir::Ex>&& args)
+  : fun(std::move(fun))
+  , args(std::move(args))
+{ }
+
+ESeqExp::ESeqExp(ir::Nx&& stmt, ir::Ex&& exp)
+  : stmt(std::move(stmt))
+  , exp(std::move(exp))
+{ }
+
+MoveStmt::MoveStmt(ir::Ex&& left, ir::Ex&& right)
+  : left(std::move(left))
+  , right(std::move(right))
+{ }
+
+ExpStmt::ExpStmt(ir::Ex&& exp)
+  : exp(std::move(exp))
+{ }
+
+JumpStmt::JumpStmt(ir::Ex&& address, std::vector<TempGen::Label> labels)
+  : a(std::move(address))
+  , labels(std::move(labels))
+{ }
+
+CJumpStmt::CJumpStmt(
+  RelOp op, ir::Ex&& lexp, ir::Ex&& rexp, TempGen::Label tlabel, TempGen::Label flabel)
+  : op(op)
+  , lexp(std::move(lexp))
+  , rexp(std::move(rexp))
+  , tlabel(std::move(tlabel))
+  , flabel(std::move(flabel))
+{ }
+
+SeqStmt::SeqStmt(ir::Nx&& stm1, ir::Nx&& stm2)
+  : stm1(std::move(stm1))
+  , stm2(std::move(stm2))
+{ }
+
+auto not_relop(RelOp op) -> RelOp
 {
   switch(op)
   {
@@ -38,7 +86,7 @@ RelOp not_relop(RelOp op)
 }
 } // namespace tree
 
-Ex unex(Exp&& exp)
+auto unex(Exp&& exp) -> Ex
 {
   // unex(nx) is just ESeqExp(nx, 0)
   // unex(ex) is just ex
@@ -76,7 +124,7 @@ Ex unex(Exp&& exp)
   std::unreachable();
 }
 
-Nx unnx(Exp&& exp)
+auto unnx(Exp&& exp) -> Nx
 {
   // unnx(nx) is just nx
   // unnx(ex) is a ExpStmt(ex)
@@ -102,7 +150,7 @@ Nx unnx(Exp&& exp)
   std::unreachable();
 }
 
-Cx uncx(Exp&& exp)
+auto uncx(Exp&& exp) -> Cx
 {
   // uncx(nx) should not occur in a valid program
   // uncx(ex) is: (t, f) -> CJumpStmt(eq, ex, 0, f, t)
@@ -110,7 +158,7 @@ Cx uncx(Exp&& exp)
 
   if(std::holds_alternative<Ex>(exp))
   {
-    return [e = std::move(exp)](TempGen::Label t, TempGen::Label f) mutable {
+    return [e = std::move(exp)](const TempGen::Label& t, const TempGen::Label& f) mutable {
       return std::make_unique<tree::CJumpStmt>(
         tree::RelOp::eq, std::move(std::get<Ex>(e)), std::make_unique<tree::ConstExp>(0), f, t);
     };

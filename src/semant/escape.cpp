@@ -98,7 +98,7 @@ void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 
 void EscapeFinder::visit_var(parser::ast::Var& var)
 {
-  if(auto v = env.lookup(var.name); v && v->depth < env.depth())
+  if(const auto *v = env.lookup(var.name); (v != nullptr) && v->depth < env.depth())
   {
     *(v->ref) = true;
   }
@@ -128,7 +128,7 @@ void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
   {
     *d->escape = false;
     env.enter(d->name, Escape(env.depth(), d->escape));
-    
+
     env.begin_scope();
     for(auto& p : d->params)
     {

@@ -4,9 +4,11 @@
 #include "temp.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace arch
@@ -14,7 +16,7 @@ namespace arch
 
 X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   : EP(TempGen::new_temp())
-  , label(label)
+  , label(std::move(label))
 {
 
   view_shift = ir::unnx(std::make_unique<ir::tree::ConstExp>(0)); // dummy initial stmt
@@ -37,7 +39,7 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
     }
     else
     {
-      formals_.push_back(InReg(temp));
+      formals_.emplace_back(InReg(temp));
     }
 
     // generate a mov stmt to the fresh temp
@@ -50,20 +52,20 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   // the remaining params are passed on the stack, but recall that with respect to the
   // current fp, we need to go past the saved fp and the return address which are on the stack
   // so we start at off = 2 * word_size
-  stack_offset_t off = 2 * word_size;
+  auto off = static_cast<stack_offset_t>(2 * word_size);
   for(size_t i = params_on_regs.size(); i < formals.size(); i++)
   {
-    formals_.push_back(InFrame(off));
+    formals_.emplace_back(InFrame(off));
     off += word_size;
   }
 }
 
-std::vector<X86Frame::Access> X86Frame::formals() const
+auto X86Frame::formals() const -> std::vector<X86Frame::Access>
 {
   return formals_;
 }
 
-ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
+auto X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt) -> ir::tree::Stmt
 {
   // proc_entry_exit1 does the following:
   // - mov incoming register formal params to the place expected by the function
@@ -88,14 +90,15 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
   for(auto& reg : callee_saved)
   {
     auto t = TempGen::new_temp();
-    save.push_back(std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(t),
-                                                        std::make_unique<ir::tree::TempExp>(reg)));
-    restore.push_back(std::make_unique<ir::tree::MoveStmt>(std::make_unique<ir::tree::TempExp>(reg),
-                                                           std::make_unique<ir::tree::TempExp>(t)));
+    save.emplace_back(std::make_unique<ir::tree::MoveStmt>(
+      std::make_unique<ir::tree::TempExp>(t), std::make_unique<ir::tree::TempExp>(reg)));
+    restore.emplace_back(std::make_unique<ir::tree::MoveStmt>(
+      std::make_unique<ir::tree::TempExp>(reg), std::make_unique<ir::tree::TempExp>(t)));
   }
 
   auto folder = [](auto&& arg1, auto&& arg2) {
-    return ir::tree::Stmt(std::make_unique<ir::tree::SeqStmt>(std::move(arg1), std::move(arg2)));
+    return ir::tree::Stmt(std::make_unique<ir::tree::SeqStmt>(std::forward<decltype(arg1)>(arg1),
+                                                              std::forward<decltype(arg2)>(arg2)));
   };
 
   auto save_seq = std::ranges::fold_left_first(
@@ -115,7 +118,7 @@ ir::tree::Stmt X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt)
   return stmt;
 }
 
-X86Frame::Access X86Frame::alloc_local(bool escape)
+auto X86Frame::alloc_local(bool escape) -> X86Frame::Access
 {
   if(escape)
   {
@@ -130,24 +133,24 @@ X86Frame::Access X86Frame::alloc_local(bool escape)
   }
 }
 
-TempGen::Label X86Frame::name() const
+auto X86Frame::name() const -> TempGen::Label
 {
   return label;
 }
 
-X86Frame::stack_offset_t X86Frame::alloc_spilled_temporary()
+auto X86Frame::alloc_spilled_temporary() -> X86Frame::stack_offset_t
 {
   spilled_temps++;
-  stack_offset_t next = spilled_temps * word_size;
+  auto next = static_cast<stack_offset_t>(spilled_temps) * word_size;
   next = -next;
   return next;
 }
 
-ir::Nx X86Frame::alloc_escaping_record() const
+auto X86Frame::alloc_escaping_record() const -> ir::Nx
 {
   assert(escaping_locals > 0);
   std::vector<ir::Ex> args_alloc;
-  args_alloc.push_back(std::make_unique<ir::tree::ConstExp>(escaping_locals));
+  args_alloc.emplace_back(std::make_unique<ir::tree::ConstExp>(escaping_locals));
 
   auto do_alloc = std::make_unique<ir::tree::MoveStmt>(
     std::make_unique<ir::tree::TempExp>(EP),
@@ -156,7 +159,7 @@ ir::Nx X86Frame::alloc_escaping_record() const
   return do_alloc;
 }
 
-ir::Ex X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& ep)
+auto X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& ep) -> ir::Ex
 {
   // traslate an access into an exp
   if(std::holds_alternative<InEscapingRecord>(fax))
@@ -182,7 +185,7 @@ ir::Ex X86Frame::exp(const X86Frame::Access& fax, ir::Ex&& ep)
   assert(false);
 }
 
-ir::Ex X86Frame::external_call(TempGen::Label label, std::vector<ir::Ex>&& args)
+auto X86Frame::external_call(const TempGen::Label& label, std::vector<ir::Ex>&& args) -> ir::Ex
 {
   // external calls on Linux will use the System V abi, so this should be fine
   return std::make_unique<ir::tree::CallExp>(std::make_unique<ir::tree::NameExp>(label),
@@ -216,11 +219,12 @@ void X86Frame::proc_entry_exit2(std::list<assem::Instruction>& list)
 
   // append sink instruction
   auto live = std::vector({RAX, SP, FP});
-  std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(live));
-  list.push_back(assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
+  std::ranges::copy(callee_saved, std::back_inserter(live));
+  list.emplace_back(assem::Oper{.assem{""}, .dst{}, .src{live}, .jmp{}});
 }
 
-std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
+auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
+  -> std::pair<std::string, std::string>
 {
   // proc_entry_exit3 does the following:
   // - patch instructions that allocate stack space for outgoing parameters (see munch_args)
@@ -234,8 +238,10 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
   // we align down to a multiple of 16 bytes
   // we indirectly save the return address and the old fp for a total of 16 bytes
 
-  stack_offset_t space = (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~15;
-  stack_offset_t off = -space + word_size * max_outgoing_params;
+  stack_offset_t space =
+    (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~(15U);
+  const stack_offset_t off =
+    -space + (static_cast<stack_offset_t>(word_size * max_outgoing_params));
 
   // patch instructions
   uint32_t outgoing_param{};
@@ -249,7 +255,8 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
         // instruction that need to be patched
         outgoing_param++;
         i = assem::Oper{
-          .assem{std::format("mov  QWORD PTR [`s0{}], `s1\n", off - word_size * outgoing_param)},
+          .assem{std::format("mov  QWORD PTR [`s0{}], `s1\n",
+                             off - (static_cast<stack_offset_t>(word_size * outgoing_param)))},
           .dst{},
           .src{oper.src},
           .jmp{}};
@@ -276,7 +283,7 @@ std::pair<std::string, std::string> X86Frame::proc_entry_exit3(std::list<assem::
                           label.str(),
                           space);
 
-  std::string epilogue = "mov  rsp, rbp\n"
+  const std::string epilogue = "mov  rsp, rbp\n"
                          "pop  rbp\n"
                          "ret  \n";
 
@@ -321,7 +328,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
       std::optional<TempGen::Temp> new_temp{};
 
       // look in src
-      auto it = std::find(src.begin(), src.end(), t);
+      auto it = std::ranges::find(src, t);
       if(it != src.end())
       {
         // temporary occurs in src, replace it with a new one, short-lived
@@ -340,7 +347,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
       }
 
       // look in dst
-      it = std::find(dst.begin(), dst.end(), t);
+      it = std::ranges::find(dst, t);
       if(it != dst.end())
       {
         // temporary occurs in dst, use previous if it exists

@@ -10,7 +10,7 @@ namespace lexer
 class Exception : public std::runtime_error
 {
   public:
-  Exception(const std::string& what)
+  explicit Exception(const std::string& what)
     : std::runtime_error(what)
   { }
 };
@@ -18,36 +18,35 @@ class Exception : public std::runtime_error
 class Scanner
 {
   public:
-  Scanner(const std::filesystem::path& filename);
-  Scanner(const std::string& src);
+  explicit Scanner(const std::filesystem::path& filename);
+  explicit Scanner(std::string src);
 
-  std::string filename();
-  Token next();
+  auto filename() -> std::string;
+  auto next() -> Token;
 
   private:
-  Token read_token();
-  Token identifier();
-  Token string_literal();
-  Token integer_literal();
-  Token punctuation();
+  auto read_token() -> Token;
+  auto identifier() -> Token;
+  auto string_literal() -> Token;
+  auto integer_literal() -> Token;
+  auto punctuation() -> Token;
   void skip_multiline_comment();
-  std::string escape_sequence();
-  char peek(int offset = 0);
+  auto escape_sequence() -> std::string;
+  auto peek(int offset = 0) -> char;
   void expect(char ch, const std::string& err_msg);
-  bool match(char ch);
+  auto match(char ch) -> bool;
   void error_at(const std::string& err_msg);
-  void error(const std::string& err_msg);
-  Token eof_token();
-  bool is_eof(const char* current);
+  void static error(const std::string& err_msg);
+  auto eof_token() -> Token;
+  auto is_eof(const char* current) -> bool;
   void skip_comments();
   void skip_whitespaces();
 
-  private:
   std::string filename_;
   std::string contents;
   int line;
-  const char* row;
-  const char* current;
+  const char* row{};
+  const char* current{};
 };
 
 } // namespace lexer

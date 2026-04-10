@@ -10,7 +10,7 @@ struct Escape
     : depth(depth)
     , ref(std::move(ref))
   { }
-  std::string to_string() const
+  [[nodiscard]] auto to_string() const -> std::string
   {
     return std::format("depth: {}, escape: {}", depth, *ref);
   }
@@ -25,6 +25,12 @@ class EscapeFinder : public FindEscapeExprVisitor,
 
   public:
   EscapeFinder() = default;
+  ~EscapeFinder() override = default;
+  EscapeFinder(const EscapeFinder&) = delete;
+  auto operator=(const EscapeFinder&) -> EscapeFinder& = delete;
+  EscapeFinder(EscapeFinder&&) = delete;
+  auto operator=(EscapeFinder&&) -> EscapeFinder& = delete;
+
   void visit_string_exp(parser::ast::StringExp& exp) override;
   void visit_assign_exp(parser::ast::AssignExp& exp) override;
   void visit_op_exp(parser::ast::OpExp& exp) override;
@@ -49,9 +55,9 @@ class EscapeFinder : public FindEscapeExprVisitor,
   void visit_field_var(parser::ast::FieldVar& var) override;
   void visit_subscript_var(parser::ast::SubscriptVar& var) override;
 
-  Escape lookup(const Symbol& name)
+  auto lookup(const Symbol& name) -> Escape
   {
-    auto v = env.lookup(name);
+    const auto* v = env.lookup(name);
     assert(v != nullptr);
     return *v;
   }

@@ -3,6 +3,7 @@
 #include "semant/types.hpp"
 #include <format>
 #include <memory>
+#include <utility>
 #include <variant>
 
 namespace semant
@@ -31,7 +32,7 @@ class ClosureEntry
                         std::shared_ptr<FunctionType> func_type,
                         std::shared_ptr<Level<FrameT>> level,
                         Level<FrameT>::Access access)
-    : label(name)
+    : label(std::move(name))
     , fun_type(std::move(func_type))
     , level(std::move(level))
     , access(std::move(access))
@@ -46,7 +47,7 @@ class ClosureEntry
 template <typename FrameT>
 struct VEntry
 {
-  std::string to_string() const
+  auto to_string() const -> std::string
   {
     std::string result;
     if(std::holds_alternative<SimpleVarEntry<FrameT>>(v))
@@ -72,7 +73,7 @@ struct VEntry
 
 struct TEntry
 {
-  std::string to_string() const
+  [[nodiscard]] auto to_string() const -> std::string
   {
     return t->to_string();
   }

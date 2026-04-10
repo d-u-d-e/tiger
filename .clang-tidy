@@ -4,13 +4,49 @@ Checks: >
   performance-*,
   readability-*,
   modernize-*,
-  -modernize-use-trailing-return-type,
   cppcoreguidelines-*,
   clang-analyzer-*,
   misc-*,
   portability-*,
-  hicpp-*
+  hicpp-*,
+
+  -readability-identifier-length,
+  -readability-redundant-member-init,
+  -readability-named-parameter,
+  -readability-magic-numbers,
+  -readability-else-after-return,
+  -readability-static-accessed-through-instance,
+  -readability-avoid-const-params-in-decls,
+
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-static-cast-downcast,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-rvalue-reference-param-not-moved,
+  -cppcoreguidelines-macro-usage,
+
+  -clang-analyzer-osx.*,
+  -clang-analyzer-optin.osx.*,
+  -clang-analyzer-optin.mpi.MPI-Checker,
+  -clang-analyzer-fuchsia.HandleChecker,
+  -clang-analyzer-webkit.*,
+
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-use-anonymous-namespace,
+  -misc-use-internal-linkage,
+  -misc-include-cleaner,
+
+  -bugprone-easily-swappable-parameters,
+  -bugprone-unchecked-optional-access, # This gives false positives as of clang-tidy-20
+  -performance-enum-size,
+  -hicpp-named-parameter,
+  -hicpp-avoid-c-arrays,
+
 
 CheckOptions:
-- key: cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove
-value: true
+- key: readability-function-cognitive-complexity.Threshold
+  value: "35"

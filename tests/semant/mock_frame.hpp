@@ -16,79 +16,81 @@ class Frame
   static inline size_t word_size = 0;
   static inline auto RV = TempGen::new_temp();
 
-  Frame(TempGen::Label, const std::vector<bool>& f)
+  Frame(const TempGen::Label&, const std::vector<bool>& f)
     : EP(TempGen::new_temp())
   {
     formals_ = std::vector(f.size(), 0);
   }
 
-  static ir::Ex exp(const Access&, ir::Ex&&)
+  static auto exp(const Access&, ir::Ex&&) -> ir::Ex
   {
     return {};
   }
 
-  static ir::Ex external_call(TempGen::Label, std::vector<ir::Ex>&&)
+  static auto external_call(const TempGen::Label&, std::vector<ir::Ex>&&) -> ir::Ex
   {
     return {};
   }
 
-  static std::string assembler_directives_begin()
+  static auto assembler_directives_begin() -> std::string
   {
     return "";
   }
 
-  static std::string assembler_directives_end()
+  static auto assembler_directives_end() -> std::string
   {
     return "";
   }
 
-  static std::string emit_string(ir::StringFragment)
+  static auto emit_string(const ir::StringFragment&) -> std::string
   {
     return "";
   }
 
-  static std::unordered_map<TempGen::Temp, assem::register_t> get_temporary_register_mapping()
+  static auto get_temporary_register_mapping()
+    -> std::unordered_map<TempGen::Temp, assem::register_t>
   {
     return {};
   }
 
-  std::vector<Access> formals() const
+  [[nodiscard]] auto formals() const -> std::vector<Access>
   {
     return formals_;
   }
 
-  ir::tree::Stmt proc_entry_exit1(ir::tree::Stmt&&)
+  static auto proc_entry_exit1(ir::tree::Stmt&&) -> ir::tree::Stmt
   {
     return {};
   }
 
   void proc_entry_exit2(std::list<assem::Instruction>&) { }
 
-  std::pair<std::string, std::string> proc_entry_exit3(std::list<assem::Instruction>&)
+  static auto proc_entry_exit3(std::list<assem::Instruction>&)
+    -> std::pair<std::string, std::string>
   {
     return {};
   }
 
   void rewrite_program(std::list<assem::Instruction>&, std::unordered_set<TempGen::Temp>) { }
 
-  TempGen::Label name() const
+  static auto name() -> TempGen::Label
   {
     return TempGen::new_label();
   }
 
-  Access alloc_local(bool)
+  static auto alloc_local(bool) -> Access
   {
     return {};
   }
 
-  TempGen::Temp escaping_pointer() const
+  [[nodiscard]] auto escaping_pointer() const -> TempGen::Temp
   {
     return EP;
   }
 
   private:
   std::vector<Access> formals_;
-  const TempGen::Temp EP;
+  TempGen::Temp EP;
 };
 
 } // namespace mock

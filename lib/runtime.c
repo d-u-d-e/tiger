@@ -84,28 +84,28 @@ __attribute__((used)) struct
 {
   uint64_t sl;
   uint64_t p;
-} print_c = {0, (uint64_t)&print};
+} const print_c = {0, (uint64_t)&print};
 
 __attribute__((used)) struct
 {
   uint64_t sl;
   uint64_t p;
-} chr_c = {0, (uint64_t)&chr};
+} const chr_c = {0, (uint64_t)&chr};
 
 __attribute__((used)) struct
 {
   uint64_t sl;
   uint64_t p;
-} ord_c = {0, (uint64_t)&ord};
+} const ord_c = {0, (uint64_t)&ord};
 
 __attribute__((used)) struct
 {
   uint64_t sl;
   uint64_t p;
-} concat_c = {0, (uint64_t)&concat};
+} const concat_c = {0, (uint64_t)&concat};
 
 __attribute__((used)) struct
 {
   uint64_t sl;
   uint64_t p;
-} getchr_c = {0, (uint64_t)&getchr};
+} const getchr_c = {0, (uint64_t)&getchr};

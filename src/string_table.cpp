@@ -1,16 +1,16 @@
 #include "string_table.hpp"
 #include <format>
 
-const Symbol& StringTable::symbol(const std::string& name)
+auto StringTable::symbol(const std::string& name) -> const Symbol&
 {
-  if(table.find(name) == table.end())
+  if(!table.contains(name))
   {
     table.emplace(name, Symbol(name, identifier++));
   }
   return table.at(name);
 }
 
-std::string StringTable::dump() const
+auto StringTable::dump() const -> std::string
 {
   std::string result;
   auto constexpr col1_width = 20;

@@ -17,8 +17,8 @@ class Generator
 {
   public:
   template <IsGenerator Self>
-  std::vector<assem::Instruction> gen(this Self&& self, const ir::tree::Stmt& stmt)
+  auto gen(this Self&& self, const ir::tree::Stmt& stmt) -> std::vector<assem::Instruction>
   {
-    return self.gen_impl(stmt);
+    return std::forward<Self>(self).gen_impl(stmt);
   }
 };

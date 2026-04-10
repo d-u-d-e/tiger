@@ -155,15 +155,15 @@ namespace arch
 class X86Generator : public Generator
 {
   public:
-  std::vector<assem::Instruction> gen_impl(const ir::tree::Stmt& stmt);
+  auto gen_impl(const ir::tree::Stmt& stmt) -> std::vector<assem::Instruction>;
 
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::NameExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::TempExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::BinOpExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::MemExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::CallExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::ESeqExp>& exp);
-  TempGen::Temp operator()(const std::unique_ptr<ir::tree::ConstExp>& exp);
+  auto operator()(const std::unique_ptr<ir::tree::NameExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::TempExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::BinOpExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::MemExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::CallExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::ESeqExp>& exp) -> TempGen::Temp;
+  auto operator()(const std::unique_ptr<ir::tree::ConstExp>& exp) -> TempGen::Temp;
 
   void operator()(const std::unique_ptr<ir::tree::MoveStmt>& stmt);
   void operator()(const std::unique_ptr<ir::tree::CJumpStmt>& stmt);
@@ -176,9 +176,9 @@ class X86Generator : public Generator
   void munch_store(const ir::tree::MoveStmt& stmt);
   void munch_load(const ir::tree::MoveStmt& stmt);
   void munch_call_exp(const ir::tree::CallExp& exp);
-  std::vector<TempGen::Temp> munch_args(const std::vector<ir::tree::Exp>& args);
+  auto munch_args(const std::vector<ir::tree::Exp>& args) -> std::vector<TempGen::Temp>;
 
-  bool is_const32(int64_t constant)
+  static auto is_const32(int64_t constant) -> bool
   {
     return constant <= std::numeric_limits<int32_t>::max() &&
            constant >= std::numeric_limits<int32_t>::min();

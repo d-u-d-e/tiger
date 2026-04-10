@@ -7,12 +7,12 @@
 class StringTable
 {
   public:
-  std::string name(const Symbol& symbol) const
+  static auto name(const Symbol& symbol) -> std::string
   {
     return symbol.str();
   }
-  const Symbol& symbol(const std::string& name);
-  std::string dump() const;
+  auto symbol(const std::string& name) -> const Symbol&;
+  auto dump() const -> std::string;
 
   private:
   Symbol::Identifier identifier{1};

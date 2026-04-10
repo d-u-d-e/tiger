@@ -1,5 +1,4 @@
 #pragma once
-#include "parser/ast.hpp"
 #include <string>
 
 namespace parser::ast
@@ -33,46 +32,74 @@ class FunctionType;
 class PrettyPrinterExprVisitor
 {
   public:
-  std::string virtual visit_string_exp(const parser::ast::StringExp& exp) = 0;
-  std::string virtual visit_assign_exp(const parser::ast::AssignExp& exp) = 0;
-  std::string virtual visit_op_exp(const parser::ast::OpExp& exp) = 0;
-  std::string virtual visit_int_exp(const parser::ast::IntExp& exp) = 0;
-  std::string virtual visit_var_exp(const parser::ast::VarExp& exp) = 0;
-  std::string virtual visit_seq_exp(const parser::ast::SeqExp& exp) = 0;
-  std::string virtual visit_array_exp(const parser::ast::ArrayExp& exp) = 0;
-  std::string virtual visit_nil_exp(const parser::ast::NilExp& exp) = 0;
-  std::string virtual visit_record_exp(const parser::ast::RecordExp& exp) = 0;
-  std::string virtual visit_if_exp(const parser::ast::IfExp& exp) = 0;
-  std::string virtual visit_break_exp(const parser::ast::BreakExp& exp) = 0;
-  std::string virtual visit_while_exp(const parser::ast::WhileExp& exp) = 0;
-  std::string virtual visit_for_exp(const parser::ast::ForExp& exp) = 0;
-  std::string virtual visit_call_exp(const parser::ast::CallExp& exp) = 0;
-  std::string virtual visit_let_exp(const parser::ast::LetExp& exp) = 0;
+  PrettyPrinterExprVisitor() = default;
+  virtual ~PrettyPrinterExprVisitor() = default;
+  PrettyPrinterExprVisitor(const PrettyPrinterExprVisitor&) = default;
+  auto operator=(const PrettyPrinterExprVisitor&) -> PrettyPrinterExprVisitor& = default;
+  PrettyPrinterExprVisitor(PrettyPrinterExprVisitor&&) = default;
+  auto operator=(PrettyPrinterExprVisitor&&) -> PrettyPrinterExprVisitor& = default;
+
+  auto virtual visit_string_exp(const parser::ast::StringExp& exp) -> std::string = 0;
+  auto virtual visit_assign_exp(const parser::ast::AssignExp& exp) -> std::string = 0;
+  auto virtual visit_op_exp(const parser::ast::OpExp& exp) -> std::string = 0;
+  auto virtual visit_int_exp(const parser::ast::IntExp& exp) -> std::string = 0;
+  auto virtual visit_var_exp(const parser::ast::VarExp& exp) -> std::string = 0;
+  auto virtual visit_seq_exp(const parser::ast::SeqExp& exp) -> std::string = 0;
+  auto virtual visit_array_exp(const parser::ast::ArrayExp& exp) -> std::string = 0;
+  auto virtual visit_nil_exp(const parser::ast::NilExp& exp) -> std::string = 0;
+  auto virtual visit_record_exp(const parser::ast::RecordExp& exp) -> std::string = 0;
+  auto virtual visit_if_exp(const parser::ast::IfExp& exp) -> std::string = 0;
+  auto virtual visit_break_exp(const parser::ast::BreakExp& exp) -> std::string = 0;
+  auto virtual visit_while_exp(const parser::ast::WhileExp& exp) -> std::string = 0;
+  auto virtual visit_for_exp(const parser::ast::ForExp& exp) -> std::string = 0;
+  auto virtual visit_call_exp(const parser::ast::CallExp& exp) -> std::string = 0;
+  auto virtual visit_let_exp(const parser::ast::LetExp& exp) -> std::string = 0;
 };
 
 class PrettyPrinterDeclVisitor
 {
   public:
-  std::string virtual visit_func_decl(const parser::ast::FuncDecl& decl) = 0;
-  std::string virtual visit_var_decl(const parser::ast::VarDecl& decl) = 0;
-  std::string virtual visit_type_decl(const parser::ast::TypeDecl& decl) = 0;
+  PrettyPrinterDeclVisitor() = default;
+  virtual ~PrettyPrinterDeclVisitor() = default;
+  PrettyPrinterDeclVisitor(const PrettyPrinterDeclVisitor&) = default;
+  auto operator=(const PrettyPrinterDeclVisitor&) -> PrettyPrinterDeclVisitor& = default;
+  PrettyPrinterDeclVisitor(PrettyPrinterDeclVisitor&&) = default;
+  auto operator=(PrettyPrinterDeclVisitor&&) -> PrettyPrinterDeclVisitor& = default;
+
+  auto virtual visit_func_decl(const parser::ast::FuncDecl& decl) -> std::string = 0;
+  auto virtual visit_var_decl(const parser::ast::VarDecl& decl) -> std::string = 0;
+  auto virtual visit_type_decl(const parser::ast::TypeDecl& decl) -> std::string = 0;
 };
 
 class PrettyPrinterTypeVisitor
 {
   public:
-  std::string virtual visit_name_type(const parser::ast::NameType& type) = 0;
-  std::string virtual visit_array_type(const parser::ast::ArrayType& type) = 0;
-  std::string virtual visit_record_type(const parser::ast::RecordType& type) = 0;
-  std::string virtual visit_function_type(const parser::ast::FunctionType& type) = 0;
+  PrettyPrinterTypeVisitor() = default;
+  virtual ~PrettyPrinterTypeVisitor() = default;
+  PrettyPrinterTypeVisitor(const PrettyPrinterTypeVisitor&) = default;
+  auto operator=(const PrettyPrinterTypeVisitor&) -> PrettyPrinterTypeVisitor& = default;
+  PrettyPrinterTypeVisitor(PrettyPrinterTypeVisitor&&) = default;
+  auto operator=(PrettyPrinterTypeVisitor&&) -> PrettyPrinterTypeVisitor& = default;
+
+  auto virtual visit_name_type(const parser::ast::NameType& type) -> std::string = 0;
+  auto virtual visit_array_type(const parser::ast::ArrayType& type) -> std::string = 0;
+  auto virtual visit_record_type(const parser::ast::RecordType& type) -> std::string = 0;
+  auto virtual visit_function_type(const parser::ast::FunctionType& type) -> std::string = 0;
 };
 
 class PrettyPrinterVarVisitor
 {
   public:
-  std::string virtual visit_simple_var(const parser::ast::Var& var) = 0;
-  std::string virtual visit_field_var(const parser::ast::FieldVar& var) = 0;
-  std::string virtual visit_subscript_var(const parser::ast::SubscriptVar& var) = 0;
+  PrettyPrinterVarVisitor() = default;
+  virtual ~PrettyPrinterVarVisitor() = default;
+  PrettyPrinterVarVisitor(const PrettyPrinterVarVisitor&) = default;
+  auto operator=(const PrettyPrinterVarVisitor&) -> PrettyPrinterVarVisitor& = default;
+  PrettyPrinterVarVisitor(PrettyPrinterVarVisitor&&) = default;
+  auto operator=(PrettyPrinterVarVisitor&&) -> PrettyPrinterVarVisitor& = default;
+
+  auto virtual visit_simple_var(const parser::ast::Var& var) -> std::string = 0;
+  auto virtual visit_field_var(const parser::ast::FieldVar& var) -> std::string = 0;
+  auto virtual visit_subscript_var(const parser::ast::SubscriptVar& var) -> std::string = 0;
 };
 
 }; // namespace parser::ast

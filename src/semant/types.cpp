@@ -5,32 +5,32 @@
 namespace semant::types
 {
 
-std::string to_string(const SharedType& t)
+auto to_string(const SharedType& t) -> std::string
 {
   return t->to_string();
 }
 
-std::string Integer::to_string()
+auto Integer::to_string() -> std::string
 {
   return "int";
 }
 
-std::string String::to_string()
+auto String::to_string() -> std::string
 {
   return "string";
 }
 
-std::string Nil::to_string()
+auto Nil::to_string() -> std::string
 {
   return "nil";
 }
 
-std::string Unit::to_string()
+auto Unit::to_string() -> std::string
 {
   return "unit";
 }
 
-std::string Record::to_string()
+auto Record::to_string() -> std::string
 {
   std::string result = "{";
   auto size = fields.size();
@@ -43,17 +43,17 @@ std::string Record::to_string()
   return result + "}";
 }
 
-std::string Array::to_string()
+auto Array::to_string() -> std::string
 {
   return "arr of " + type->to_string();
 }
 
-std::string Name::to_string()
+auto Name::to_string() -> std::string
 {
   return name.str();
 }
 
-std::string FunctionType::to_string()
+auto FunctionType::to_string() -> std::string
 {
   std::string result = "{(";
   auto size = formals.size();

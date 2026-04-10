@@ -4,7 +4,7 @@
 namespace utils
 {
 template <typename T>
-std::list<T> diff_sorted_lists(const std::list<T>& a, const std::list<T>& b)
+auto diff_sorted_lists(const std::list<T>& a, const std::list<T>& b) -> std::list<T>
 {
   std::list<T> out;
   auto itera = a.cbegin();
@@ -32,7 +32,7 @@ std::list<T> diff_sorted_lists(const std::list<T>& a, const std::list<T>& b)
 }
 
 template <typename T>
-std::list<T> union_sorted_lists(const std::list<T>& a, const std::list<T>& b)
+auto union_sorted_lists(const std::list<T>& a, const std::list<T>& b) -> std::list<T>
 {
   std::list<T> out;
   auto itera = a.cbegin();

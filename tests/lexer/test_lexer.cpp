@@ -4,6 +4,7 @@
 #include <lexer/position.hpp>
 #include <lexer/token.hpp>
 #include <string>
+#include <vector>
 
 TEST_SUITE("lexer")
 {
@@ -12,7 +13,7 @@ TEST_SUITE("lexer")
   {
     lexer::Scanner scanner(std::filesystem::path("../tests/book/queens.tig"));
 
-    const lexer::Token tokens[] = {
+    const std::vector<lexer::Token> tokens = {
       // clang-format off
     {lexer::TokenType::let_keyword, "let", lexer::Position(3, 1)},
 
@@ -285,7 +286,7 @@ TEST_SUITE("lexer")
 TEST_CASE("multiline-string")
 {
   // clang-format off
-  std::string s = std::string("var s : string = \"hello \\n\\\n") + 
+  const std::string s = std::string("var s : string = \"hello \\n\\\n") + 
   "world\\\n" + 
   "!!!\"";
     // clang-format on

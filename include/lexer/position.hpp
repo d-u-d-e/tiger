@@ -10,12 +10,12 @@ struct Position
   int line;
   int column;
 
-  bool operator==(const Position& other) const
+  auto operator==(const Position& other) const -> bool
   {
     return line == other.line && column == other.column;
   }
 
-  std::string to_string() const
+  auto to_string() const -> std::string
   {
     return std::to_string(line) + ":" + std::to_string(column);
   }

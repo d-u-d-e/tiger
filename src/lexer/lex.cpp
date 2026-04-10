@@ -24,26 +24,25 @@ Scanner::Scanner(const std::filesystem::path& filename)
   line = 1;
 }
 
-Scanner::Scanner(const std::string& src)
-{
-  contents = src;
-  current = row = contents.c_str();
-  line = 1;
-}
+Scanner::Scanner(std::string src)
+  : contents(std::move(src))
+  , line(1)
+  , current(row = contents.c_str())
+{ }
 
-std::string Scanner::filename()
+auto Scanner::filename() -> std::string
 {
   return filename_;
 }
 
-Token Scanner::next()
+auto Scanner::next() -> Token
 {
   skip_whitespaces();
   skip_comments();
   return read_token();
 }
 
-char Scanner::peek(int offset)
+auto Scanner::peek(int offset) -> char
 {
   if(current + offset >= contents.c_str() + contents.size())
   {
@@ -61,7 +60,7 @@ void Scanner::expect(char ch, const std::string& err_msg)
   current++;
 }
 
-bool Scanner::match(char ch)
+auto Scanner::match(char ch) -> bool
 {
   if(*current == ch)
   {
@@ -81,12 +80,12 @@ void Scanner::error(const std::string& err_msg)
   throw Exception(err_msg);
 }
 
-Token Scanner::eof_token()
+auto Scanner::eof_token() -> Token
 {
-  return Token(TokenType::eof, "$", Position(line, int(current - row) + 1));
+  return {TokenType::eof, "$", Position(line, int(current - row) + 1)};
 }
 
-bool Scanner::is_eof(const char* current)
+auto Scanner::is_eof(const char* current) -> bool
 {
   return current >= (contents.c_str() + contents.size());
 }
@@ -101,7 +100,7 @@ void Scanner::skip_comments()
 
 void Scanner::skip_whitespaces()
 {
-  while(!is_eof(current) && std::isspace(*current))
+  while(!is_eof(current) && (std::isspace(*current) != 0))
   {
     if(*current == '\n')
     {
@@ -112,19 +111,19 @@ void Scanner::skip_whitespaces()
   }
 }
 
-std::string Scanner::escape_sequence()
+auto Scanner::escape_sequence() -> std::string
 {
   // current points to the backslash
-  std::string s(1, *current);
+  const std::string s(1, *current);
 
-  char ch1 = peek(1);
-  char ch2 = peek(2);
-  char ch3 = peek(3);
+  const char ch1 = peek(1);
+  const char ch2 = peek(2);
+  const char ch3 = peek(3);
   // 3-digit octal
-  if(std::isdigit(ch1) && std::isdigit(ch2) && std::isdigit(ch3))
+  if((std::isdigit(ch1) != 0) && (std::isdigit(ch2) != 0) && (std::isdigit(ch3) != 0))
   {
     int v = 0;
-    v = (ch1 - '0') * 64 + (ch2 - '0') * 8 + (ch3 - '0');
+    v = ((ch1 - '0') * 64) + ((ch2 - '0') * 8) + (ch3 - '0');
     if(v > 255)
     {
       error_at("3-digit octal escape sequence out of range");
@@ -140,7 +139,7 @@ std::string Scanner::escape_sequence()
   std::unreachable();
 }
 
-Token Scanner::punctuation()
+auto Scanner::punctuation() -> Token
 {
   switch(*current)
   {
@@ -233,10 +232,10 @@ Token Scanner::punctuation()
   std::unreachable();
 }
 
-Token Scanner::integer_literal()
+auto Scanner::integer_literal() -> Token
 {
   const char* start = current;
-  while(!is_eof(current) && std::isdigit(*current))
+  while(!is_eof(current) && (std::isdigit(*current) != 0))
   {
     current++;
   }
@@ -244,7 +243,7 @@ Token Scanner::integer_literal()
     TokenType::integer_literal, std::string(start, current), Position(line, int(start - row) + 1)};
 }
 
-Token Scanner::string_literal()
+auto Scanner::string_literal() -> Token
 {
   /* This is a bit different from the book. Multiline strings are like this:
   "hello\
@@ -255,8 +254,8 @@ Token Scanner::string_literal()
   // first token is the opening quote
   current++; // skip it
   std::string value;
-  int sline = line;
-  int spos = int(current - row);
+  const int sline = line;
+  const int spos = int(current - row);
   while(!is_eof(current))
   {
     if(*current == '\\')
@@ -294,34 +293,34 @@ Token Scanner::string_literal()
   std::unreachable();
 }
 
-Token Scanner::identifier()
+auto Scanner::identifier() -> Token
 {
 
   const char* start = current;
-  while(!is_eof(current) && (std::isalnum(*current) || *current == '_'))
+  while(!is_eof(current) && ((std::isalnum(*current) != 0) || *current == '_'))
   {
     current++;
   }
 
-  std::string value(start, current);
-  if(keywords.find(value) != keywords.end())
+  const std::string value(start, current);
+  if(keywords.contains(value))
   {
     return {keywords.at(value), value, Position(line, int(start - row) + 1)};
   }
   return {TokenType::identifier, value, Position(line, int(start - row) + 1)};
 }
 
-Token Scanner::read_token()
+auto Scanner::read_token() -> Token
 {
   if(is_eof(current))
   {
     return eof_token();
   }
-  else if(std::isalpha(*current))
+  else if(std::isalpha(*current) != 0)
   {
     return identifier();
   }
-  else if(std::isdigit(*current))
+  else if(std::isdigit(*current) != 0)
   {
     return integer_literal();
   }

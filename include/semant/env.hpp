@@ -57,7 +57,7 @@ class Environment
     count++;
   }
 
-  const T* lookup(const Symbol& s) const
+  auto lookup(const Symbol& s) const -> const T*
   {
     size_t index = s.id() % capacity;
     auto iter = std::find_if(
@@ -72,7 +72,7 @@ class Environment
     return &std::get<1>(*iter);
   }
 
-  const_iterator begin() const
+  auto begin() const -> const_iterator
   {
     if(count == 0)
     {
@@ -81,17 +81,17 @@ class Environment
     return &table[0];
   }
 
-  const_iterator end() const
+  auto end() const -> const_iterator
   {
     return &table[capacity];
   }
 
-  size_t size() const
+  [[nodiscard]] auto size() const -> size_t
   {
     return count;
   }
 
-  int depth() const
+  [[nodiscard]] auto depth() const -> int
   {
     return depth_;
   }
@@ -108,7 +108,7 @@ class Environment
     (*iter).second = std::forward<U>(value);
   }
 
-  std::string dump() const
+  [[nodiscard]] auto dump() const -> std::string
     requires requires(const T& t) {
       { t.to_string() } -> std::same_as<std::string>;
     }

@@ -15,6 +15,6 @@ inline void terminal_exit_error()
 inline void terminal_write_error(const std::string& msg)
 {
   terminal_enter_error();
-  std::cerr << msg << std::endl;
+  std::cerr << msg << '\n';
   terminal_exit_error();
 }

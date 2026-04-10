@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -45,9 +46,9 @@ using Nx = tree::Stmt;
 using Cx = std::move_only_function<tree::Stmt(TempGen::Label, TempGen::Label)>;
 using Exp = std::variant<std::monostate, Ex, Nx, Cx>;
 
-Cx uncx(Exp&& exp);
-Ex unex(Exp&& exp);
-Nx unnx(Exp&& exp);
+auto uncx(Exp&& exp) -> Cx;
+auto unex(Exp&& exp) -> Ex;
+auto unnx(Exp&& exp) -> Nx;
 
 } // namespace ir
 
@@ -82,11 +83,11 @@ enum class RelOp
   uge
 };
 
-RelOp not_relop(RelOp op);
+auto not_relop(RelOp op) -> RelOp;
 
 struct ConstExp
 {
-  ConstExp(int64_t v)
+  explicit ConstExp(int64_t v)
     : v(v)
   { }
   int64_t v;
@@ -94,15 +95,15 @@ struct ConstExp
 
 struct NameExp
 {
-  NameExp(TempGen::Label label)
-    : label(label)
+  explicit NameExp(TempGen::Label label)
+    : label(std::move(label))
   { }
   TempGen::Label label;
 };
 
 struct TempExp
 {
-  TempExp(TempGen::Temp temp)
+  explicit TempExp(TempGen::Temp temp)
     : temp(temp)
   { }
   TempGen::Temp temp;
@@ -110,11 +111,7 @@ struct TempExp
 
 struct BinOpExp
 {
-  BinOpExp(BinaryOp op, ir::Ex&& left, ir::Ex&& right)
-    : op(op)
-    , left(std::move(left))
-    , right(std::move(right))
-  { }
+  BinOpExp(BinaryOp op, ir::Ex&& left, ir::Ex&& right);
   BinaryOp op;
   ir::Ex left;
   ir::Ex right;
@@ -122,66 +119,47 @@ struct BinOpExp
 
 struct MemExp
 {
-  MemExp(ir::Ex&& address)
-    : a(std::move(address)){};
+  explicit MemExp(ir::Ex&& address);
   ir::Ex a;
 };
 
 struct CallExp
 {
-  CallExp(ir::Ex&& fun, std::vector<ir::Ex>&& args)
-    : fun(std::move(fun))
-    , args(std::move(args)){};
+  CallExp(ir::Ex&& fun, std::vector<ir::Ex>&& args);
   ir::Ex fun;
   std::vector<ir::Ex> args;
 };
 
 struct ESeqExp
 {
-  ESeqExp(ir::Nx&& stmt, ir::Ex&& exp)
-    : stmt(std::move(stmt))
-    , exp(std::move(exp)){};
+  ESeqExp(ir::Nx&& stmt, ir::Ex&& exp);
   ir::Nx stmt;
   ir::Ex exp;
 };
 
 struct MoveStmt
 {
-  MoveStmt(ir::Ex&& left, ir::Ex&& right)
-    : left(std::move(left))
-    , right(std::move(right))
-  { }
+  MoveStmt(ir::Ex&& left, ir::Ex&& right);
   ir::Ex left;
   ir::Ex right;
 };
 
 struct ExpStmt
 {
-  ExpStmt(ir::Ex&& exp)
-    : exp(std::move(exp))
-  { }
+  explicit ExpStmt(ir::Ex&& exp);
   ir::Ex exp;
 };
 
 struct JumpStmt
 {
-  JumpStmt(ir::Ex&& address, std::vector<TempGen::Label> labels)
-    : a(std::move(address))
-    , labels(std::move(labels))
-  { }
+  JumpStmt(ir::Ex&& address, std::vector<TempGen::Label> labels);
   ir::Ex a;
   std::vector<TempGen::Label> labels;
 };
 
 struct CJumpStmt
 {
-  CJumpStmt(RelOp op, ir::Ex&& lexp, ir::Ex&& rexp, TempGen::Label tlabel, TempGen::Label flabel)
-    : op(op)
-    , lexp(std::move(lexp))
-    , rexp(std::move(rexp))
-    , tlabel(tlabel)
-    , flabel(flabel)
-  { }
+  CJumpStmt(RelOp op, ir::Ex&& lexp, ir::Ex&& rexp, TempGen::Label tlabel, TempGen::Label flabel);
   RelOp op;
   ir::Ex lexp;
   ir::Ex rexp;
@@ -191,18 +169,15 @@ struct CJumpStmt
 
 struct SeqStmt
 {
-  SeqStmt(ir::Nx&& stm1, ir::Nx&& stm2)
-    : stm1(std::move(stm1))
-    , stm2(std::move(stm2))
-  { }
+  SeqStmt(ir::Nx&& stm1, ir::Nx&& stm2);
   ir::Nx stm1;
   ir::Nx stm2;
 };
 
 struct LabelStmt
 {
-  LabelStmt(TempGen::Label label)
-    : label(label)
+  explicit LabelStmt(TempGen::Label label)
+    : label(std::move(label))
   { }
   TempGen::Label label;
 };

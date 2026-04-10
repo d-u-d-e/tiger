@@ -4,6 +4,7 @@
 #include <format>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace lexer
 {
@@ -65,23 +66,25 @@ struct Token
 {
   TokenType type;
   std::string value;
-  Position pos;
+  Position pos{};
 
-  Token() = default;
+  Token()
+    : type(TokenType::eof)
+  { }
   Token(TokenType type, std::string value, Position pos)
     : type(type)
-    , value(value)
+    , value(std::move(value))
     , pos(pos)
   { }
 
-  bool operator==(const Token& other) const
+  auto operator==(const Token& other) const -> bool
   {
     return type == other.type && value == other.value && pos == other.pos;
   }
 };
 
-std::string to_string(TokenType type);
-std::string to_string(const Token& token);
+auto to_string(TokenType type) -> std::string;
+auto to_string(const Token& token) -> std::string;
 extern const std::unordered_map<std::string, TokenType> keywords;
 } // namespace lexer
 

@@ -14,23 +14,24 @@
 #include "target.hpp"
 #include "temp.hpp"
 #include "terminal.hpp"
+#include <algorithm>
 #include <optional>
 #include <print>
 #include <variant>
 
 #ifndef NDEBUG
-#  define DEBUG_PRETTY_PRINT_AST 0
-#  define DEBUG_PRETTY_PRINT_IR 0
-#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
-#  define DEBUG_PRETTY_PRINT_BLOCKS 0
-#  define DEBUG_PRETTY_PRINT_TRACE 0
-#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
+#  define DEBUG_PRETTY_PRINT_AST 1
+#  define DEBUG_PRETTY_PRINT_IR 1
+#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 1
+#  define DEBUG_PRETTY_PRINT_BLOCKS 1
+#  define DEBUG_PRETTY_PRINT_TRACE 1
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
 #  if CONFIG_WITH_GRAPHVIZ
-#    define DEBUG_RENDER_FLOW_GRAPH 0
-#    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
+#    define DEBUG_RENDER_FLOW_GRAPH 1
+#    define DEBUG_RENDER_INTERFERENCE_GRAPH 1
 #  endif
-#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
-#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 0
+#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 1
+#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 1
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
@@ -46,11 +47,11 @@ namespace
 
 [[maybe_unused]] auto constexpr sep = "-----------------------------";
 
-std::string temporary_mapper(const TempGen::Temp& t)
+auto temporary_mapper(const TempGen::Temp& t) -> std::string
 {
   auto reg_map = FrameImpl::get_temporary_register_mapping();
 
-  if(reg_map.find(t) != reg_map.end())
+  if(reg_map.contains(t))
   {
     return reg_map[t];
   }
@@ -58,10 +59,10 @@ std::string temporary_mapper(const TempGen::Temp& t)
 }
 
 void write_instructions(FILE* ofile,
-                        std::function<assem::register_t(const TempGen::Temp&)> mapper,
+                        const std::function<assem::register_t(const TempGen::Temp&)>& mapper,
                         std::list<assem::Instruction>& instrs,
                         std::string prologue,
-                        std::string epilogue)
+                        const std::string& epilogue)
 {
   // remove instructions that move a register to itself
   std::string result{std::move(prologue)};
@@ -70,7 +71,7 @@ void write_instructions(FILE* ofile,
   {
     result += assem::format(mapper, i);
   }
-  result += std::move(epilogue);
+  result += epilogue;
   result += +"\n";
   std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
@@ -83,7 +84,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
   for(auto& s : body)
   {
     auto v = gen.gen(s);
-    std::move(v.begin(), v.end(), std::back_inserter(all));
+    std::ranges::move(v, std::back_inserter(all));
   }
 
   // prepare for register allocation
@@ -98,8 +99,8 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
   std::println(sep);
 #endif
 
-  bool spilling_required{false};
-  do
+  bool spilling_required{true};
+  while(spilling_required)
   {
     // create the control flow graph
     auto flow_g = std::make_shared<flow::FlowGraph>(all, temporary_mapper);
@@ -109,7 +110,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     flow_g->render(namef, namef);
 #endif
 
-    liveness::Analyzer analyzer(*flow_g);
+    const liveness::Analyzer analyzer(*flow_g);
 
 #if DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS
     std::println("Results of liveness analysis [frame: {}]", f.name().str());
@@ -150,14 +151,14 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
       std::println(sep);
 #endif
     }
-  } while(spilling_required);
+  }
 }
 
 } // namespace
 
-std::string Compiler::strip_extension(const std::string& filename)
+auto Compiler::strip_extension(const std::string& filename) -> std::string
 {
-  size_t dot = filename.find_last_of('.');
+  const size_t dot = filename.find_last_of('.');
   if(dot == std::string::npos)
   {
     return filename; // no extension
@@ -165,7 +166,7 @@ std::string Compiler::strip_extension(const std::string& filename)
   return filename.substr(0, dot);
 }
 
-std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
+auto Compiler::linearize_tree(ir::tree::Stmt&& stmt) -> std::list<ir::tree::Stmt>
 {
 #if DEBUG_PRETTY_PRINT_IR || DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS ||   \
   DEBUG_PRETTY_PRINT_TRACE
@@ -173,8 +174,8 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
-  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(const C& container)
-    requires std::same_as<typename C::value_type, ir::tree::Stmt>
+  auto pretty_print_stmts = [&ir_pretty_printer]<typename C>(
+    const C& container) requires std::same_as<typename C::value_type, ir::tree::Stmt>
   {
     for(auto& s : container)
     {
@@ -199,7 +200,7 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 #endif
 
   // compute the basic blocks
-  auto [blocks, ldone] = canon.basic_blocks(std::move(list));
+  auto [blocks, ldone] = canon.basic_blocks(list);
 
 #if DEBUG_PRETTY_PRINT_BLOCKS
   std::println("Basic blocks");
@@ -213,7 +214,7 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
 #endif
 
   // lay out the blocks by following a trace
-  auto sched = canon.trace_schedule(std::move(blocks), ldone);
+  auto sched = canon.trace_schedule(blocks, ldone);
 
 #if DEBUG_PRETTY_PRINT_TRACE
   std::println("Trace");
@@ -224,11 +225,12 @@ std::list<ir::tree::Stmt> Compiler::linearize_tree(ir::tree::Stmt&& stmt)
   return sched;
 }
 
-std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& source,
-                                                 const char* oname)
+auto Compiler::compile(const std::filesystem::path& source, const char* oname)
+  -> std::optional<Compiler::Error>
 {
   StringTable string_table;
-  std::string out_name = oname ? oname : strip_extension(source.filename().string()) + ".s";
+  const std::string out_name =
+    (oname != nullptr) ? oname : strip_extension(source.filename().string()) + ".s";
 
   std::unique_ptr<parser::ast::Expression> exp;
   try
@@ -278,8 +280,8 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
 
   // AST to IR
   translator.translate_main_program(std::move(ir));
-  auto out_file = fopen(out_name.c_str(), "w");
-  if(!out_file)
+  auto *out_file = fopen(out_name.c_str(), "w");
+  if(out_file == nullptr)
   {
     terminal_write_error(
       std::format("tigerc: could not write assembly output for {}", source.string()));
@@ -287,7 +289,7 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
   }
 
   // IR to Assembly
-  std::string assembler_directives_begin = FrameImpl::assembler_directives_begin();
+  const std::string assembler_directives_begin = FrameImpl::assembler_directives_begin();
   std::fwrite(assembler_directives_begin.c_str(), 1, assembler_directives_begin.size(), out_file);
 
   // dump fragments
@@ -306,7 +308,7 @@ std::optional<Compiler::Error> Compiler::compile(const std::filesystem::path& so
     }
   }
 
-  std::string assembler_directives_end = FrameImpl::assembler_directives_end();
+  const std::string assembler_directives_end = FrameImpl::assembler_directives_end();
   std::fwrite(assembler_directives_end.c_str(), 1, assembler_directives_end.size(), out_file);
   fclose(out_file);
   return std::nullopt;
