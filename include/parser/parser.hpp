@@ -61,7 +61,7 @@ public:
     : ostream(ostream)
     , scanner(scanner)
     , symbol_table(symbol_table){};
-  std::unique_ptr<ast::Expression> parse();
+  auto parse() -> std::unique_ptr<ast::Expression>;
 
   auto had_error() const -> bool
   {

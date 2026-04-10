@@ -83,16 +83,16 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
 }
 
 #if CONFIG_WITH_GRAPHVIZ
-void FlowGraph::render(const std::string& name, const std::string& filename)
+void FlowGraph::render(std::string name, const std::string& filename)
 {
-  Agraph_t* graph = agopen(const_cast<char*>(name.data()), Agdirected, nullptr);
+  Agraph_t* graph = agopen(name.data(), Agdirected, nullptr);
   GVC_t* gvc = gvContext();
 
-  std::string fname_ext = filename + ".png";
-  std::string err_msg = "could not render flow graph " + fname_ext;
+  const std::string fname_ext = filename + ".png";
+  const std::string err_msg = "could not render flow graph " + fname_ext;
   FILE* outFile = fopen(fname_ext.c_str(), "wb");
 
-  if(!graph || !gvc || !outFile)
+  if((graph == nullptr) || (gvc == nullptr) || (outFile == nullptr))
   {
     terminal_write_error(err_msg);
     return;
@@ -106,14 +106,14 @@ void FlowGraph::render(const std::string& name, const std::string& filename)
     if(!map.contains(n1.id()))
     {
       auto descr = std::format("{}: {}", n1.id(), assem::format(temporary_mapper, n1.data().i));
-      map[n1.id()] = agnode(graph, descr.data(), true);
+      map[n1.id()] = agnode(graph, descr.data(), 1);
     }
     if(!map.contains(n2.id()))
     {
       auto descr = std::format("{}: {}", n2.id(), assem::format(temporary_mapper, n2.data().i));
-      map[n2.id()] = agnode(graph, descr.data(), true);
+      map[n2.id()] = agnode(graph, descr.data(), 1);
     }
-    agedge(graph, map[n1.id()], map[n2.id()], nullptr, true);
+    agedge(graph, map[n1.id()], map[n2.id()], nullptr, 1);
   }
 
   gvLayout(gvc, graph, "dot");

@@ -41,7 +41,7 @@ Checks: >
   -misc-include-cleaner,
 
   -bugprone-easily-swappable-parameters,
-  -bugprone-unchecked-optional-access, # This gives false positives as of clang-tidy-20
+  -bugprone-unchecked-optional-access,
   -performance-enum-size,
   -hicpp-named-parameter,
   -hicpp-avoid-c-arrays,

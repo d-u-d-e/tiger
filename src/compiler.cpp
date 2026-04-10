@@ -20,18 +20,18 @@
 #include <variant>
 
 #ifndef NDEBUG
-#  define DEBUG_PRETTY_PRINT_AST 1
-#  define DEBUG_PRETTY_PRINT_IR 1
-#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 1
-#  define DEBUG_PRETTY_PRINT_BLOCKS 1
-#  define DEBUG_PRETTY_PRINT_TRACE 1
-#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 1
+#  define DEBUG_PRETTY_PRINT_AST 0
+#  define DEBUG_PRETTY_PRINT_IR 0
+#  define DEBUG_PRETTY_PRINT_CANONICALIZED_IR 0
+#  define DEBUG_PRETTY_PRINT_BLOCKS 0
+#  define DEBUG_PRETTY_PRINT_TRACE 0
+#  define DEBUG_PRINT_INSTRUCTIONS_BEFORE_REG_ALLOC 0
 #  if CONFIG_WITH_GRAPHVIZ
-#    define DEBUG_RENDER_FLOW_GRAPH 1
-#    define DEBUG_RENDER_INTERFERENCE_GRAPH 1
+#    define DEBUG_RENDER_FLOW_GRAPH 0
+#    define DEBUG_RENDER_INTERFERENCE_GRAPH 0
 #  endif
-#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 1
-#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 1
+#  define DEBUG_PRINT_LIVENESS_ANALYSIS_RESULTS 0
+#  define DEBUG_PRINT_INSTRUCTIONS_ON_SPILLING 0
 #endif
 
 #if DEBUG_PRETTY_PRINT_CANONICALIZED_IR || DEBUG_PRETTY_PRINT_BLOCKS || DEBUG_PRETTY_PRINT_TRACE
@@ -106,7 +106,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     auto flow_g = std::make_shared<flow::FlowGraph>(all, temporary_mapper);
 
 #if DEBUG_RENDER_FLOW_GRAPH
-    std::string namef = f.name().str() + "_flow";
+    const std::string namef = f.name().str() + "_flow";
     flow_g->render(namef, namef);
 #endif
 
@@ -120,7 +120,7 @@ void emit_procedure_fragment(FILE* ofile, FrameImpl& f, std::list<ir::tree::Stmt
     IteratedRegisterCoalescing allocator(flow_g, FrameImpl::get_temporary_register_mapping());
 
 #if DEBUG_RENDER_INTERFERENCE_GRAPH
-    std::string namei = f.name().str() + "_interference";
+    const std::string namei = f.name().str() + "_interference";
     allocator.render_igraph_dot(namei, namei);
 #endif
 

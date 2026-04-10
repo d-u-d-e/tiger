@@ -42,7 +42,7 @@ class FlowGraph : public utils::Digraph<FlowNode>
   }
 
 #if CONFIG_WITH_GRAPHVIZ
-  void render(const std::string& name, const std::string& filename);
+  void render(std::string name, const std::string& filename);
 #endif
 
   private:

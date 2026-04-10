@@ -548,39 +548,38 @@ auto IteratedRegisterCoalescing::perform_allocation() -> const std::unordered_se
 }
 
 #if CONFIG_WITH_GRAPHVIZ
-void IteratedRegisterCoalescing::render_igraph_dot(const std::string& name,
-                                                   const std::string& filename)
+void IteratedRegisterCoalescing::render_igraph_dot(std::string name, const std::string& filename)
 {
-  Agraph_t* graph = agopen(const_cast<char*>(name.data()), Agstrictundirected, nullptr);
+  Agraph_t* graph = agopen(name.data(), Agstrictundirected, nullptr);
 
-  std::string fname_ext = filename + ".txt";
-  std::string err_msg = "could not render interference graph " + fname_ext;
+  const std::string fname_ext = filename + ".txt";
+  const std::string err_msg = "could not render interference graph " + fname_ext;
   FILE* outFile = fopen(fname_ext.c_str(), "wb");
 
-  if(!graph || !outFile)
+  if((graph == nullptr) || (outFile == nullptr))
   {
     terminal_write_error(err_msg);
     return;
   }
 
   std::unordered_map<node_id_t, Agnode_t*> map;
-  auto& temporary_mapper = fgraph->get_temporary_mapper();
+  const auto& temporary_mapper = fgraph->get_temporary_mapper();
 
-  for(auto& e : edges)
+  for(const auto& e : edges)
   {
-    auto& n1 = e.first;
-    auto& n2 = e.second;
+    const auto& n1 = e.first;
+    const auto& n2 = e.second;
     if(!map.contains(n1))
     {
       std::string descr = temporary_mapper(nodes[n1].t);
-      map[n1] = agnode(graph, descr.data(), true);
+      map[n1] = agnode(graph, descr.data(), 1);
     }
     if(!map.contains(n2))
     {
       std::string descr = temporary_mapper(nodes[n2].t);
-      map[n2] = agnode(graph, descr.data(), true);
+      map[n2] = agnode(graph, descr.data(), 1);
     }
-    agedge(graph, map[n1], map[n2], nullptr, true);
+    agedge(graph, map[n1], map[n2], nullptr, 1);
   }
 
   agwrite(graph, outFile);
