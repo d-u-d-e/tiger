@@ -89,7 +89,7 @@ set_target_properties(tigerc PROPERTIES
 set(BUILD_TEST_RUNNER ON)
 # Optionally build the test runner
 if(BUILD_TEST_RUNNER)
-    CPMAddPackage("https://github.com/doctest/doctest.git@2.4.11")
+    CPMAddPackage("https://github.com/doctest/doctest.git@2.5.1")
     add_executable(test-runner
         tests/main.cpp
         tests/lexer/test_lexer.cpp
