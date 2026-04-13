@@ -47,9 +47,9 @@ let
       inner
     end
 
-  in
-    printint(plus(two, one)(inc)(7));
-    print(", ");
-    printint(plus(two, two)(twice)(5));
-    print("\n")
-  end
+in
+  printint(plus(two, one)(inc)(7));
+  print(", ");
+  printint(plus(two, two)(twice)(5));
+  print("\n")
+end
