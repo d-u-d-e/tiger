@@ -10,8 +10,9 @@
 3. [Requirements](#req)
 4. [Build instructions](#build)
 5. [Compilation](#compile)
-5. [Add new targets](#target)
-6. [TODO](#todo)
+6. [Add new targets](#target)
+7. [Dev](#dev)
+8. [TODO](#todo)
 
 <a id="tiger"></a>
 # 1. The Tiger language (vanilla)
@@ -506,10 +507,34 @@ Place the architecture specific files inside `arch`. Next:
 
 The concepts above are taken from the Appel's book, so for a documentation of what those functions shall do (like `proc_entry_exit1`), consult the book.
 
+
+<a id="dev"></a>
+
+# 7. Dev
+A reminder for common commands:
+
+1) Run `clang-tidy` with checks from the `.clang-tidy` file:
+    ```bash
+    run-clang-tidy-20 -quiet -exclude-header-filter='.*doctest.*' -warnings-as-errors='*' -p build tests src -extra-arg=--std=c++23
+    ```
+
+2) Run the unit tests runner:
+    ```bash
+    cd build
+    ./test_runner
+    ```
+
+3) Run the misc tests runner that compiles tiger programs under `tests/misc` and tests their outputs against expected results:
+    ```bash
+    cd tests/misc
+    ./runner.sh ../../dist/tools/driver.sh
+    ```
+    Here we assume the compiler was installed to a directory named `dist` inside the workspace folder.
+
+
+
 <a id="todo"></a>
 
-# 7. TODO
+# 8. TODO
 - Implement all standard library functions
 - Explain the differences with the standard Tiger language, if any.
-- Explain how to run clang-tidy:
-`run-clang-tidy-20 -quiet -exclude-header-filter='.*doctest.*' -warnings-as-errors='*' -p build tests src -extra-arg=--std=c++23`
