@@ -1,0 +1,55 @@
+let
+  function printint(i: int) =
+    let function f(i: int) = if i > 0 
+      then (f(i/10); print(chr(i - i/10 * 10 + ord("0"))))
+    in  if i < 0 then (print("-"); f(-i))
+      else if i > 0 then f(i)
+      else print("0")
+    end
+
+  function inc(x: int): int = x + 1
+  function twice(x: int): int = 2 * x
+
+  type intfun = int -> int
+  type numeral = intfun -> intfun
+
+  function zero(f: intfun): intfun = 
+    let
+      function inner(x: int): int = x
+    in
+      inner
+    end
+
+  function one(f: intfun): intfun = 
+    let
+      function inner(x: int): int = f(x)
+    in
+      inner
+    end
+  
+  function two(f: intfun): intfun = 
+    let
+      function inner(x: int): int = f(f(x))
+    in
+      inner
+    end
+
+  function plus(n: numeral, m: numeral): numeral =
+    let
+      function inner(f: intfun): intfun =
+        let 
+          function h(x: int): int = 
+            n(f)(m(f)(x))
+        in
+          h
+        end
+    in
+      inner
+    end
+
+  in
+    printint(plus(two, one)(inc)(7));
+    print(", ");
+    printint(plus(two, two)(twice)(5));
+    print("\n")
+  end
