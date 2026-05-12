@@ -445,7 +445,25 @@ The following functions are predefined:
 <a id="fun"></a>
 
 # 2. Extension to the language (fun-tiger)
-TODO
+The standard Tiger language is extended with *function types*:
+
+```
+ty -> ty '->' ty
+   -> '(' ty {',' ty} ')' '->' ty
+   -> '(' ')' '->' ty
+```
+So for example `int->string` is the type of functions that take a single integer argument and return a string result. Any variable can have a functional type; functions can be passed as arguments and returned as results. Thus, the type `(int -> int) -> int -> int`
+is perfectly legal; the `->` operator is right-associative, so this is the type of functions that take an `int->int` argument and return an `int->int` result.
+
+The call expression is modified so that the function being called is an arbitrary expression, not just an identifier:
+
+```
+exp -> exp '(' exp {',' exp} ')'
+exp -> exp '(' ')'
+```
+
+A function variable is respresented as a **closure**: a record that contains the machine code pointer and a way to access the necessary nonlocal variables. The implementation here has closures based on static links, although there are other possible ways to implement them.
+See `tests/misc/church.tig` for a (verbose) example of the church encoding.
 
 <a id="req"></a>
 
