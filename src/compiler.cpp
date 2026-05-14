@@ -72,7 +72,7 @@ void write_instructions(FILE* ofile,
     result += assem::format(mapper, i);
   }
   result += epilogue;
-  result += +"\n";
+  result += "\n";
   std::fwrite(result.c_str(), 1, result.size(), ofile);
 }
 

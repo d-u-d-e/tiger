@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <stack>
+#include <algorithm>
 
 namespace semant
 {
