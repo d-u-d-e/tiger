@@ -46,6 +46,8 @@ Checks: >
   -hicpp-named-parameter,
   -hicpp-avoid-c-arrays,
 
+  -modernize-avoid-c-arrays,
+
 
 CheckOptions:
 - key: readability-function-cognitive-complexity.Threshold
