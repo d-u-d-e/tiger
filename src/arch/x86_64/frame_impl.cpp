@@ -343,7 +343,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
                                          .jmp{}}});
 
         // fix the instruction to use the new temporary
-        *it = new_temp.value();
+        std::replace(it, src.end(), t, new_temp.value());
       }
 
       // look in dst
@@ -365,7 +365,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
                                   .jmp{}}});
 
         // fix the instruction to use the new temporary
-        *it = new_temp.value();
+        std::replace(it, dst.end(), t, new_temp.value());
       }
     }
   };
