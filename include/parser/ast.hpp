@@ -456,9 +456,9 @@ class AssignExp : public Expression
 class IfExp : public Expression
 {
   public:
-  IfExp(std::shared_ptr<Expression> cond,
-        std::shared_ptr<Expression> then,
-        std::shared_ptr<Expression> else_,
+  IfExp(std::unique_ptr<Expression> cond,
+        std::unique_ptr<Expression> then,
+        std::unique_ptr<Expression> else_,
         Position position)
     : cond(std::move(cond))
     , then(std::move(then))
@@ -480,9 +480,9 @@ class IfExp : public Expression
     visitor.visit_if_exp(*this);
   }
 
-  std::shared_ptr<Expression> cond;
-  std::shared_ptr<Expression> then;
-  std::shared_ptr<Expression> else_;
+  std::unique_ptr<Expression> cond;
+  std::unique_ptr<Expression> then;
+  std::unique_ptr<Expression> else_;
   Position position;
 };
 

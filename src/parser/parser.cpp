@@ -578,12 +578,11 @@ auto Parser::or_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<as
 {
   // rule: <exp> | <exp>
 
-  // e1 | e2 is translated as `if e1 then e1 else e2`
+  // e1 | e2 is translated as `if e1 then 1 else e2`
   auto pos = previous.pos;
   auto rhs = expression(Precedence::Or);
-  // we need shared pointers here :(
-  auto shared_lhs = std::shared_ptr<ast::Expression>(std::move(lhs));
-  return std::make_unique<ast::IfExp>(shared_lhs, shared_lhs, std::shared_ptr(std::move(rhs)), pos);
+  return std::make_unique<ast::IfExp>(
+    std::move(lhs), std::make_unique<ast::IntExp>(1), std::move(rhs), pos);
 }
 
 auto Parser::assign_expr(std::unique_ptr<ast::Expression> lhs) -> std::unique_ptr<ast::AssignExp>

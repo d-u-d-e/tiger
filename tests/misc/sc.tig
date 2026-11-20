@@ -1,0 +1,17 @@
+let
+  var c := 0
+  function f(x: int): int = (c := c + 1; x)
+in
+  if (f(1) = f(1)) | (f(2) > 0) then print("a") else print("b");
+  print(chr(ord("0") + c));
+  c := 0;
+  if (f(1) = f(2)) | (f(2) > 0) then print("a") else print("b");
+  print(chr(ord("0") + c));
+  c := 0;
+  if (f(1) = f(2)) & (f(2) > 0) then print("a") else print("b");
+  print(chr(ord("0") + c));
+  c := 0;
+  if f(0) | f(0) then print("a") else print("b");
+  print(chr(ord("0") + c));
+  print("\n")
+end

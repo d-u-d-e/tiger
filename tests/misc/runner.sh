@@ -28,6 +28,7 @@ expected_outputs=(
     [church]="10, 80"
     [spillmove]="acce"
     [duploop]="ya"
+    [sc]="a2a3b2b2"
 )
 
 shopt -s nullglob
