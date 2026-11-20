@@ -154,6 +154,7 @@ auto Translator<FrameT>::map_binary_operator(parser::ast::Operator op) -> tree::
   default:
     assert(false);
   }
+  std::unreachable();
 }
 
 template <IsFrame FrameT>
@@ -176,6 +177,7 @@ auto Translator<FrameT>::map_rel_operator(parser::ast::Operator op) -> tree::Rel
   default:
     assert(false);
   }
+  std::unreachable();
 }
 
 template <IsFrame FrameT>

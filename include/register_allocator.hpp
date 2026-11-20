@@ -73,6 +73,8 @@ class IteratedRegisterCoalescing
   // data structures used by the allocation algorithm
   std::list<node_id_t> simplify_list;
   std::list<node_id_t> select_stack;
+  // same nodes as select_stack, for constant time membership tests
+  std::unordered_set<node_id_t> in_select_stack;
   std::list<node_id_t> spill_list;
   std::unordered_set<TempGen::Temp> spilled_temps;
   std::unordered_set<node_id_t> coalesced_nodes;

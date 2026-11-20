@@ -150,16 +150,14 @@ void IteratedRegisterCoalescing::make_lists()
 auto IteratedRegisterCoalescing::adjacent(node_id_t nid)
   -> std::unordered_set<IteratedRegisterCoalescing::node_id_t>
 {
-  std::unordered_set<node_id_t> out{nodes[nid].adj};
-
-  for(auto nid : select_stack)
+  // adjacent nodes, excluding the ones that were simplified or coalesced
+  std::unordered_set<node_id_t> out;
+  for(auto a : nodes[nid].adj)
   {
-    out.erase(nid);
-  }
-
-  for(auto nid : coalesced_nodes)
-  {
-    out.erase(nid);
+    if(!in_select_stack.contains(a) && !coalesced_nodes.contains(a))
+    {
+      out.insert(a);
+    }
   }
   return out;
 }
@@ -178,7 +176,10 @@ auto IteratedRegisterCoalescing::node_moves(node_id_t u)
 
 auto IteratedRegisterCoalescing::is_move_related(node_id_t n) -> bool
 {
-  return !node_moves(n).empty();
+  // same as !node_moves(n).empty(), without copying the moves list
+  return std::ranges::any_of(nodes[n].moves_list, [this](const assem::Move& move) -> bool {
+    return active_moves.contains(move) || worklist_moves.contains(move);
+  });
 }
 
 void IteratedRegisterCoalescing::simplify()
@@ -194,6 +195,7 @@ void IteratedRegisterCoalescing::simplify()
 
   simplify_list.pop_front();
   list_push_front(select_stack, n);
+  in_select_stack.insert(n);
   for(auto adj : adjacent(n))
   {
     decrement_degree(adj);
@@ -236,8 +238,11 @@ void IteratedRegisterCoalescing::enable_moves(const std::unordered_set<node_id_t
   {
     for(const auto& m : nodes[nid].moves_list)
     {
-      active_moves.erase(m);
-      worklist_moves.insert(m);
+      // only active moves are enabled for coalescing
+      if(active_moves.erase(m) > 0)
+      {
+        worklist_moves.insert(m);
+      }
     }
   }
 }
@@ -250,12 +255,9 @@ void IteratedRegisterCoalescing::coalesce()
   auto x = get_alias(map_tnode[move.src]);
   auto y = get_alias(map_tnode[move.dst]);
 
-  if(std::ranges::find(select_stack, x) != select_stack.end() ||
-     std::ranges::find(select_stack, y) != select_stack.end())
-  {
-    // no point in coalescing a move where either x or y has been simplified
-    return;
-  }
+#if ENABLE_REG_ALLOC_ASSERTS
+  assert(!in_select_stack.contains(x) && !in_select_stack.contains(y));
+#endif
 
   node_id_t u{};
   node_id_t v{};
@@ -271,18 +273,15 @@ void IteratedRegisterCoalescing::coalesce()
     v = y;
   }
 
-  auto add_work_list = [this](node_id_t u) {
+  auto add_work_list = [this](node_id_t u) -> void {
     if(!is_colored(u) && !is_move_related(u) && nodes[u].degree < n_colors)
     {
-      if(auto p = std::ranges::find(freeze_worklist, u); p != freeze_worklist.end())
-      {
-        freeze_worklist.erase(p);
-        list_push_front(simplify_list, u);
-      }
+      freeze_worklist.erase(u);
+      list_push_front(simplify_list, u);
     }
   };
 
-  auto george_test = [this](node_id_t t, node_id_t r) {
+  auto george_test = [this](node_id_t t, node_id_t r) -> bool {
     // in general nodes a and r can be coalesced if
     // for every neighbor t of a, either t already interferes with r
     // or t is of insignificant degree
@@ -323,10 +322,16 @@ void IteratedRegisterCoalescing::coalesce()
   {
     // since we don't maintain the adjacency list of a precolored node, we apply george
     auto adj = adjacent(v);
-    if(std::ranges::all_of(adj, [u, &george_test](node_id_t n) { return george_test(n, u); }))
+    if(std::ranges::all_of(adj,
+                           [u, &george_test](node_id_t n) -> bool { return george_test(n, u); }))
     {
       // we coalesce v into u, a precolored node
       combine(u, v);
+    }
+    else
+    {
+      // move is not ready for coalescing
+      active_moves.insert(move);
     }
   }
   else
@@ -364,12 +369,9 @@ auto IteratedRegisterCoalescing::get_alias(node_id_t n) const
 
 void IteratedRegisterCoalescing::combine(node_id_t u, node_id_t v)
 {
+  // v into u
   // remove v from its list
-  if(auto p = std::ranges::find(freeze_worklist, v); p != freeze_worklist.end())
-  {
-    freeze_worklist.erase(p);
-  }
-  else
+  if(freeze_worklist.erase(v) == 0)
   {
     spill_list.remove(v);
   }
@@ -495,6 +497,7 @@ void IteratedRegisterCoalescing::assign_colors()
   {
     auto top = select_stack.front();
     select_stack.pop_front();
+    in_select_stack.erase(top);
     std::unordered_set<color_t> ok_colors{colors};
     for(auto n : nodes[top].adj)
     {

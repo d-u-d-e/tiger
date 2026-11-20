@@ -136,7 +136,7 @@ class Environment
   {
     size_t index = s.id() % capacity;
     assert(table[index].size() > 0);
-    std::pair<Symbol, T>& front = table[index].front();
+    [[maybe_unused]] std::pair<Symbol, T>& front = table[index].front();
     assert(std::get<0>(front) == s);
     table[index].pop_front();
     count--;
