@@ -100,7 +100,7 @@ void EscapeFinder::visit_var(parser::ast::Var& var)
 {
   if(const auto *v = env.lookup(var.name); (v != nullptr) && v->depth < env.depth())
   {
-    *(v->ref) = true;
+    *v->ref = true;
   }
 }
 

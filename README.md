@@ -533,7 +533,7 @@ A reminder for common commands:
 
 1) Run `clang-tidy` with checks from the `.clang-tidy` file:
     ```bash
-    run-clang-tidy-20 -quiet -exclude-header-filter='.*doctest.*' -warnings-as-errors='*' -p build tests src -extra-arg=--std=c++23
+    run-clang-tidy-21 -quiet -exclude-header-filter='.*doctest.*' -warnings-as-errors='*' -p build tests src -extra-arg=--std=c++23
     ```
 
 2) Run the unit tests runner:

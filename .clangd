@@ -1,2 +1,5 @@
+If:
+  PathMatch: lib/.*\.c
 Diagnostics:
-  UnusedIncludes: Strict
+  ClangTidy:
+    Remove: '*'
