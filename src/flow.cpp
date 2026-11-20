@@ -34,28 +34,22 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
   std::optional<node_id_t> prev{};
   std::unordered_map<TempGen::Label, node_id_t> label_map;
 
-  // create nodes for labels
+  std::vector<node_id_t> ids;
+  ids.reserve(ins.size());
   for(const auto& i : ins)
   {
+    auto nid = add_node(FlowNode{.i = i});
+    ids.push_back(nid);
     if(std::holds_alternative<assem::Label>(i))
     {
-      auto nid = add_node(FlowNode{.i = i});
       label_map[std::get<assem::Label>(i).label] = nid;
     }
   }
 
+  auto id_iter = ids.begin();
   for(const auto& i : ins)
   {
-    if(std::holds_alternative<assem::Label>(i))
-    {
-      curr = label_map[std::get<assem::Label>(i).label];
-    }
-    else
-    {
-      // create a new node if not a label
-      curr = add_node(FlowNode{.i = i});
-    }
-
+    curr = *id_iter++;
     if(prev)
     {
       // add an edge between the prev instruction and the current one

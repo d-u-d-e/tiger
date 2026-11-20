@@ -1,5 +1,6 @@
 #include "liveness.hpp"
 #include "utils/list.hpp"
+#include <ranges>
 
 namespace liveness
 {
@@ -7,18 +8,16 @@ namespace liveness
 Analyzer::Analyzer(flow::FlowGraph& g)
   : fg(g)
 {
+  const auto nodes = fg.get_nodes();
   bool fixed_point{false};
   while(!fixed_point)
   {
     fixed_point = true;
-    for(auto& n : fg.get_nodes())
+    for(auto n : nodes | std::ranges::views::reverse)
     {
       auto& d = fg[n].data();
       auto live_in_size = d.live_in.size();
       auto live_out_size = d.live_out.size();
-
-      // compute the live in set: use set + (live out set \ def set)
-      d.live_in = utils::union_sorted_lists(d.use, utils::diff_sorted_lists(d.live_out, d.def));
 
       // compute the live out set: (for all successors: + live_in)
       std::list<TempGen::Temp> live_out;
@@ -27,6 +26,9 @@ Analyzer::Analyzer(flow::FlowGraph& g)
         live_out = utils::union_sorted_lists(live_out, fg[succ_id].data().live_in);
       };
       d.live_out = std::move(live_out);
+
+      // compute the live in set: use set + (live out set \ def set)
+      d.live_in = utils::union_sorted_lists(d.use, utils::diff_sorted_lists(d.live_out, d.def));
 
       fixed_point =
         fixed_point && (live_in_size == d.live_in.size() && live_out_size == d.live_out.size());
