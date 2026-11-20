@@ -26,6 +26,7 @@ expected_outputs=(
     [closure2]="17, 12, 41"
     [closure3]="0, 1, 2, 10, 11"
     [church]="10, 80"
+    [spillmove]="acce"
 )
 
 shopt -s nullglob

@@ -96,7 +96,7 @@ auto X86Frame::proc_entry_exit1(ir::tree::Stmt&& stmt) -> ir::tree::Stmt
       std::make_unique<ir::tree::TempExp>(reg), std::make_unique<ir::tree::TempExp>(t)));
   }
 
-  auto folder = [](auto&& arg1, auto&& arg2) {
+  auto folder = [](auto&& arg1, auto&& arg2) -> auto {
     return ir::tree::Stmt(std::make_unique<ir::tree::SeqStmt>(std::forward<decltype(arg1)>(arg1),
                                                               std::forward<decltype(arg2)>(arg2)));
   };
@@ -303,7 +303,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
 
   std::unordered_map<TempGen::Temp, stack_offset_t> locations;
 
-  auto get_off = [&locations, this](TempGen::Temp t) {
+  auto get_off = [&locations, this](TempGen::Temp t) -> stack_offset_t {
     stack_offset_t off{};
     if(locations.contains(t))
     {
@@ -319,7 +319,7 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
 
   auto rewrite = [&spilled_temps, &get_off, &list](std::vector<TempGen::Temp>& src,
                                                    std::vector<TempGen::Temp>& dst,
-                                                   std::list<assem::Instruction>::iterator iter) {
+                                                   std::list<assem::Instruction>::iterator iter) -> void {
     for(auto t : spilled_temps)
     {
       // get the offset of the spilled temporary
@@ -371,9 +371,9 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
   };
 
   auto rewrite_move = [&spilled_temps, &get_off, &list](
-                        TempGen::Temp& src,
-                        TempGen::Temp& dst,
-                        std::list<assem::Instruction>::iterator iter) {
+                        TempGen::Temp src,
+                        TempGen::Temp dst,
+                        std::list<assem::Instruction>::iterator iter) -> void {
     auto dst_spilled = spilled_temps.contains(dst);
     auto src_spilled = spilled_temps.contains(src);
 
