@@ -17,6 +17,7 @@ Checks: >
   -readability-else-after-return,
   -readability-static-accessed-through-instance,
   -readability-avoid-const-params-in-decls,
+  -readability-trailing-comma,
 
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-owning-memory,

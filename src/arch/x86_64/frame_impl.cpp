@@ -204,7 +204,7 @@ void X86Frame::proc_entry_exit2(std::list<assem::Instruction>& list)
     if(std::holds_alternative<assem::Oper>(i))
     {
       auto& oper = std::get<assem::Oper>(i);
-      if(oper.assem.starts_with("*"))
+      if(oper.assem.starts_with('*'))
       {
         outgoing_params++;
         max_outgoing_params = std::max(outgoing_params, max_outgoing_params);
@@ -239,7 +239,7 @@ auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
   // we indirectly save the return address and the old fp for a total of 16 bytes
 
   stack_offset_t space =
-    (spilled_temps * word_size + word_size * max_outgoing_params + 15) & ~(15U);
+    ((spilled_temps * word_size) + (word_size * max_outgoing_params) + 15) & ~15U;
   const stack_offset_t off =
     -space + (static_cast<stack_offset_t>(word_size * max_outgoing_params));
 
@@ -250,7 +250,7 @@ auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
     if(std::holds_alternative<assem::Oper>(i))
     {
       auto& oper = std::get<assem::Oper>(i);
-      if(oper.assem.starts_with("*"))
+      if(oper.assem.starts_with('*'))
       {
         // instruction that need to be patched
         outgoing_param++;
