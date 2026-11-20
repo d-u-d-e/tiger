@@ -11,6 +11,17 @@
 #  include <graphviz/gvcext.h>
 #endif
 
+namespace
+{
+template <typename Container>
+void sort_and_unique(Container& c)
+{
+  std::ranges::sort(c);
+  auto [first, last] = std::ranges::unique(c);
+  c.erase(first, last);
+}
+} // namespace
+
 namespace flow
 {
 
@@ -56,8 +67,10 @@ FlowGraph::FlowGraph(const std::list<assem::Instruction>& ins,
     {
       auto oper = std::get<assem::Oper>(i);
       auto& data = get_node(curr).data();
-      std::ranges::sort(oper.dst);
-      std::ranges::sort(oper.src);
+
+      sort_and_unique(oper.src);
+      sort_and_unique(oper.dst);
+
       data.def = std::list(oper.dst.begin(), oper.dst.end());
       data.use = std::list(oper.src.begin(), oper.src.end());
       // add edges to jump nodes

@@ -39,7 +39,7 @@ auto Analyzer::dump_result() const -> std::string
   std::string out;
   const auto& temp_mapper = fg.get_temporary_mapper();
 
-  auto format_list_of_temps = [&temp_mapper](const std::list<TempGen::Temp>& a) {
+  auto format_list_of_temps = [&temp_mapper](const std::list<TempGen::Temp>& a) -> std::string {
     std::string out("[");
     for(auto i{a.begin()}; i != a.end(); i++)
     {
