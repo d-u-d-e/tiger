@@ -73,9 +73,11 @@ void EscapeFinder::visit_for_exp(parser::ast::ForExp& exp)
 {
   exp.low->accept(*this);
   exp.high->accept(*this);
+  env.begin_scope();
   *exp.escape = false;
-  env.enter(exp.var, Escape(env.depth(), exp.escape));
+  env.enter(exp.var, Escape(fun_depth, exp.escape));
   exp.body->accept(*this);
+  env.end_scope();
 }
 
 void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
@@ -89,16 +91,18 @@ void EscapeFinder::visit_call_exp(parser::ast::CallExp& exp)
 
 void EscapeFinder::visit_let_exp(parser::ast::LetExp& exp)
 {
+  env.begin_scope();
   for(auto& d : exp.decls)
   {
     d->accept(*this);
   }
   exp.body->accept(*this);
+  env.end_scope();
 }
 
 void EscapeFinder::visit_var(parser::ast::Var& var)
 {
-  if(const auto *v = env.lookup(var.name); (v != nullptr) && v->depth < env.depth())
+  if(const auto* v = env.lookup(var.name); (v != nullptr) && v->depth < fun_depth)
   {
     *v->ref = true;
   }
@@ -117,25 +121,33 @@ void EscapeFinder::visit_subscript_var(parser::ast::SubscriptVar& var)
 
 void EscapeFinder::visit_var_decl(parser::ast::VarDecl& decl)
 {
-  *decl.escape = false;
-  env.enter(decl.name, Escape(env.depth(), decl.escape));
+  // the initializer sees the outer binding of the name, not the one being declared
   decl.init->accept(*this);
+  *decl.escape = false;
+  env.enter(decl.name, Escape(fun_depth, decl.escape));
 }
 
 void EscapeFinder::visit_func_decl(parser::ast::FuncDecl& decl)
 {
+  // add all decls first
   for(auto& d : decl.decls)
   {
     *d->escape = false;
-    env.enter(d->name, Escape(env.depth(), d->escape));
+    env.enter(d->name, Escape(fun_depth, d->escape));
+  }
 
+  // do the bodies
+  for(auto& d : decl.decls)
+  {
     env.begin_scope();
+    fun_depth++;
     for(auto& p : d->params)
     {
       *p.escape = false;
-      env.enter(p.name, Escape(env.depth(), p.escape));
+      env.enter(p.name, Escape(fun_depth, p.escape));
     }
     d->body->accept(*this);
+    fun_depth--;
     env.end_scope();
   }
 }

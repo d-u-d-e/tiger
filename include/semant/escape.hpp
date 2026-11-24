@@ -64,6 +64,9 @@ class EscapeFinder : public FindEscapeExprVisitor,
 
   private:
   Environment<Escape> env;
+  // Function nesting level. Kept apart from env's scopes, which also open on let and for:
+  // a variable escapes only when used from a function deeper than the one declaring it.
+  int fun_depth{0};
 };
 
 } // namespace semant

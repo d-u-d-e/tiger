@@ -29,6 +29,11 @@ expected_outputs=(
     [spillmove]="acce"
     [duploop]="ya"
     [sc]="a2a3b2b2"
+    [mutescape]="5"
+    [let_escape]="7"
+    [for_escape]="7"
+    [varinit_escape]="7"
+    [param_escape]="7"
 )
 
 shopt -s nullglob

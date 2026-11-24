@@ -92,13 +92,13 @@ Translator<FrameT>::Translator()
 }
 
 template <IsFrame FrameT>
-std::shared_ptr<Level<FrameT>> Translator<FrameT>::main_level()
+auto Translator<FrameT>::main_level() -> std::shared_ptr<Level<FrameT>>
 {
   return lvl_main;
 }
 
 template <IsFrame FrameT>
-std::shared_ptr<Level<FrameT>> Translator<FrameT>::outermost_level()
+auto Translator<FrameT>::outermost_level() -> std::shared_ptr<Level<FrameT>>
 {
   return lvl_outermost;
 }

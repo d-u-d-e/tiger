@@ -1,0 +1,3 @@
+let function a(n: int): int = if n = 0 then 5 else b(n - 1)
+    function b(n: int): int = a(n)
+in print(chr(a(3) + 48)) end

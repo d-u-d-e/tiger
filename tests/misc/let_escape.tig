@@ -1,0 +1,4 @@
+let var x := 7 in
+  (let var x := 1 in () end;
+   let function f(): int = x in print(chr(f() + 48)) end)
+end

@@ -1,0 +1,3 @@
+let function g(n: int): int =
+  let function h(): int = n in h() end
+in print(chr(g(7) + 48)) end
