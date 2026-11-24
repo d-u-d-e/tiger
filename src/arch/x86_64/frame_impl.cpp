@@ -55,7 +55,26 @@ X86Frame::X86Frame(TempGen::Label label, const std::vector<bool>& formals)
   auto off = static_cast<stack_offset_t>(2 * word_size);
   for(size_t i = params_on_regs.size(); i < formals.size(); i++)
   {
-    formals_.emplace_back(InFrame(off));
+    if(formals[i])
+    {
+      // Param escapes, but is passed on the stack. Nested functions reach it through the static link,
+      // which points to the ER and not to this frame, so it must live in the ER too.
+      // As for escaping register params, we load it into a temporary and proc_entry_exit1 moves it to the ER.
+      auto temp = TempGen::new_temp();
+      auto ax = alloc_local(true);
+      formals_.push_back(ax);
+      escaping_formals[temp] = ax;
+
+      view_shift = std::make_unique<ir::tree::SeqStmt>(
+        std::move(view_shift),
+        std::make_unique<ir::tree::MoveStmt>(
+          std::make_unique<ir::tree::TempExp>(temp),
+          exp(InFrame(off), std::make_unique<ir::tree::TempExp>(FP))));
+    }
+    else
+    {
+      formals_.emplace_back(InFrame(off));
+    }
     off += word_size;
   }
 }
@@ -240,8 +259,6 @@ auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
 
   stack_offset_t space =
     ((spilled_temps * word_size) + (word_size * max_outgoing_params) + 15) & ~15U;
-  const stack_offset_t off =
-    -space + (static_cast<stack_offset_t>(word_size * max_outgoing_params));
 
   // patch instructions
   uint32_t outgoing_param{};
@@ -254,12 +271,12 @@ auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
       {
         // instruction that need to be patched
         outgoing_param++;
-        i = assem::Oper{
-          .assem{std::format("mov  QWORD PTR [`s0{}], `s1\n",
-                             off - (static_cast<stack_offset_t>(word_size * outgoing_param)))},
-          .dst{},
-          .src{oper.src},
-          .jmp{}};
+        i = assem::Oper{.assem{std::format(
+                          "mov  QWORD PTR [`s0{}], `s1\n",
+                          -space + static_cast<stack_offset_t>(word_size * (outgoing_param - 1)))},
+                        .dst{},
+                        .src{oper.src},
+                        .jmp{}};
       }
       else if(oper.assem.starts_with("call"))
       {
@@ -284,8 +301,8 @@ auto X86Frame::proc_entry_exit3(std::list<assem::Instruction>& list)
                           space);
 
   const std::string epilogue = "mov  rsp, rbp\n"
-                         "pop  rbp\n"
-                         "ret  \n";
+                               "pop  rbp\n"
+                               "ret  \n";
 
   return {prologue, epilogue};
 }
@@ -317,9 +334,10 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
     return off;
   };
 
-  auto rewrite = [&spilled_temps, &get_off, &list](std::vector<TempGen::Temp>& src,
-                                                   std::vector<TempGen::Temp>& dst,
-                                                   std::list<assem::Instruction>::iterator iter) -> void {
+  auto rewrite =
+    [&spilled_temps, &get_off, &list](std::vector<TempGen::Temp>& src,
+                                      std::vector<TempGen::Temp>& dst,
+                                      std::list<assem::Instruction>::iterator iter) -> void {
     for(auto t : spilled_temps)
     {
       // get the offset of the spilled temporary
@@ -370,10 +388,9 @@ void X86Frame::rewrite_program(std::list<assem::Instruction>& list,
     }
   };
 
-  auto rewrite_move = [&spilled_temps, &get_off, &list](
-                        TempGen::Temp src,
-                        TempGen::Temp dst,
-                        std::list<assem::Instruction>::iterator iter) -> void {
+  auto rewrite_move =
+    [&spilled_temps, &get_off, &list](
+      TempGen::Temp src, TempGen::Temp dst, std::list<assem::Instruction>::iterator iter) -> void {
     auto dst_spilled = spilled_temps.contains(dst);
     auto src_spilled = spilled_temps.contains(src);
 

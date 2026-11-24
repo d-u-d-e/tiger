@@ -1,0 +1,4 @@
+let function h8(p1:int, p2:int, p3:int, p4:int, p5:int, p6:int, p7:int, p8:int) =
+      (print(chr(p6 + 48)); print(chr(p7 + 48)); print(chr(p8 + 48)))
+    function h6(p1:int, p2:int, p3:int, p4:int, p5:int, p6:int) = print(chr(p6 + 48))
+in (h8(1, 2, 3, 4, 5, 6, 7, 8); print(" "); h6(1, 2, 3, 4, 5, 9)) end

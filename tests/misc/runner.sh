@@ -34,6 +34,9 @@ expected_outputs=(
     [for_escape]="7"
     [varinit_escape]="7"
     [param_escape]="7"
+    [stackparam_escape]="7"
+    [argorder]="678"
+    [mixed_stackargs]="678 9"
 )
 
 shopt -s nullglob
